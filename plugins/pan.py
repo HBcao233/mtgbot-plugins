@@ -1,24 +1,12 @@
 from telethon import events, utils, types
 import re
-import traceback
-import asyncio
 
 import config
 import util
 from util.log import logger
 
 
-prefix = {
-  'photo': 'p_',
-  'video': 'v_',
-  'document': 'd_',
-  'audio': 'a_',
-}
-
 bot = config.bot
-loop = asyncio.get_event_loop()
-
-
 @bot.on(events.NewMessage)
 async def _(event):
   if event.message.grouped_id:
@@ -58,7 +46,7 @@ async def file(event):
   for i in r:
     t = utils.resolve_bot_file_id(i)
     add = utils.get_input_media(t)
-    logger.info(t.to_dict())
+    logger.debug(t.to_dict())
     if isinstance(t, types.Photo):
       medias.append(add)
     elif isinstance(t, types.Document):

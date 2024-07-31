@@ -1,5 +1,5 @@
-# tgbot-plugins
-[tgbot](https://github.com/HBcao233/tgbot) 框架下的一些 plugins
+# mtgbot-plugins
+[mtgbot](https://github.com/HBcao233/mtgbot) 框架下的一些 plugins
 
 | 插件名 | 功能 |
 | :----: | :----: |
