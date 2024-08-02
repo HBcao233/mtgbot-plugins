@@ -6,9 +6,15 @@ import util
 from util.log import logger
 
 
+del_time = 30
+caption = f'This message will delete in {del_time} seconds'
 bot = config.bot
+
+
 @bot.on(events.NewMessage)
 async def _(event):
+  if not event.is_private:
+    return
   if event.message.grouped_id:
     return 
   code = None
@@ -22,6 +28,8 @@ async def _(event):
 
 @bot.on(events.Album)
 async def _(event):
+  if not event.is_private:
+    return
   await bot.send_message(
     event.messages[0].peer_id,
     "\n".join('`' + (
@@ -32,13 +40,14 @@ async def _(event):
     reply_to=event.messages[0].id,
   )
     
-    
-caption = 'This message will delete in 60 seconds'
+
 _pattern = re.compile("([a-zA-Z0-9-_]{31,34})")
 @bot.on(events.NewMessage(
   pattern=_pattern.search
 ))
 async def file(event):
+  if not event.is_private:
+    return
   r = _pattern.findall(event.message.message)
   medias = []
   documents = []
@@ -66,8 +75,13 @@ async def file(event):
       others.append(add)
   
   if medias: 
-    await bot.send_file(event.peer_id, medias)
+    ms = await bot.send_file(event.peer_id, medias, caption=caption, reply_to=event.message)
+    bot.schedule_delete_messages(del_time, event.peer_id, ms)
+    
   if documents: 
-    await bot.send_file(event.peer_id, documents)
+    ms = await bot.send_file(event.peer_id, documents, caption=caption, reply_to=event.message)
+    bot.schedule(del_time, bot.delete_messages(event.peer_id, ms))
+    
   for i in others:
-    await bot.send_file(event.peer_id, i)
+    ms = await bot.send_file(event.peer_id, i, caption=caption, reply_to=event.message)
+    bot.schedule(del_time, bot.delete_messages(event.peer_id, ms))
