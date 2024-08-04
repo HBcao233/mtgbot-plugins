@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+# @Author  : HBcao
+# @Email   : hbcaoqaq@gmail.com
+
 from telethon import events, utils, types
 import re
 

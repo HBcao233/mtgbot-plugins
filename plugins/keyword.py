@@ -1,3 +1,11 @@
+# -*- coding: utf-8 -*-
+# @Author  : HBcao
+# @Email   : hbcaoqaq@gmail.com
+''' .env.example
+# superadmin 的 id, 多个请用逗号隔开
+superadmin = 1234567, 123456789
+'''
+
 from telethon import events
 import re
 import random
@@ -6,11 +14,6 @@ import util
 from util.log import logger
 from plugin import handler, Scope
 
-'''
-.env.example 
-# 机器人管理者
-superadmin = 1234567, 123456789
-'''
 
 bot = config.bot
 @handler('add', 
@@ -26,7 +29,9 @@ async def _add(event, text):
     return await event.reply('请输入关键词')
     
   with util.Data('keywords') as data:
-    data[text] = [event.chat_id, reply_message.id]
+    if data[text] is None:
+      data[text] = []
+    data[text].append([event.chat_id, reply_message.id])
   await event.reply(f'添加关键词 "{text}" 成功')
   
   
@@ -70,13 +75,13 @@ async def _list(event, text):
   
 @handler()
 async def _(event, text):
-  if not text:
+  if not text or event.message.message.startswith('/'):
     return
   data = util.Data('keywords')
   ms = []
   for i in data.keys():
     if re.search(i, text):
-      ms.append(data[i])
+      ms.extend(data[i])
   
   if len(ms) > 0:
     chat_id, message_id = random.choice(ms)
