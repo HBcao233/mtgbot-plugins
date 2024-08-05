@@ -17,4 +17,5 @@
 | keyword | 关键词回复 | `superadmin` |
 | pan | tg网盘 | |
 | lighton | 点灯游戏 | |
+| randomsese | 随机涩图 | |
 | bookkeeping | 小记账本 | |

@@ -8,7 +8,7 @@ import random
 
 import config
 from util import logger
-from plugin import handler
+from plugin import handler, InlineCommand
 
 
 bot = config.bot 
@@ -26,15 +26,13 @@ async def roll(event):
   raise events.StopPropagation
 
 
-@bot.on(events.InlineQuery(
-  pattern=_query_pattern
-))
+@InlineCommand(_query_pattern)
 async def _(event):
   builder = event.builder
   _min, _max = getMinMax(event.pattern_match)
   res = random.randint(_min, _max)
   msg = f'🎲 骰到了 {res} ({_min} ~ {_max})' 
-  await event.answer([
+  return [
     builder.article(
       title='投骰子',
       description=f'在 {_min} ~ {_max} 之中生成随机数', 
@@ -42,13 +40,13 @@ async def _(event):
       thumb=types.InputWebDocument(
         url='https://i.postimg.cc/VsR2Dp6K/image.png',
         size=21790,
-        mime_type='image/png',
+        mime_type='image/jpeg',
         attributes=[
           types.DocumentAttributeImageSize(w=180, h=180)
         ],
       )
     )
-  ])
+  ]
   
   
 def getMinMax(match):
