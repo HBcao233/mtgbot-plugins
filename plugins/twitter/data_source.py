@@ -103,10 +103,15 @@ def parseTidMsg(res):
           full_text = full_text.replace(i["url"], i["expanded_url"])
   full_text = re.sub(r"\s*https:\/\/t\.co\/\w+$", "", full_text)
   full_text = re.sub(
-      r"#([^ \n]+)", r'<a href="https://x.com/hashtag/\1">#\1</a>', full_text
+    r"#([^ \n]+)", 
+    r'<a href="https://x.com/hashtag/\1">#\1</a>', 
+    full_text
   )
   full_text = re.sub(
-      r"@(\w*)", r'<a href="https://x.com/\1">@\1</a>', full_text)
+    r"([^@]*[^/@]+)@([0-9a-zA-Z_]*)", 
+    r'\1<a href="https://x.com/\2">@\2</a>', 
+    full_text
+  )
 
   user_name = user["name"]
   user_screen_name = user["screen_name"]
