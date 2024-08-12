@@ -9,7 +9,7 @@ from util.log import logger
 async def video2gif(img, mid):
   _path, name = os.path.split(img)
   _name, _ext = os.path.splitext(name)
-  output = os.path.join(_path, _name + '.gif')
+  output = os.path.join(_path, f'{_name}_gif.gif')
   bar = util.progress.Progress(mid)
   bar.set_prefix('转换中...')
   
@@ -40,14 +40,23 @@ async def tgs2ext(img, ext='gif'):
 async def video2ext(img, ext, mid):
   _path, name = os.path.split(img)
   _name, _ = os.path.splitext(name)
-  output = os.path.join(_path, _name + '.' + ext)
-  
-  command = ['ffmpeg', '-i', img, output, '-pix_fmt', 'yuv420p', '-y']
-  bar = FFmpegProgress(mid)
+  output = os.path.join(_path, f'{_name}_{ext}.{ext}')
+  bar = util.progress.Progress(mid)
   bar.set_prefix('转换中...')
-  returncode, stdout = await bar.run(command)
-  if returncode != 0:
-    logger.warning(stdout.decode())
+  
+  cv = 'h264'
+  if ext == 'webm':
+    cv = 'libvpx-vp9'
+  command = [
+    'ffmpeg', '-i', img, 
+    '-c:v', cv, '-pix_fmt', 'yuv420p',
+    '-r', '30', '-b:v', '1500k',
+    '-lavfi', 'scale=2560:-1:flags=lanczos,pad=ceil(iw/2)*2:ceil(ih/2)*2',
+    output, '-y'
+  ]
+  returncode, stdout = await util.media.ffmpeg(command, progress_callback=bar.update)
+  if returncode != 0: 
+    logger.error(stdout)
     return False
   return output
   

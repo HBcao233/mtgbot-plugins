@@ -58,15 +58,19 @@ async def _gif(event):
       file = open(res, 'rb')
     
     bar.set_prefix('发送中...')
-    res = await config.bot.send_file(
-      entity=event.message.peer_id,
-      reply_to=event.message,
-      file=file,
-      force_document=True,
-      attributes=[types.DocumentAttributeAnimated()],
-      progress_callback=bar.update
-    )
-    logger.debug('result: %s', res)
+    try:
+      res = await config.bot.send_file(
+        entity=event.message.peer_id,
+        reply_to=event.message,
+        file=file,
+        force_document=True,
+        attributes=[types.DocumentAttributeAnimated()],
+        progress_callback=bar.update
+      )
+    except errors.FloodWaitError as e:
+      logger.info('遇到 FloodWaitError, 请在 %s秒后重试', e.seconds)
+      return await mid.edit('遇到 FloodWaitError, 请在 %s秒后重试' % e.seconds)
+      
     await mid.delete()
     with data:
       data[key] = res
@@ -110,20 +114,17 @@ async def _video_convert(event, ext='mp4'):
       bar.set_prefix('下载中...')
       await reply_message.download_media(file=img, progress_callback=bar.update)
     
-    if mime_type == 'video/' + ext:
-      res = img
+    if mime_type == 'application/x-tgsticker':
+      lottiepath = getLottiePath()
+      if lottiepath is None:
+        return await mid.edit('暂不支持动态贴纸转换')
+      img = await tgs2ext(img, ext)
+      if not img:
+        return await mid.edit('转换失败')
     else:
-      if mime_type == 'application/x-tgsticker':
-        lottiepath = getLottiePath()
-        if lottiepath is None:
-          return await mid.edit('暂不支持动态贴纸转换')
-        img = await tgs2ext(img, ext)
-        if not img:
-          return await mid.edit('转换失败')
-      else:
-        res = await video2ext(img, ext, mid)
-        if not res:
-          return await mid.edit('转换失败')
+      res = await video2ext(img, ext, mid)
+      if not res:
+        return await mid.edit('转换失败')
   
     file, duration, w, h, thumb = util.videoInfo(res)
     attributes = [
