@@ -68,7 +68,7 @@ async def _gif(event):
         progress_callback=bar.update
       )
     except errors.FloodWaitError as e:
-      logger.info('遇到 FloodWaitError, 请在 %s秒后重试', e.seconds)
+      logger.error('遇到 FloodWaitError, 请在 %s秒后重试', e.seconds)
       return await mid.edit('遇到 FloodWaitError, 请在 %s秒后重试' % e.seconds)
       
     await mid.delete()
