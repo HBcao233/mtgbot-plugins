@@ -1,6 +1,7 @@
 import os
 import traceback
 from rlottie_python import LottieAnimation
+import cv2
 
 import util
 from util.log import logger
@@ -16,9 +17,16 @@ async def video2gif(img, mid):
   cv = 'h264'
   if _ext == '.webm':
     cv = 'libvpx-vp9'
+  cap = cv2.VideoCapture(img)
+  rate = cap.get(5)
+  width = cap.get(3)
+  w = 360
+  if width < 360:
+    w = width
   command = [
     'ffmpeg', '-c:v', cv, '-i', img, 
-    '-lavfi', 'scale=480:-1:flags=lanczos,pad=480:ih:(ow-iw)/2:(oh-ih)/2:00000000,split[s0][s1];[s0]palettegen=reserve_transparent=on:transparency_color=00000000[p];[s1][p]paletteuse',
+    '-r', '15', '-b:v', '1000k',
+    '-lavfi', f'fps=15,scale={w}:-1:flags=lanczos,pad={w}:ih:(ow-iw)/2:(oh-ih)/2:00000000,split[s0][s1];[s0]palettegen=reserve_transparent=on:transparency_color=00000000[p];[s1][p]paletteuse',
     output, '-y'
   ]
   returncode, stdout = await util.media.ffmpeg(command, progress_callback=bar.update)
