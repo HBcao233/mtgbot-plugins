@@ -208,9 +208,7 @@ async def send_animation(event, pid, msg, mid):
   
 async def send_photos(event, res, msg, options, mid):
   pid = res['illustId']
-  imgUrl = res["urls"]["regular"]
-  if options.origin:
-    imgUrl = res["urls"]["original"]
+  imgUrl = res["urls"]["original"]
   count = res["pageCount"]
   data = util.Documents() if options.origin else util.Photos()
   bar = Progress(
@@ -222,19 +220,17 @@ async def send_photos(event, res, msg, options, mid):
     nonlocal options, data, bar
     url = imgUrl.replace("_p0", f"_p{i}")
     key = f"{pid}_p{i}"
-    if not options.origin:
-      key += '_regular'
     if (file_id := data[key]):
       return util.media.file_id_to_media(file_id, options.mark)
     
     try:
-      media = await util.getImg(url, saveas=key, ext=True, headers=headers)
+      img = await util.getImg(url, saveas=key, ext=True, headers=headers)
     except Exception:
       logger.error(traceback.format_exc())
       raise PluginException(f'p{i} 图片获取失败')
     await bar.add(1)
     return await util.media.file_to_media(
-      media, options.mark, 
+      img, options.mark, 
       force_document=options.origin,
     )
   
@@ -256,8 +252,6 @@ async def send_photos(event, res, msg, options, mid):
   with data:
     for i in range(count):
       key = f"{pid}_p{i}"
-      if not options.origin:
-        key += '_regular'
       data[key] = m[i]
   await mid.delete()
   return m
