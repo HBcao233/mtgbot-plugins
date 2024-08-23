@@ -30,22 +30,24 @@ async def get_pixiv(pid):
 def parse_msg(res, hide=False):
   pid = res["illustId"]
   
-  '''tags = []
+  tags = []
   for i in res["tags"]["tags"]:
-      tags.append("#" + i["tag"])
-      if "translation" in i.keys():
-          tags.append("#" + i["translation"]["en"])
+    tags.append(("#" + i["tag"]).replace('#R-', '#R'))
+    if "translation" in i.keys():
+      tags.append(("#" + i["translation"]["en"]).replace('#R-', '#R'))
+  '''
   tags = (
-      json.dumps(tags, ensure_ascii=False)
+    json.dumps(tags, ensure_ascii=False)
       .replace('"', "")
       .replace("[", "")
       .replace("]", "")
   )'''
-
+  
   props = []
-  if res["tags"]["tags"][0]["tag"] == "R-18":
-      props.append('#NSFW')
-  if res["tags"]["tags"][0]["tag"] == "R-18G":
+  if any((tag := t) in tags for t in ['#R18', '#R17.9']):
+    props.append('#NSFW')
+    props.append(tag)
+  if '#R18G' in tags:
       props.append('#R18G')
       props.append('#NSFW')
   if res['illustType'] == 2:
