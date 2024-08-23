@@ -12,7 +12,6 @@ from telethon import types
 import re
 import traceback
 import asyncio
-from bs4 import BeautifulSoup
 import ujson as json
 from datetime import datetime
 
@@ -20,8 +19,10 @@ import config
 import util
 from util.log import logger
 from plugin import handler
-from .data_source import headers, parseEidSMsg, parseEidGMsg, parsePage
-from util.progress import Progress
+from .data_source import (
+  get, getImg, PluginException,
+  page_info, gallery_info, get_telegraph
+)
 
 
 bot = config.bot
@@ -31,7 +32,11 @@ _pattern = re.compile(r'^/?(?:eid)? ?(?:https?://)?(e[x-])hentai\.org/([sg])/([0
   info="e站爬取 /eid <url> [hide] [mark]"
 )
 async def eid(event, text):
-  if event.message.photo or event.message.video:
+  if (
+    not event.message.is_private or 
+    event.message.photo or 
+    event.message.video
+  ): 
     return
   match = event.pattern_match
   arr = [match.group(i) for i in range(1, 5)]
@@ -42,16 +47,13 @@ async def eid(event, text):
   
   # 单页图片
   if arr[1] == "s":
-    r = await util.get(text, headers=headers)
-    html = r.text
-    if "Your IP address has been" in html:
-      return await event.reply("梯子IP被禁，请联系管理员更换梯子")
-    if "Not Found" in html:
-      return await event.reply("页面不存在")
-
-    msg, url = parseEidSMsg(text, html)
+    try:
+      r = await get(text)
+    except PluginException as e:
+      return await mid.edit(str(e))
+    msg, imgurl = page_info(text, r.text)
     async with bot.action(event.peer_id, 'photo'):
-      img = await util.getImg(url, proxy=True, headers=headers)
+      img = await getImg(imgurl)
       await bot.send_file(
         event.peer_id,
         img,
@@ -62,41 +64,31 @@ async def eid(event, text):
   # 画廊
   if arr[1] == "g":
     mid = await event.reply("请等待...")
-    r = await util.get(text, params={'p': 0}, headers=headers)
-    html0 = r.text
-    if "Your IP address has been" in html0:
-      return await mid.edit("IP被禁")
-    if "Not Found" in html0:
-      return await mid.edit("页面不存在")
-    
-    soup = BeautifulSoup(html0, "html.parser")
-    title, num, magnets = await parseEidGMsg(text, soup)
-    logger.info(title)
-    if not title:
-      return await mid.edit('获取失败')
+    try:
+      title, num, magnets, tags = await gallery_info(arr[2], arr[3])
+    except PluginException as e:
+      return await mid.edit(str(e))
     
     now = datetime.now()
-    key = '/'.join(arr) + f'_{now:%m-%d}'
-    logger.info(key)
-    with util.Data('urls') as data:
-      if not (url := data[key]) or options.nocache:
-        bar = Progress(mid)
-        url = await parsePage(text, soup, title, num, options.nocache, bar)
-        if not url:
-          return await mid.edit('获取失败')
+    key = f'eg{arr[2]}-{now:%m-%d}'
+    if not (url := util.Data('urls')[key]) or options.nocache:
+      url, warnings = await get_telegraph(arr, title, num, options.nocache, mid)
+      if not url:
+        return await mid.edit('获取失败')
+      if warnings:
+        await event.reply('\n'.join(warnings))
+      with util.Data('urls') as data:
         data[key] = url
-    
+        
+    await mid.delete()
+    eurl = f"https://{arr[0]}hentai.org/g/{arr[2]}/{arr[3]}"
     msg = (
       f'标题: <code>{title}</code>\n'
-      f'预览: <a href="{url}">{url}</a>\n'
+      f'{tags}'
       f"数量: {num}\n" 
-      f"原链接: {text}"
+      f"{magnets}"
+      f'<a href="{url}">预览</a> / <a href="{eurl}">原链接</a>'
     )
-    if len(magnets) > 0:
-      msg += "\n磁力链："
-    for i in magnets:
-      msg += f"\n· <code>{i}</code>"
-    
     await bot.send_file(
       event.peer_id,
       caption=msg,
@@ -108,4 +100,3 @@ async def eid(event, text):
         optional=True,
       ),
     )
-    await mid.delete()
