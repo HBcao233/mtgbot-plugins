@@ -53,11 +53,12 @@ async def eid(event, text):
       return await mid.edit(str(e))
     msg, imgurl = page_info(text, r.text)
     async with bot.action(event.peer_id, 'photo'):
-      img = await getImg(imgurl)
+      img = await getImg(imgurl, ext=True)
       await bot.send_file(
         event.peer_id,
         img,
         caption=msg,
+        parse_mode="HTML",
         reply_to=event.message,
       )
 

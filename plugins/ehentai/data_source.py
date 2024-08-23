@@ -14,7 +14,7 @@ env = config.env
 ipb_member_id = env.get('ex_ipb_member_id', '')
 ipb_pass_hash = env.get('ex_ipb_pass_hash', '')
 igneous = env.get('ex_igneous', '')
-headers = {
+eheaders = {
   'cookie': f'ipb_member_id={ipb_member_id};ipb_pass_hash={ipb_pass_hash};igneous={igneous}',
 }
 api_url = 'https://s.exhentai.org/api.php'
@@ -24,8 +24,10 @@ class PluginException(Exception):
   pass
 
 
-async def get(url, params=None):
-  r = await util.get(url, params=params, headers=headers)
+async def get(url, params=None, headers=None, *args, **kwargs):
+  if headers is None:
+    headers = {}
+  r = await util.get(url, params=params, headers={**eheaders, **headers}, *args, **kwargs)
   if "Your IP address has been" in r.text:
     raise PluginException("IP被禁")
   if "Not Found" in r.text:
@@ -33,8 +35,8 @@ async def get(url, params=None):
   return r
 
 
-async def getImg(url):
-  return await util.getImg(url, headers=headers)
+async def getImg(url, *args, **kwargs):
+  return await util.getImg(url, headers=eheaders, *args, **kwargs)
   
 
 def page_info(eid, _html):
@@ -48,13 +50,13 @@ def page_info(eid, _html):
   source = soup.select("#i6 a")[2].attrs["href"]
   parent = soup.select("#i5 a")[0].attrs["href"]
   return (
-    f"\n<code>{name}</code>\n"
+    f"<code>{name}</code>\n"
     f"{sn}\n"
-    f"前：{prev}\n"
-    f"后：{next}\n"
+    f"此页: {eid}\n"
+    f"前页：{prev}\n"
+    f"后页：{next}\n"
     f"原图：{source}\n"
     f"画廊：{parent}"
-    f"\n\n{eid}"
   ), url
 
 
@@ -66,7 +68,7 @@ async def parseEidGMsg(eid, soup):
     title = soup.select("#gd2 #gn")[0].string
 
   url = soup.select("#gd5 p")[2].a.attrs["onclick"].split("'")[1]
-  r = await util.get(url, headers=headers)
+  r = await util.get(url, headers=eheaders)
   html = r.text
   soup2 = BeautifulSoup(html, "html.parser")
 
@@ -90,7 +92,7 @@ async def gallery_info(gid, token):
     ],
     'namespace': 1
   })
-  r = await util.post(api_url, data=data, headers=headers)
+  r = await util.post(api_url, data=data, headers=eheaders)
   try:
     res = r.json()
     if 'error' in res:
@@ -164,7 +166,7 @@ async def get_telegraph(arr, title, num, nocache, mid):
   
   async def _get(url, params=None):
     nonlocal eurl
-    return await util.get(url, params=params, headers=dict(headers, referer=eurl))
+    return await util.get(url, params=params, headers=dict(eheaders, referer=eurl))
     
   r = await _get(eurl, params={'p': 0})
   soup = BeautifulSoup(r.text, "html.parser")
@@ -208,7 +210,7 @@ async def get_telegraph(arr, title, num, nocache, mid):
       'imgkey': imgkeys[i],
       'showkey': showkey,
     })
-    r = await util.post(api_url, data=data, headers=headers)
+    r = await util.post(api_url, data=data, headers=eheaders)
     match = re.search(r'''<a.*?load_image\((\d*),.*?'(.*?)'\).*?<img.*?src="(.*?)"''', r.json()['i3'])
     next_i, next_imgkey = match.group(1), match.group(2) 
     return match.group(3)
