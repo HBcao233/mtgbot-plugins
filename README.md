@@ -8,12 +8,15 @@
 | roll | 投骰子| |
 | gif | 视频/动图/贴纸格式转换 | |
 | communicate | 传话机器人 | |
+||||
 | pixiv | pixiv爬取 | `pixiv_PHPSESSID` |
 | twitter | X爬取 | `twitter_csrf_token`, `twitter_auth_token`|
 | bili | bili爬取 | `bili_SESSDATA` |
 | kemono | kemono爬取 | |
 | ehentai | ehentai爬取 | `ex_ipb_member_id`, `ex_ipb_pass_hash`, `ex_igneous` |
 | fanbox | fanbox爬取 | |
+| nhentai | nhentai 爬取 (tags中文依赖于 `ehentai/ehtags-cn.json`) | |
+||||
 | keyword | 关键词回复 | `superadmin` |
 | pan | tg网盘 | |
 | lighton | 点灯游戏 | |
