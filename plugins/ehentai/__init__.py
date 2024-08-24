@@ -73,11 +73,9 @@ async def eid(event, text):
     now = datetime.now()
     key = f'eg{arr[2]}-{now:%m-%d}'
     if not (url := util.Data('urls')[key]) or options.nocache:
-      url, warnings = await get_telegraph(arr, title, num, options.nocache, mid)
+      url = await get_telegraph(arr, title, num, options.nocache, mid)
       if not url:
         return await mid.edit('获取失败')
-      if warnings:
-        await event.reply('\n'.join(warnings))
       with util.Data('urls') as data:
         data[key] = url
         

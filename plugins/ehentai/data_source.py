@@ -2,7 +2,6 @@ from bs4 import BeautifulSoup
 import asyncio
 import re, os
 import ujson as json
-import traceback
 
 import util
 import config
@@ -162,46 +161,30 @@ async def get_telegraph(arr, title, num, nocache, mid):
   gid = arr[2]
   eurl = f"https://{arr[0]}hentai.org/g/{gid}/{arr[3]}"
   num = int(num)
-  warnings = []
+  bar = util.progress.Progress(mid, 100, '获取图片列表', False)
   
-  async def _get(url, params=None):
-    nonlocal eurl
-    return await util.get(url, params=params, headers=dict(eheaders, referer=eurl))
-    
-  r = await _get(eurl, params={'p': 0})
-  soup = BeautifulSoup(r.text, "html.parser")
-  
-  urls = []
-  for i in soup.select("#gdt a"):
-    urls.append(i.attrs["href"])
-  
-  p = 1
-  while len(urls) < min(num, 100):
-    try:
-      r = await _get(eurl, params={'p': p})
-      arr = BeautifulSoup(r.text, "html.parser").select("#gdt a")
-      for i in arr:
-        urls.append(i.attrs["href"])
-    except Exception:
-      warnings.append('未能成功获取所有p')
-      logger.warning(traceback.format_exc())
-      break
-    p += 1
-  if num > len(urls):
-    warnings.append(f"画廊图片过多, 仅获取前 {len(urls)}张")
-  bar = util.progress.Progress(mid, total=len(urls))
-  
-  _pattern = re.compile(r'^(?:https?://)?(?:e[x-])hentai\.org/s/([0-9a-z]+)/([0-9a-z-]+)').match
-  imgkeys = [_pattern(i).group(1) for i in urls]
-  r = await _get(urls[0], params={'p': p})
-  showkey = re.search(r'var showkey ?= ?"(.*?)";', r.text).group(1)
-  soup = BeautifulSoup(r.text, "html.parser")
-  first_url = soup.select("#i3 img")[0].attrs["src"]
-  
+  class Res:
+    def __init__(self, url=None, warning=None):
+      self.url = url 
+      self.warning = warning
+      
+    def parse(self):
+      if self.url:
+        return {
+          'tag': 'img',
+          'attrs': {
+            'src': self.url
+          },
+        } 
+      return {
+        'tag': 'p',
+        'children': [self.warning],
+      }
+      
   async def get_imgurl(i):
-    nonlocal gid, imgkeys, showkey
+    nonlocal gid, imgkeys, showkey, client
     if i == 0:
-      return first_url
+      return Res(first_url)
       
     data=json.dumps({
       'method': 'showpage',
@@ -210,45 +193,94 @@ async def get_telegraph(arr, title, num, nocache, mid):
       'imgkey': imgkeys[i],
       'showkey': showkey,
     })
-    r = await util.post(api_url, data=data, headers=eheaders)
+    try:
+      r = await client.post(api_url, data=data, headers=eheaders)
+    except:
+      try:
+        r = await client.post(api_url, data=data, headers=eheaders)
+      except:
+        w = f'p{i+1} 获取失败'
+        logger.warning(w, exc_info=1)
+        return Res(None, w)
     match = re.search(r'''<a.*?load_image\((\d*),.*?'(.*?)'\).*?<img.*?src="(.*?)"''', r.json()['i3'])
     next_i, next_imgkey = match.group(1), match.group(2) 
-    return match.group(3)
+    return Res(match.group(3))
       
-  async def parse(i):
-    nonlocal gid, bar, urls, data
+  async def _parse(i):
+    nonlocal gid, bar, urls, data, client
     key = f"es{gid}-{i}"
-    if not nocache and (url := data.get(key)):
-      await bar.add(1)
-      return url
-      
-    url = await get_imgurl(i)
+    if (url := data.get(key)):
+      return Res(url)
+    
+    res = await get_imgurl(i)
+    if res.url is None:
+      return res
+    url = res.url
     try:
-      r = await util.post(
+      r = await client.post(
         'https://telegra.ph/upload',
         files={
-          'file': (await _get(url)).content
+          'file': (await client.get(url)).content
         }
       )
+    except:
+      logger.warning(f'p{i+1} 上传失败', exc_info=1)
+      return Res(url)
+    else:
       url = r.json()[0]['src']
       data[key] = url
-    except:
-      warnings.append(f'p{i+1} 获取失败')
-      logger.warning(traceback.format_exc())
+    return Res(url)
     
+  async def parse(i):
+    res = await _parse(i)
     await bar.add(1)
-    return url
-    
-  data = util.Data('urls')
-  tasks = [parse(i) for i in range(len(urls))]
-  content = [{
-    'tag': 'img',
-    'attrs': {
-      'src': i,
-    },
-  } for i in await asyncio.gather(*tasks)] 
-  data.save()
+    return res
   
+  async with util.curl.Client(headers=dict(eheaders, referer=eurl)) as client:
+    r = await client.get(eurl, params={'p': 0})
+    soup = BeautifulSoup(r.text, "html.parser")
+  
+    urls = []
+    for i in soup.select("#gdt a"):
+      urls.append(i.attrs["href"])
+    await bar.update(len(urls), min(num, 100))
+  
+    p = 1
+    while len(urls) < min(num, 100):
+      try:
+        r = await client.get(eurl, params={'p': p})
+        arr = BeautifulSoup(r.text, "html.parser").select("#gdt a")
+        for i in arr:
+          urls.append(i.attrs["href"])
+        await bar.update(len(urls), min(num, 100))
+      except Exception:
+        logger.warning(f'未能成功获取所有p', exc_info=1)
+        break
+      p += 1
+    
+    bar.set_prefix('下载中...')
+    bar.set_total(len(urls))
+    bar.percent = True
+    bar.p = 0
+    
+    _pattern = re.compile(r'^(?:https?://)?(?:e[x-])hentai\.org/s/([0-9a-z]+)/([0-9a-z-]+)').match
+    imgkeys = [_pattern(i).group(1) for i in urls]
+    r = await client.get(urls[0], params={'p': p})
+    showkey = re.search(r'var showkey ?= ?"(.*?)";', r.text).group(1)
+    soup = BeautifulSoup(r.text, "html.parser")
+    first_url = soup.select("#i3 img")[0].attrs["src"]
+  
+    data = util.Data('urls')
+    tasks = [parse(i) for i in range(len(urls))]
+    result = await asyncio.gather(*tasks)
+  
+  success_num = len(result)
+  result.extend([
+    Res(None, f"爬取数量: {success_num}张"),
+    Res(None, f"原链接: {eurl}")
+  ])
+  content = [res.parse() for res in result]
+  data.save()
   page = await createPage(title, content)
-  return page, warnings
+  return page
   
