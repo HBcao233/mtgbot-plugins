@@ -1,19 +1,20 @@
 import asyncio
-import httpx
 from functools import cmp_to_key
-import base64
-import gzip
-import struct
 
 import util
 from util.log import logger
-from .auth import headers, getMixinKey, wbi
+from .auth import gheaders, getMixinKey, wbi
 
-
+# qn=64 代表 720P
 qn = 64
 
 
-def _cmp(x, y):
+@cmp_to_key
+def choose_video(x, y):
+  """
+  选择不大于 qn 的最大清晰度 (有大于qn选择qn, 没有则选择最大清晰度);
+  多个qn则更倾向于选择 codecid=12 (HEVC 编码).
+  """
   if x['id'] > qn:
     return 1
   if y['id'] > qn:
@@ -35,7 +36,7 @@ async def get_bili(bvid, aid):
   r = await util.get(
     'https://api.bilibili.com/x/web-interface/view', 
     params={ 'aid': aid, 'bvid': bvid },
-    headers=headers,
+    headers=gheaders
   )
   res = r.json()
   if res['code'] in [-404, 62002, 62004]:
@@ -71,30 +72,40 @@ def parse_msg(res, p=1):
   
   
 async def get_video(bvid, aid, cid, progress_callback=None):
-  video_url = None
-  audio_url = None
-  videos, audios = await _get_video(aid, cid)
-  if audios is None:
-    video_url = videos
-  else:
-    videos = sorted(videos, key=cmp_to_key(_cmp))
+  async with util.curl.Client(headers=gheaders) as client:
+    video_url = None
+    audio_url = None
+    videos, audios = await _get_video(aid, cid, client)
+    if videos is None:
+      return None
+    if audios is None:
+      video_url = videos
+      return await client.getImg(
+        video_url, 
+        headers={'referer': f'https://www.bilibili.com/video/{bvid}'},
+        saveas=f'{bvid}_{cid}',
+        ext='mp4'
+      )
+    
+    videos = sorted(videos, key=choose_video)
     logger.info(f"qn: {videos[0]['id']}, codecid: {videos[0]['codecid']}")
     video_url = videos[0]['base_url']
     for i in audios:
       if i['id'] == 30216:
         audio_url = i['base_url']
         break
+    
+    result = await asyncio.gather(
+      client.getImg(
+        video_url, 
+        headers={'referer': f'https://www.bilibili.com/video/{bvid}'}
+      ), 
+      client.getImg(
+        audio_url,
+        headers={'referer': f'https://www.bilibili.com/video/{bvid}'}
+      ),
+    ) 
   
-  result = await asyncio.gather(
-    util.getImg(
-      video_url,
-      headers=dict(**headers, Referer=f'https://www.bilibili.com/video/{bvid}'),
-    ), 
-    util.getImg(
-      audio_url,
-      headers=dict(**headers, Referer=f'https://www.bilibili.com/video/{bvid}'),
-    ),
-  ) 
   path = util.getCache(f'{bvid}_{cid}.mp4')
   command = ['ffmpeg', '-i', result[0]]
   if result[1] != '':
@@ -108,9 +119,9 @@ async def get_video(bvid, aid, cid, progress_callback=None):
   return path
 
 
-async def _get_video(aid, cid):
+async def _get_video(aid, cid, client=None):
   url = 'https://api.bilibili.com/x/player/wbi/playurl'
-  mixin_key = await getMixinKey()
+  mixin_key = await getMixinKey(client)
   params = {
     'fnver': 0,
     'fnval': 16,
@@ -118,17 +129,16 @@ async def _get_video(aid, cid):
     'avid': aid,
     'cid': cid,
   }
-  headers = {
-    'Referer': 'https://www.bilibili.com',
-  }
-  r = await util.get(
+  r = await client.get(
     url,
     params=wbi(mixin_key, params),
-    headers=headers,
+    headers={ 'Referer': 'https://www.bilibili.com' }
   )
   # logger.info(r.text)
   res = r.json()['data']
   if 'dash' in res:
     return res['dash']['video'], res['dash']['audio']
+  if 'durl' not in res:
+    return None, None
   return res['durl'][0]['url'], None
   

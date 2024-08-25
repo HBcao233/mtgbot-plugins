@@ -13,7 +13,7 @@ import config
 import util
 from util.log import logger
 from plugin import handler
-from .data_source import headers, get_bili, parse_msg, get_video
+from .data_source import get_bili, parse_msg, get_video
 
 
 bot = config.bot
@@ -35,11 +35,7 @@ async def _(event, text):
   
   flag = False
   if match.group(2):
-    r = await util.get(
-      'https://b23.tv/'+ match.group(2),
-      follow_redirects=True,
-      headers=headers,
-    )
+    r = await util.get('https://b23.tv/' + match.group(2))
     text = str(r.url)
     match = _pattern(text.split('?')[0])
     flag = True
@@ -61,7 +57,7 @@ async def _(event, text):
     await event.reply(
       f'https://www.bilibili.com/video/{bvid}' + ('?p=' + str(p) if p>1 else ''), 
     )
-    
+  
   mid = await event.reply("请等待...")
   res = await get_bili(bvid, aid)
   if isinstance(res, str):
@@ -75,10 +71,12 @@ async def _(event, text):
     key += '_p' + str(p)
   bar = util.progress.Progress(mid, '发送中')
   async with bot.action(event.chat_id, 'video'):
-    if (file_id := data.get(key, None)) or options.nocache:
+    if (file_id := data.get(key, None)) and not options.nocache:
       media = util.media.file_id_to_media(file_id, options.mark)
     else:
       file = await get_video(bvid, aid, cid)
+      if file is None:
+        return await mid.edit('获取失败, 请重试')
       media = await util.media.file_to_media(file, options.mark, progress_callback=bar.update)
     
     await mid.delete()
@@ -95,5 +93,3 @@ async def _(event, text):
   message_id_bytes = res.id.to_bytes(4, 'big')
   sender_bytes = b'~' + event.sender_id.to_bytes(6, 'big', signed=True)
   await res.edit(buttons=Button.inline('移除遮罩' if options.mark else '添加遮罩', b'mark_' + message_id_bytes + sender_bytes))
-  
- 
