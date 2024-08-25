@@ -276,7 +276,7 @@ async def get_telegraph(arr, title, num, nocache, mid):
   
   success_num = len(result)
   result.extend([
-    Res(None, f"爬取数量: {success_num}张"),
+    Res(None, f"爬取数量: {success_num} / {num}"),
     Res(None, f"原链接: {eurl}")
   ])
   content = [res.parse() for res in result]
