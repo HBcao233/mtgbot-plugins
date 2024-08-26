@@ -157,16 +157,16 @@ async def get_telegraph(arr, title, num, nocache, mid):
   if not nocache:
     for i in await getPageList():
       if i['title'] == title:
-        return i['url'], []
+        return i['url']
   gid = arr[2]
   eurl = f"https://{arr[0]}hentai.org/g/{gid}/{arr[3]}"
   num = int(num)
   bar = util.progress.Progress(mid, 100, '获取图片列表', False)
   
   class Res:
-    def __init__(self, url=None, warning=None):
+    def __init__(self, url=None, text=None):
       self.url = url 
-      self.warning = warning
+      self.text = text
       
     def parse(self):
       if self.url:
@@ -178,7 +178,7 @@ async def get_telegraph(arr, title, num, nocache, mid):
         } 
       return {
         'tag': 'p',
-        'children': [self.warning],
+        'children': [self.text],
       }
       
   async def get_imgurl(i):
@@ -260,7 +260,7 @@ async def get_telegraph(arr, title, num, nocache, mid):
     
     bar.set_prefix('下载中...')
     bar.set_total(len(urls))
-    bar.percent = True
+    # bar.percent = True
     bar.p = 0
     
     _pattern = re.compile(r'^(?:https?://)?(?:e[x-])hentai\.org/s/([0-9a-z]+)/([0-9a-z-]+)').match
@@ -276,7 +276,7 @@ async def get_telegraph(arr, title, num, nocache, mid):
   
   success_num = len(result)
   result.extend([
-    Res(None, f"爬取数量: {success_num} / {num}"),
+    Res(None, f"获取数量: {success_num} {f' / {num}' if num != success_num else ''}"),
     Res(None, f"原链接: {eurl}")
   ])
   content = [res.parse() for res in result]

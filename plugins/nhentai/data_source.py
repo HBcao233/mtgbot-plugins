@@ -69,46 +69,69 @@ async def get_telegraph(gid, title, media_id, exts, nocache, mid):
   if not nocache:
     for i in await getPageList():
       if i['title'] == title:
-        return i['url'], []
+        return i['url']
+  num = len(exts)
+  bar = util.progress.Progress(mid, total=num, prefix='下载中', percent=False)
   
-  bar = util.progress.Progress(mid, total=len(exts))
-  warnings = []
+  class Res:
+    def __init__(self, url=None, text=None):
+      self.url = url 
+      self.text = text
+      
+    def parse(self):
+      if self.url:
+        return {
+          'tag': 'img',
+          'attrs': {
+            'src': self.url
+          },
+        } 
+      return {
+        'tag': 'p',
+        'children': [self.text],
+      }
   
-  async def parse(i):
-    nonlocal warnings
+  async def _parse(i):
+    nonlocal client
     key = f"nhentais{gid}-{i}"
-    if not nocache and (url := data.get(key)):
-      await bar.add(1)
-      return url
+    if (url := data.get(key)):
+      return Res(url)
     
     url = f"https://i.nhentai.net/galleries/{media_id}/{i+1}.{exts[i]}"
     try:
-      headers = { 'referer': f"https://nhentai.net/g/{gid}" }
-      r = await util.post(
+      r = await client.post(
         'https://telegra.ph/upload',
         files={
-          'file': (await util.get(url, headers=headers)).content
+          'file': (await client.get(url)).content
         }
       )
       url = r.json()[0]['src']
       data[key] = url
     except:
-      warnings.append(f'p{i+1} 获取失败')
-      logger.warning(traceback.format_exc())
+      w = f'p{i+1} 获取失败'
+      logger.warning(w, exc_info=1)
+      return Res(None, w)
     
+    return Res(url)
+    
+  async def parse(i):
+    res = await _parse(i)
     await bar.add(1)
-    return url
+    return res
   
-  data = util.Data('urls')
-  tasks = [parse(i) for i in range(len(exts))]
-  content = [{
-    'tag': 'img',
-    'attrs': {
-      'src': i,
-    },
-  } for i in await asyncio.gather(*tasks)] 
+  async with util.curl.Client(headers={ 'referer': f"https://nhentai.net/g/{gid}" }) as client:
+    data = util.Data('urls')
+    tasks = [parse(i) for i in range(num)]
+    result = await asyncio.gather(*tasks)
+  
+  success_num = len(result)
+  result.extend([
+    Res(None, f"获取数量: {success_num} {f' / {num}' if num != success_num else ''}"),
+    Res(None, f"原链接: https://nhentai.net/g/{gid}")
+  ])
+  content = [i.parse() for i in result] 
   data.save()
   
   page = await createPage(title, content)
-  return page, warnings
+  return page
   

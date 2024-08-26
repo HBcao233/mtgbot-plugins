@@ -58,11 +58,9 @@ async def nid(event, text):
   now = datetime.now()
   key = f'nhentaig{gid}-{now:%m-%d}'
   if not (url := util.Data('urls')[key]) or options.nocache:
-    url, warnings = await get_telegraph(gid, title, media_id, exts, options.nocache, mid)
+    url = await get_telegraph(gid, title, media_id, exts, options.nocache, mid)
     if not url:
       return await mid.edit('获取失败')
-    if warnings:
-      await event.reply('\n'.join(warnings))
     with util.Data('urls') as data:
       data[key] = url
       
