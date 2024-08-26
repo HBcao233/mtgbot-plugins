@@ -9,14 +9,12 @@ bili_SESSDATA =
 from telethon import types, Button
 import re 
 
-import config
 import util
 from util.log import logger
 from plugin import handler
 from .data_source import get_bili, parse_msg, get_video
 
 
-bot = config.bot
 _pattern = re.compile(r"(?:^|^(?:/?bili(?:@%s)?) ?|(?:https?://)?bilibili\.com/video/)(av\d{1,11}|BV[0-9a-zA-Z]{8,12})|(?:b23\.tv\\?/((?![0-9]{7,7})[0-9a-zA-Z]{7,7}))|^/bili" % bot).search
 @handler(
   'bili',

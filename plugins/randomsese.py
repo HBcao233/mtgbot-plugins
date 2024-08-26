@@ -5,13 +5,11 @@
 from telethon import events, types, utils, functions
 import time
 
-import config
 import util
 from util.log import logger
 from plugin import InlineCommand
 
 
-bot = config.bot
 url = 'https://api.lolicon.app/setu/v2?size=regular&size=thumb&tag=萝莉&r18=1'
 @InlineCommand(' *$')
 async def _(event):

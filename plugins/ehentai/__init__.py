@@ -15,7 +15,6 @@ import asyncio
 import ujson as json
 from datetime import datetime
 
-import config
 import util
 from util.log import logger
 from plugin import handler
@@ -25,7 +24,6 @@ from .data_source import (
 )
 
 
-bot = config.bot
 _pattern = re.compile(r'^/?(?:eid)? ?(?:https?://)?(e[x-])hentai\.org/([sg])/([0-9a-z]+)/([0-9a-z-]+)|^/eid').match
 @handler('eid',
   pattern=_pattern,

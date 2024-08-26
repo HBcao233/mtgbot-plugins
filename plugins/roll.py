@@ -6,12 +6,10 @@ from telethon import events, types
 import re
 import random
 
-import config
 from util import logger
 from plugin import handler, InlineCommand
 
 
-bot = config.bot 
 _p = r'[ \[\(\{]*(-?\d{1,3})? *(?:[\/~d,:-]|to)*? *(-?\d{1,3})?[ \]\)\}]*$'
 _pattern = re.compile((r'/?roll(?:@%s)?' % bot.me.username) + _p).match
 _query_pattern = re.compile(_p).match

@@ -4,7 +4,6 @@ import traceback
 import os
 import asyncio
 
-import config
 import util
 from util.log import logger
 from util.progress import Progress
@@ -12,7 +11,6 @@ from plugin import handler
 from .data_source import parse_msg, parse_page
 
 
-bot = config.bot
 _pattern = re.compile(r"^/?(?:kid(?:@%s)?)? ?(?:(?:https://)?kemono\.(?:party|su)/)?([a-z]+)(?:(?:/user)?/(\d+))?(?:/post)?/(\d+)|^/kid" % bot.me.username).match
 @handler('kid',
   pattern=_pattern,

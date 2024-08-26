@@ -1,14 +1,12 @@
 from telethon import events, Button
 import re
 
-import config
 from util.log import logger
 from plugin import handler
 from .gauss_elimination import gen_matrix, gauss_elimination, format_vector
 
 
 caption = "来用小方块填满我吧❤️～\n"
-bot = config.bot
 @handler('lighton', info='点灯游戏')
 async def _(event, text):
   try:

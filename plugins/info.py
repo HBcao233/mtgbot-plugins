@@ -4,13 +4,11 @@
 
 from telethon import events, types, utils
 
-import config
 import util
 from util.log import logger
 from plugin import handler
 
 
-bot = config.bot
 @handler('info')
 async def _(event):
   message = event.message

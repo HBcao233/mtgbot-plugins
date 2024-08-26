@@ -5,13 +5,11 @@
 from telethon import events, utils, errors, functions, Button
 import re 
 
-import config
 import util
 from util.log import logger
 from plugin import handler
 
 
-bot = config.bot
 @handler('mark', 
   info='给回复媒体添加遮罩',
   pattern=re.compile('^/(mark|spoiler)')

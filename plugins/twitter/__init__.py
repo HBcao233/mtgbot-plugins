@@ -13,14 +13,12 @@ import re
 import os
 import ujson as json 
 
-import config
 import util
 from util.log import logger
 from plugin import handler
 from .data_source import headers, get_twitter, parseTidMsg, parseMedias
 
 
-bot = config.bot
 _p = r'(?:^|^(?:/?tid(?:@%s)?) ?|(?:https?://)?(?:twitter|x|vxtwitter|fxtwitter)\.com/[a-zA-Z0-9_]+/status/)(\d{13,20})(?:[^0-9].*)?$|^/tid' % bot.me.username
 _pattern = re.compile(_p).search
 _group_pattern = re.compile(_p.replace(r'(?:^|', r'^(?:')).search

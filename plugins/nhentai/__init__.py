@@ -7,14 +7,12 @@ from telethon import types
 import re
 from datetime import datetime
 
-import config
 import util
 from util.log import logger
 from plugin import handler
 from .data_source import PluginException, gallery_info, get_telegraph
 
 
-bot = config.bot
 _pattern = re.compile(r'^/?(?:nid)? ?(?:https?://)?nhentai\.net/g/([0-9a-z]+)(?:/([0-9a-z]+))?|^/nid').match
 @handler('nid',
   pattern=_pattern,

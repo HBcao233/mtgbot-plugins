@@ -2,7 +2,6 @@ from telethon import types
 import os.path 
 from asyncio import CancelledError
 
-import config
 import util
 from util import logger
 from plugin import handler
@@ -59,7 +58,7 @@ async def _gif(event):
     
     bar.set_prefix('发送中...')
     try:
-      res = await config.bot.send_file(
+      res = await bot.send_file(
         entity=event.message.peer_id,
         reply_to=event.message,
         file=file,
@@ -133,7 +132,7 @@ async def _video_convert(event, ext='mp4'):
     ]
   
   bar.set_prefix('发送中...')
-  res = await config.bot.send_file(
+  res = await bot.send_file(
     entity=event.message.peer_id,
     reply_to=event.message,
     file=file,

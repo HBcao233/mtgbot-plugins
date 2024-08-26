@@ -5,14 +5,12 @@
 from telethon import events, utils, types
 import re
 
-import config
 import util
 from util.log import logger
 
 
 del_time = 30
 caption = f'This message will delete in {del_time} seconds'
-bot = config.bot
 
 
 @bot.on(events.NewMessage)

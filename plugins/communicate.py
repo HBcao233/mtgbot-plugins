@@ -12,9 +12,6 @@ from plugin import handler
 from util.data import MessageData
 
 
-bot = config.bot
-
-
 def to_bytes(i):
   return i.to_bytes(4, 'big')
   
@@ -69,7 +66,7 @@ async def _(event):
     return
   
   peer_id = utils.get_peer_id(event.message.peer_id)
-  chat = await config.bot.get_entity(event.message.peer_id)
+  chat = await bot.get_entity(event.message.peer_id)
   name = getattr(chat, 'first_name', '') 
   
   reply_message = await event.message.get_reply_message()

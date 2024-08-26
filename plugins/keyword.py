@@ -15,7 +15,6 @@ from util.log import logger
 from plugin import handler, Scope
 
 
-bot = config.bot
 @handler('add', 
   info='添加关键词', 
   scope=Scope.superadmin()
