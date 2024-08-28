@@ -75,7 +75,7 @@ async def get_video(bvid, aid, cid, progress_callback=None):
   async with util.curl.Client(headers=gheaders) as client:
     video_url = None
     audio_url = None
-    videos, audios = await _get_video(aid, cid, client)
+    videos, audios = await _get_video(bvid, cid, client)
     if videos is None:
       return None
     if audios is None:
@@ -115,24 +115,25 @@ async def get_video(bvid, aid, cid, progress_callback=None):
   
   returncode, stdout = await util.media.ffmpeg(command, progress_callback)
   if returncode != 0: 
-    logger.warning(stdout)
+    logger.error(stdout)
+    return None
   return path
 
 
-async def _get_video(aid, cid, client=None):
+async def _get_video(bvid, cid, client=None):
   url = 'https://api.bilibili.com/x/player/wbi/playurl'
   mixin_key = await getMixinKey(client)
   params = {
     'fnver': 0,
     'fnval': 16,
     'qn': qn,
-    'avid': aid,
+    'bvid': bvid,
     'cid': cid,
   }
   r = await client.get(
     url,
     params=wbi(mixin_key, params),
-    headers={ 'Referer': 'https://www.bilibili.com' }
+    headers={ 'referer': f'https://www.bilibili.com/video/{bvid}' }
   )
   # logger.info(r.text)
   res = r.json()['data']
