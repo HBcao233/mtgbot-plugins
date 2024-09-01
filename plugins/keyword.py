@@ -70,9 +70,9 @@ async def _list(event, text):
     '关键词列表: \n' + "\n".join(msg), 
     parse_mode='HTML',
   )
-  
-  
-@handler()
+
+
+@bot.on(events.NewMessage)
 async def _(event, text):
   if not text or event.message.message.startswith('/'):
     return
