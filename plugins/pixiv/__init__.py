@@ -49,7 +49,7 @@ async def _pixiv(event, text):
   res = await get_pixiv(pid)
   if isinstance(res, str):
     return await event.reply(res)
-  msg = parse_msg(res, options.hide)
+  msg, tags = parse_msg(res, options.hide)
   try:
     if res['illustType'] == 2:
       return await send_animation(event, pid, msg, mid)
@@ -58,7 +58,7 @@ async def _pixiv(event, text):
       if count < 11:
         res = await send_photos(event, res, msg, options, mid)
       else:
-        url, msg = await get_telegraph(res)
+        url, msg = await get_telegraph(res, tags)
         await mid.delete()
         return await bot.send_file(
           event.peer_id,
@@ -121,7 +121,7 @@ async def _(event):
   res = await get_pixiv(pid)
   if isinstance(res, str):
     return await event.answer(res, alert=True)
-  msg = parse_msg(res, hide)
+  msg, tags = parse_msg(res, hide)
   try:
     await message.edit(msg, parse_mode='html')
   except errors.MessageNotModifiedError:

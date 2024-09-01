@@ -78,7 +78,7 @@ def parse_msg(res, hide=False):
       comment = ':\n' + comment
       msg += comment
   
-  return msg
+  return msg, tags
 
 
 async def get_anime(pid):
@@ -127,7 +127,7 @@ async def get_anime(pid):
   return img
   
   
-async def get_telegraph(res):
+async def get_telegraph(res, tags):
   data = util.Data('urls')
   now = datetime.now()
   pid = res['illustId']
@@ -150,6 +150,7 @@ async def get_telegraph(res):
   msg = (
     f"标题: {res['illustTitle']}\n"
     f"预览: {url}\n"
+    f"标签: {' '.join(tags)}\n"
     f"作者: <a href=\"https://www.pixiv.net/users/{res['userId']}/\">{res['userName']}</a>\n"
     f"数量: {res['pageCount']}\n"
     f"原链接: https://www.pixiv.net/artworks/{pid}"
