@@ -29,25 +29,27 @@ class EchoedMessage(MessageData):
     cls._conn.execute(f"CREATE UNIQUE INDEX if not exists id_index ON messages (id)")
     cls._conn.commit()
     cls.inited = True
-    
+
   @classmethod
   def add_echo(cls, chat_id, message_id, echo_chat_id, echo_message_id):
     cls.init()
     mid = cls.get_message(chat_id, message_id)
     echo_mid = cls.get_message(echo_chat_id, echo_message_id)
     logger.debug(f'add_echo mid: {mid} echo_mid: {echo_mid}')
-    r = cls._conn.execute(f"insert into echoed_messages(mid, echo_mid) values(?,?)", (mid, echo_mid))
+
+    cursor = cls._conn.cursor()
+    r = cursor.execute(f"insert into echoed_messages(mid, echo_mid) values(?,?)", (mid, echo_mid))
     cls._conn.commit()
-    return r.fetchone()
-  
+    return cursor.lastrowid
+
   @classmethod
   def get_echo(cls, chat_id, message_id=None):
     cls.init()
     mid = cls.get_message(chat_id, message_id)
     r = cls._conn.execute(f"SELECT echo_mid FROM echoed_messages WHERE mid='{mid}'")
     if (res := r.fetchone()):
-      return cls.get_message_by_mid(res[0])
-    return None, None
+      return cls.get_message_by_rid(res[0])
+    return None
   
   @classmethod
   def get_origin(cls, chat_id, message_id=None):
@@ -55,8 +57,8 @@ class EchoedMessage(MessageData):
     mid = cls.get_message(chat_id, message_id)
     r = cls._conn.execute(f"SELECT mid FROM echoed_messages WHERE echo_mid='{mid}'")
     if (res := r.fetchone()):
-      return cls.get_message_by_mid(res[0])
-    return None, None
+      return cls.get_message_by_rid(res[0])
+    return None
 
 
 @bot.on(events.NewMessage(pattern=r'^(?!/).*'))
@@ -72,14 +74,14 @@ async def _(event):
   reply_message = await event.message.get_reply_message()
   if t := getattr(chat, 'last_name', ''):
     name += ' ' + t
-    
-  reply_to = None
+
   if peer_id != config.echo_chat_id:
     buttons = [
       [Button.url(name, url=f"tg://user?id={chat.id}")],
     ]
+    reply_to = None
     if reply_message:
-      reply_to = EchoedMessage.get_origin(reply_message)[1]
+      reply_to = EchoedMessage.get_origin(reply_message).message_id
     
     m = await bot.send_message(
       config.echo_chat_id,
@@ -91,13 +93,13 @@ async def _(event):
     return
   
   if reply_message:
-    origin_chat_id, origin_message_id = EchoedMessage.get_origin(reply_message)
+    res = EchoedMessage.get_origin(reply_message)
     m = await bot.send_message(
-      origin_chat_id,
+      res.chat_id,
       message,
-      reply_to=origin_message_id,
+      reply_to=res.message_id,
     )
-    EchoedMessage.add_echo(config.echo_chat_id, message, origin_chat_id, m)
+    EchoedMessage.add_echo(config.echo_chat_id, message, res.chat_id, m)
 
   
 @bot.on(events.Raw)
@@ -108,16 +110,15 @@ async def handler(update):
   
   message = (await bot.get_messages(update.peer, ids=[update.msg_id]))[0]
   if utils.get_peer_id(message.from_id) == bot.me.id:
-    cid, mid = EchoedMessage.get_origin(update.peer, update.msg_id)
+    res = EchoedMessage.get_origin(update.peer, update.msg_id)
   else:
-    cid, mid = EchoedMessage.get_echo(update.peer, update.msg_id)
-  
-  if not cid or not mid:
+    res = EchoedMessage.get_echo(update.peer, update.msg_id)
+  if not res:
     return
   
   await bot(functions.messages.SendReactionRequest(
-    peer=cid,
-    msg_id=mid,
+    peer=res.chat_id,
+    msg_id=res.message_id,
     reaction=update.new_reactions,
     big=True,
     add_to_recent=False,
