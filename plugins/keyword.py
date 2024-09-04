@@ -38,7 +38,7 @@ async def _add(event, text):
   info='删除关键词', 
   scope=Scope.superadmin()
 )
-async def _(event, text):
+async def _del(event, text):
   if event.sender_id not in config.superadmin:
     return
   
@@ -72,7 +72,7 @@ async def _list(event, text):
   )
 
 
-@bot.on(events.NewMessage)
+@handler()
 async def _(event, text):
   if not text or event.message.message.startswith('/'):
     return
