@@ -4,6 +4,7 @@
 
 from telethon import events, utils, errors, functions, Button
 import re 
+from collections.abc import Sequence
 
 import util
 from util.log import logger
@@ -142,8 +143,8 @@ async def _(event):
     mid_bytes = mid.id.to_bytes(4, 'big')
     buttons.append(Button.inline('移除遮罩', b'smark_' + mid_bytes))
 
-  # mid_bytes = event.messages[0].id.to_bytes(4, 'big')
-  # buttons.append('合并图片', data=b'merge_')
+  mid_bytes = event.messages[0].id.to_bytes(4, 'big')
+  buttons.append(Button.inline('合并图片', data=b'amerge_' + mid_bytes))
   await event.reply(
     f'收到 {len(event.messages)} 个媒体',
     buttons=buttons, 
@@ -157,6 +158,13 @@ def finish_buttons(buttons):
   if len(buttons) == 0:
     return None
   return buttons
+
+def delete_button(buttons, pattern):
+  for i, ai in enumerate(buttons[0]):
+    if pattern(ai.data):
+      buttons[0].pop(i)
+      break
+  return finish_buttons(buttons)
 
 
 smark_button_pattern = re.compile(rb'smark_([\x00-\xff]{4,4})$').match
@@ -192,14 +200,140 @@ async def smark_button(event):
   )
 
   # 处理完毕修改按钮
-  buttons = btn_message.buttons
-  for i, ai in enumerate(buttons[0]):
-    if smark_button_pattern(ai.data):
-      buttons[0].pop(i)
-      break
-
   try:
-    await event.edit(buttons=finish_buttons(buttons))
+    await event.edit(buttons=delete_button(btn_message.buttons, smark_button_pattern))
   except errors.MessageNotModifiedError:
     pass
   await event.answer()
+
+
+class MergeData(MessageData):
+  inited = False
+  @classmethod
+  def init(cls):
+    MessageData.init()
+    if MergeData.inited: return
+    cls._conn.execute(f"CREATE TABLE if not exists merge(id INTEGER PRIMARY KEY AUTOINCREMENT, chat_id INTEGER NOT NULL, mids BLOB NOT NULL, pin_mids BLOB)")
+    cls._conn.execute(f"CREATE UNIQUE INDEX if not exists id_index ON merge (id)")
+    cls._conn.commit()
+    MergeData.inited = True
+  
+  @staticmethod
+  def encode_mids(message_ids: Sequence[int]) -> bytes:
+    return b''.join(i.to_bytes(4, 'big') for i in message_ids)
+  
+  @staticmethod
+  def decode_mids(mids: bytes) -> list[int]:
+    ids = re.findall(rb'[\x00-\xff]{4,4}', mids)
+    return [int.from_bytes(i, 'big') for i in ids]
+  
+  @classmethod
+  def add_merge(cls, chat_id: int, message_ids: Sequence[int], pin_mid: int) -> int:
+    cls.init()
+    chat_id = utils.get_peer_id(chat_id)
+    mids = MergeData.encode_mids(message_ids)
+    pin_mids = MergeData.encode_mids([pin_mid])
+    if not cls.has_merge(chat_id):
+      cursor = cls._conn.cursor()
+      cursor.execute("INSERT INTO merge(chat_id, mids, pin_mids) values(?, ?, ?)", (chat_id, mids, pin_mids))
+      cls._conn.commit()
+      return cursor.lastrowid
+      
+  @classmethod
+  def update_merge(cls, chat_id: int, message_ids: Sequence[int], pin_mids: Sequence[int]) -> None:
+    cls.init()
+    chat_id = utils.get_peer_id(chat_id)
+    mids = MergeData.encode_mids(message_ids)
+    pin_mids = MergeData.encode_mids(pin_mids)
+    cls._conn.execute("UPDATE merge SET mids=?, pin_mids=? WHERE chat_id=?", (mids, pin_mids, chat_id))
+    cls._conn.commit()
+
+  @classmethod
+  def has_merge(cls, chat_id) -> bool:
+    cls.init()
+    chat_id = utils.get_peer_id(chat_id)
+    r = cls._conn.execute("SELECT id FROM merge where chat_id=?", (chat_id, ))
+    if r.fetchone():
+      return True
+    return False
+  
+  @classmethod
+  def get_merge(cls, chat_id):
+    cls.init()
+    chat_id = utils.get_peer_id(chat_id)
+    r = cls._conn.execute("SELECT * FROM merge where chat_id=?", (chat_id, ))
+    if res := r.fetchone():
+      return res._replace(mids=MergeData.decode_mids(res.mids), pin_mids=MergeData.decode_mids(res.pin_mids))
+    return None
+  
+  @classmethod
+  def delete_merge(cls, chat_id):
+    cls.init()
+    chat_id = utils.get_peer_id(chat_id)
+    cls._conn.execute("DELETE FROM merge where chat_id=?", (chat_id, ))
+    cls._conn.commit()
+
+
+add_merge_button_pattern = re.compile(rb'^amerge_([\x00-\xff]{4,4})$').match
+@bot.on(events.CallbackQuery(
+  pattern=add_merge_button_pattern
+))
+async def add_merge_button(event):
+  peer = event.query.peer
+  match = event.pattern_match
+  btn_message = await event.get_message()
+  ids = [int.from_bytes(match.group(1), 'big')]
+  res = MessageData.get_message(peer, ids[0])
+  if res.grouped_id:
+    ids = MessageData.get_group(res.grouped_id)
+  
+  if not MergeData.has_merge(peer):
+    m = await event.respond(
+      f'已添加 {len(ids)} 条媒体',
+      buttons=Button.inline('完成合并', data=b'fmerge'),
+      reply_to=btn_message.reply_to.reply_to_msg_id,
+    )
+    MergeData.add_merge(peer, ids, m.id)
+    m = await m.pin()
+    await m.delete()
+  else:
+    res = MergeData.get_merge(peer)
+    ids = res.mids + ids
+    m = await event.respond(
+      f'已添加 {len(ids)} 条媒体',
+      buttons=Button.inline('完成合并', data=b'fmerge'),
+      reply_to=btn_message.reply_to.reply_to_msg_id,
+    )
+    for i in res.pin_mids:
+      try:
+        await bot.edit_message(peer, i, buttons=None)
+      except errors.MessageNotModifiedError:
+        pass
+    MergeData.update_merge(peer, ids, res.pin_mids + [m.id])
+    m = await m.pin()
+    await m.delete()
+  
+  await event.answer()
+
+
+finish_merge_button_pattern = re.compile(rb'^fmerge$').match
+@bot.on(events.CallbackQuery(
+  pattern=finish_merge_button_pattern
+))
+async def finish_merge_button(event):
+  peer = event.query.peer
+  if not MergeData.has_merge(peer):
+    return await event.delete()
+  
+  res = MergeData.get_merge(peer)
+  messages = await bot.get_messages(peer, ids=res.mids)
+  if any(m is None for m in messages):
+    await event.answer('待合并媒体被删除', alert=True)
+  else:
+    await bot.send_file(peer, messages)
+  
+  MergeData.delete_merge(peer)
+  try:
+    await bot.delete_messages(peer, res.pin_mids)
+  except errors.MessageIdInvalidError:
+    pass
