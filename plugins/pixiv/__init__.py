@@ -16,7 +16,7 @@ import util
 from util.log import logger
 from util.progress import Progress
 from plugin import handler
-from .data_source import headers, get_pixiv, parse_msg, get_anime, get_telegraph
+from .data_source import PixivClient, parse_msg, get_telegraph
 
 
 _p = r'(?:^|^(?:/?pid(?:@%s)?) ?|(?:https?://)?(?:www\.)?(?:pixiv\.net/(?:member_illust\.php\?.*illust_id=|artworks/|i/)))(\d{6,12})(?:[^0-9].*)?$|^/pid.*$' % bot.me.username
@@ -46,36 +46,103 @@ async def _pixiv(event, text):
   logger.info(f"{pid = }, {options = }")
     
   mid = await event.reply('请等待...')
-  res = await get_pixiv(pid)
-  if isinstance(res, str):
-    return await event.reply(res)
-  msg, tags = parse_msg(res, options.hide)
-  try:
+  
+  async def send_animation():
+    nonlocal mid
+    async with bot.action(event.peer_id, 'file'):
+      data = util.Animations()
+      mid.edit('生成动图中...')
+      if not (file := data[pid]):
+        file = await client.get_anime()
+        if not file:
+          return await event.reply('生成动图失败')
+      
+      bar = Progress(mid, prefix=f"上传中...")
+      res = await bot.send_file(
+        event.peer_id,
+        file,
+        reply_to=event.message,
+        caption=msg,
+        parse_mode='html',
+        force_document=False,
+        attributes=[types.DocumentAttributeAnimated()],
+        progress_callback=bar.update
+      )
+      with data:
+        data[pid] = res
+      await mid.delete()
+  
+  async def send_photos():
+    nonlocal mid
+    pid = res['illustId']
+    imgUrl = res["urls"]["original"]
+    data = util.Documents() if options.origin else util.Photos()
+    bar = Progress(
+      mid, total=count,
+      prefix=f"正在获取 p1 ~ {count}",
+    )
+    
+    async def get_img(i):
+      nonlocal data
+      url = imgUrl.replace("_p0", f"_p{i}")
+      key = f"{pid}_p{i}"
+      if (file_id := data[key]):
+        return util.media.file_id_to_media(file_id, options.mark)
+      
+      try:
+        img = await client.getImg(url, saveas=key, ext=True)
+      except:
+        logger.error(f'p{i} 图片获取失败', exc_info=1)
+        return await mid.edit(f'p{i} 图片获取失败')
+      await bar.add(1)
+      return await util.media.file_to_media(
+        img, options.mark, 
+        force_document=options.origin,
+      )
+    
+    tasks = [get_img(i) for i in range(count)]
+    result = await asyncio.gather(*tasks)
+    async with bot.action(event.peer_id, 'photo'):
+      m = await bot.send_file(
+        event.peer_id, 
+        result,
+        caption=msg,
+        parse_mode='html',
+        reply_to=event.message
+      )
+    
+    with data:
+      for i in range(count):
+        key = f"{pid}_p{i}"
+        data[key] = m[i]
+    await mid.delete()
+    return m
+
+  async with PixivClient(pid) as client:
+    res = await client.get_pixiv()
+    if isinstance(res, str):
+      return await event.reply(res)
+    msg, tags = parse_msg(res, options.hide)
     if res['illustType'] == 2:
-      return await send_animation(event, pid, msg, mid)
+      return await send_animation()
+    
+    count = res["pageCount"]
+    if count <= 10:
+      res = await send_photos()
     else:
-      count = res["pageCount"]
-      if count < 11:
-        res = await send_photos(event, res, msg, options, mid)
-      else:
-        url, msg = await get_telegraph(res, tags)
-        await mid.delete()
-        return await bot.send_file(
-          event.peer_id,
-          caption=msg,
-          parse_mode='HTML',
-          file=types.InputMediaWebPage(
-            url=url,
-            force_large_media=True,
-            optional=True,
-          ),
-          reply_to=event.message,
-        )
-  except PluginException as e:
-    return await mid.edit(str(e))
-  except:
-    logger.error(traceback.format_exc())
-    return await mid.edit('发送失败')
+      url, msg = await get_telegraph(res, tags)
+      await mid.delete()
+      return await bot.send_file(
+        event.peer_id,
+        caption=msg,
+        parse_mode='HTML',
+        file=types.InputMediaWebPage(
+          url=url,
+          force_large_media=True,
+          optional=True,
+        ),
+        reply_to=event.message,
+      )
     
   if options.origin: 
     return
@@ -118,7 +185,9 @@ async def _(event):
     return await event.answer('消息被删除', alert=True)
     
   hide = '):\n' in message.text
-  res = await get_pixiv(pid)
+  
+  async with PixivClient(pid) as client:
+    res = await client.get_pixiv()
   if isinstance(res, str):
     return await event.answer(res, alert=True)
   msg, tags = parse_msg(res, hide)
@@ -173,83 +242,3 @@ async def _(event):
   text = f'/pid {pid} origin {hide}'
   event.pattern_match = _pattern(text)
   await _pixiv(event, text)
-  
-
-class PluginException(Exception):
-  pass 
-
-
-async def send_animation(event, pid, msg, mid):
-  async with bot.action(event.peer_id, 'file'):
-    data = util.Animations()
-    mid.edit('生成动图中...')
-    if not (file := data[pid]):
-      file = await get_anime(pid)
-      if not file:
-        return await event.reply('生成动图失败')
-    
-    bar = Progress(mid, prefix=f"上传中...")
-    res = await bot.send_file(
-      event.peer_id,
-      file,
-      reply_to=event.message,
-      caption=msg,
-      parse_mode='html',
-      force_document=False,
-      attributes=[types.DocumentAttributeAnimated()],
-      progress_callback=bar.update
-    )
-    with data:
-      data[pid] = res
-    await mid.delete()
-  
-  
-async def send_photos(event, res, msg, options, mid):
-  pid = res['illustId']
-  imgUrl = res["urls"]["original"]
-  count = res["pageCount"]
-  data = util.Documents() if options.origin else util.Photos()
-  bar = Progress(
-    mid, total=count,
-    prefix=f"正在获取 p1 ~ {count}",
-  )
-  
-  async def get_img(i):
-    nonlocal options, data, bar
-    url = imgUrl.replace("_p0", f"_p{i}")
-    key = f"{pid}_p{i}"
-    if (file_id := data[key]):
-      return util.media.file_id_to_media(file_id, options.mark)
-    
-    try:
-      img = await util.getImg(url, saveas=key, ext=True, headers=headers)
-    except Exception:
-      logger.error(traceback.format_exc())
-      raise PluginException(f'p{i} 图片获取失败')
-    await bar.add(1)
-    return await util.media.file_to_media(
-      img, options.mark, 
-      force_document=options.origin,
-    )
-  
-  tasks = [get_img(i) for i in range(count)]
-  result = await asyncio.gather(*tasks)
-  async with bot.action(event.peer_id, 'photo'):
-    try:
-      m = await bot.send_file(
-        event.peer_id, 
-        result,
-        caption=msg,
-        parse_mode='html',
-        reply_to=event.message
-      )
-    except Exception:
-      logger.error(traceback.format_exc())
-      raise PluginException("发送失败")
-    
-  with data:
-    for i in range(count):
-      key = f"{pid}_p{i}"
-      data[key] = m[i]
-  await mid.delete()
-  return m
