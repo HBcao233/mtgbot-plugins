@@ -26,7 +26,7 @@ class EchoedMessage(MessageData):
     MessageData.init()
     if EchoedMessage.inited: return
     cls._conn.execute(f"CREATE TABLE if not exists echoed_messages(id INTEGER PRIMARY KEY AUTOINCREMENT, mid int NOT NULL, echo_mid int NOT NULL)")
-    cls._conn.execute(f"CREATE UNIQUE INDEX if not exists id_index ON messages (id)")
+    cls._conn.execute(f"CREATE UNIQUE INDEX if not exists id_index ON echoed_messages (id)")
     cls._conn.commit()
     EchoedMessage.inited = True
 
