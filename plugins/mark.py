@@ -159,13 +159,6 @@ def finish_buttons(buttons):
     return None
   return buttons
 
-def delete_button(buttons, pattern):
-  for i, ai in enumerate(buttons[0]):
-    if pattern(ai.data):
-      buttons[0].pop(i)
-      break
-  return finish_buttons(buttons)
-
 
 smark_button_pattern = re.compile(rb'smark_([\x00-\xff]{4,4})$').match
 @bot.on(events.CallbackQuery(
@@ -192,6 +185,7 @@ async def smark_button(event):
   m = await bot.send_file(
     peer, 
     [override_message_spoiler(m, mark) for m in messages],
+    caption=[m.message for m in messages],
     reply_to=btn_message.reply_to.reply_to_msg_id
   )
   await m[0].reply(
@@ -200,8 +194,13 @@ async def smark_button(event):
   )
 
   # 处理完毕修改按钮
+  buttons = btn_message.buttons
+  for i, ai in enumerate(buttons[0]):
+    if ai.data == match.group(0):
+      buttons[0].pop(i)
+      break
   try:
-    await event.edit(buttons=delete_button(btn_message.buttons, smark_button_pattern))
+    await event.edit(buttons=finish_buttons(buttons))
   except errors.MessageNotModifiedError:
     pass
   await event.answer()
