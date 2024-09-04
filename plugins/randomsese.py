@@ -14,6 +14,7 @@ url = 'https://api.lolicon.app/setu/v2?size=regular&size=thumb&tag=萝莉&r18=1'
 @InlineCommand(' *$')
 async def _(event):
   r = await util.get(url)
+  r.raise_for_status()
   res = r.json()['data'][0]
   res = types.InputBotInlineResult(
     id=str(time.time()),
