@@ -28,7 +28,7 @@ class EchoedMessage(MessageData):
     cls._conn.execute(f"CREATE TABLE if not exists echoed_messages(id INTEGER PRIMARY KEY AUTOINCREMENT, mid int NOT NULL, echo_mid int NOT NULL)")
     cls._conn.execute(f"CREATE UNIQUE INDEX if not exists id_index ON messages (id)")
     cls._conn.commit()
-    cls.inited = True
+    EchoedMessage.inited = True
 
   @classmethod
   def add_echo(cls, chat_id, message_id, echo_chat_id, echo_message_id):
