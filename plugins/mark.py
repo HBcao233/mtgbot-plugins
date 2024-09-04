@@ -7,7 +7,14 @@ import re
 
 import util
 from util.log import logger
+from util.data import MessageData
 from plugin import handler
+
+
+def override_message_spoiler(message, spoiler: bool):
+  media = utils.get_input_media(message.media)
+  media.spoiler = spoiler
+  return media
 
 
 @handler('mark', 
@@ -60,7 +67,7 @@ _mark_button_pattern = re.compile(rb'mark_([\x00-\xff]{4,4})(?:~([\x00-\xff]{6,6
 async def _mark_button(event):
   """
   mark_{message_id}~{sender_id} 
-  按钮添加/移除遮罩
+  添加/移除遮罩按钮回调
   """
   peer = event.query.peer
   
@@ -115,6 +122,9 @@ async def _mark_button(event):
 @bot.on(events.NewMessage)
 @bot.on(events.Album)
 async def _(event):
+  """
+  收到媒体时发送按钮面板
+  """
   if not event.is_private:
     return
   if not getattr(event, 'messages', None):
@@ -135,16 +145,28 @@ async def _(event):
   # mid_bytes = event.messages[0].id.to_bytes(4, 'big')
   # buttons.append('合并图片', data=b'merge_')
   await event.reply(
-    f'收到 {len(event.messages)} 张图片',
+    f'收到 {len(event.messages)} 个媒体',
     buttons=buttons, 
   )
 
 
-_smark_button_pattern = re.compile(rb'smark_([\x00-\xff]{4,4})$').match
+def finish_buttons(buttons):
+  for i, ai in enumerate(reversed(buttons)):
+    if len(ai) == 0:
+      buttons.pop(i)
+  if len(buttons) == 0:
+    return None
+  return buttons
+
+
+smark_button_pattern = re.compile(rb'smark_([\x00-\xff]{4,4})$').match
 @bot.on(events.CallbackQuery(
-  pattern=_smark_button_pattern
+  pattern=smark_button_pattern
 ))
-async def _smark_button(event):
+async def smark_button(event):
+  """
+  接收媒体遮罩按钮回调
+  """
   peer = event.query.peer
   match = event.pattern_match
   message_id = int.from_bytes(match.group(1), 'big')
@@ -172,23 +194,12 @@ async def _smark_button(event):
   # 处理完毕修改按钮
   buttons = btn_message.buttons
   for i, ai in enumerate(buttons[0]):
-    if _smark_button_pattern(ai.data):
+    if smark_button_pattern(ai.data):
       buttons[0].pop(i)
       break
-  for i, ai in enumerate(reversed(buttons)):
-    if len(ai) == 0:
-      buttons.pop(i)
-  if len(buttons) == 0:
-    buttons = None
 
   try:
-    await event.edit(buttons=buttons)
+    await event.edit(buttons=finish_buttons(buttons))
   except errors.MessageNotModifiedError:
     pass
   await event.answer()
-
-
-def override_message_spoiler(message, spoiler: bool):
-  media = utils.get_input_media(message.media)
-  media.spoiler = spoiler
-  return media
