@@ -102,14 +102,17 @@ async def _tid(event, text):
   await event.reply(
     '获取完成',
     buttons=[
-      Button.inline(
-        '移除遮罩' if options.mark else '添加遮罩',
-        b'mark_' + message_id_bytes + sender_bytes,
-      ),
-      Button.inline(
-        '详细描述' if options.hide else '简略描述',
-        b'tid_' + message_id_bytes + b'_' + tid_bytes + sender_bytes,
-      ),
+      [
+        Button.inline(
+          '移除遮罩' if options.mark else '添加遮罩',
+          b'mark_' + message_id_bytes + sender_bytes,
+        ),
+        Button.inline(
+          '详细描述' if options.hide else '简略描述',
+          b'tid_' + message_id_bytes + b'_' + tid_bytes + sender_bytes,
+        ),
+      ],
+      [Button.inline('关闭面板', b'delete' + sender_bytes)],
     ],
   )
   raise events.StopPropagation
