@@ -8,6 +8,7 @@
 | roll | 投骰子| |
 | gif | 视频/动图/贴纸格式转换 | |
 | communicate | 传话机器人 | |
+| telegraph_setting | 提供用户自定义 telegraph作者配置项 | |
 ||||
 | pixiv | pixiv爬取 | `pixiv_PHPSESSID` |
 | twitter | X爬取 | `twitter_csrf_token`, `twitter_auth_token`|
