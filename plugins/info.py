@@ -3,8 +3,6 @@
 # @Email   : hbcaoqaq@gmail.com
 
 from telethon import events, types, utils
-
-import util
 from util.log import logger
 from plugin import handler
 
@@ -12,23 +10,23 @@ from plugin import handler
 @handler('info')
 async def _(event):
   message = event.message
-  if (reply_message := await event.message.get_reply_message()):
+  if reply_message := await event.message.get_reply_message():
     message = reply_message
   logger.info(message)
   m = await event.respond(await get_info(message), reply_to=message)
   bot.schedule_delete_messages(30, m.peer_id, [m.id, event.message.id])
   raise events.StopPropagation
-   
-  
+
+
 async def get_info(message):
   info = []
-  
+
   def to_str(info):
     return '\n'.join(info)
-    
+
   def indent(info, times=1):
-    return ('  ' * (times-1) + '- ' + i for i in info)
-  
+    return ('  ' * (times - 1) + '- ' + i for i in info)
+
   async def get_chat_info(peer):
     chat = await bot.get_entity(peer)
     logger.info(chat)
@@ -38,11 +36,13 @@ async def get_info(message):
         _type = 'Bot'
       else:
         _type = 'User'
-    elif isinstance(peer, types.PeerChat) or (isinstance(peer, types.PeerChannel) and not getattr(chat, 'broadcast', False)):
+    elif isinstance(peer, types.PeerChat) or (
+      isinstance(peer, types.PeerChannel) and not getattr(chat, 'broadcast', False)
+    ):
       _type = 'Group'
     elif isinstance(peer, types.PeerChannel):
       _type = 'Channel'
-    
+
     name = getattr(chat, 'first_name', None) or getattr(chat, 'title', None)
     if t := getattr(chat, 'last_name', None):
       name += ' ' + t
@@ -54,13 +54,15 @@ async def get_info(message):
     if getattr(chat, 'username', None):
       info.append(f'username: @{chat.username}')
     if _type == 'Group':
-      info.extend([
-        f'megagroup: {getattr(chat, "megagroup", False)}',
-        f'gigagroup: {getattr(chat, "gigagroup", False)}',
-        f'forum: {getattr(chat, "forum", False)}'
-      ])
+      info.extend(
+        [
+          f'megagroup: {getattr(chat, "megagroup", False)}',
+          f'gigagroup: {getattr(chat, "gigagroup", False)}',
+          f'forum: {getattr(chat, "forum", False)}',
+        ]
+      )
     return info
-  
+
   info = [
     f'message_id: `{message.id}`',
   ]
@@ -70,40 +72,36 @@ async def get_info(message):
     if message.text != message.message:
       text = message.text
       text_raw = message.message
-    
+
     text = '\n```' + text + '```'
     if text_raw is None:
       info.append(f'text: {text}')
     else:
       text_raw = '\n```' + text_raw + '```'
-      info.extend([
-        f'text: {text}',
-        f'text_raw: {text_raw}'
-      ])
-  info.extend([
-    'chat: ',
-    to_str(indent(await get_chat_info(message.peer_id)))
-  ])
+      info.extend([f'text: {text}', f'text_raw: {text_raw}'])
+  info.extend(['chat: ', to_str(indent(await get_chat_info(message.peer_id)))])
   if message.from_id:
-    info.extend([
-      'sender: ',
-      to_str(indent(await get_chat_info(message.from_id))),
-    ])
+    info.extend(
+      [
+        'sender: ',
+        to_str(indent(await get_chat_info(message.from_id))),
+      ]
+    )
   if message.fwd_from:
     if message.fwd_from.from_id:
       if message.fwd_from.from_id == message.from_id:
         info.append('forward_from: =sender')
       else:
-        info.extend([
-          'forward_from: ',
-          to_str(indent(await get_chat_info(message.fwd_from.from_id))),
-        ])
+        info.extend(
+          [
+            'forward_from: ',
+            to_str(indent(await get_chat_info(message.fwd_from.from_id))),
+          ]
+        )
     else:
-      info.extend([
-        'forward_from: ',
-        f'- name: {message.fwd_from.from_name}',
-        '- id: Hide'
-      ])
+      info.extend(
+        ['forward_from: ', f'- name: {message.fwd_from.from_name}', '- id: Hide']
+      )
   if message.media:
     _type = 'Document'
     file_id = utils.pack_bot_file_id(message.media)
@@ -121,9 +119,13 @@ async def get_info(message):
     elif utils.is_audio(message.media):
       _type = 'Audio'
     info.append('media: ')
-    info.extend(indent([
-      f'type: {_type}',
-      f'file_id: `{file_id}`',
-      f'mime_type: {mime_type}',
-    ]))
+    info.extend(
+      indent(
+        [
+          f'type: {_type}',
+          f'file_id: `{file_id}`',
+          f'mime_type: {mime_type}',
+        ]
+      )
+    )
   return to_str(info)

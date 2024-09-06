@@ -30,13 +30,13 @@ def choose_video(x, y):
   if x['id'] > y['id']:
     return -1
   return 0
-  
+
 
 async def get_bili(bvid, aid):
   r = await util.get(
-    'https://api.bilibili.com/x/web-interface/view', 
-    params={ 'aid': aid, 'bvid': bvid },
-    headers=gheaders
+    'https://api.bilibili.com/x/web-interface/view',
+    params={'aid': aid, 'bvid': bvid},
+    headers=gheaders,
   )
   res = r.json()
   if res['code'] in [-404, 62002, 62004]:
@@ -58,19 +58,14 @@ def parse_msg(res, p=1):
     for i in res['pages']:
       if i['page'] == p:
         cid = i['cid']
-  title = (
-    res['title']
-    .replace('&', '&gt;')
-    .replace('<', '&lt;')
-    .replace('>', '&gt;')
-  )
+  title = res['title'].replace('&', '&gt;').replace('<', '&lt;').replace('>', '&gt;')
   msg = (
     f"<a href=\"https://www.bilibili.com/video/{bvid}{p_url}\">{title}{p_tip}</a> - "
     f"<a href=\"https://space.bilibili.com/{res['owner']['mid']}\">{res['owner']['name']}</a>"
   )
   return bvid, aid, cid, title, msg
-  
-  
+
+
 async def get_video(bvid, aid, cid, progress_callback=None):
   async with util.curl.Client(headers=gheaders) as client:
     video_url = None
@@ -81,12 +76,12 @@ async def get_video(bvid, aid, cid, progress_callback=None):
     if audios is None:
       video_url = videos
       return await client.getImg(
-        video_url, 
+        video_url,
         headers={'referer': f'https://www.bilibili.com/video/{bvid}'},
         saveas=f'{bvid}_{cid}',
-        ext='mp4'
+        ext='mp4',
       )
-    
+
     videos = sorted(videos, key=choose_video)
     logger.info(f"qn: {videos[0]['id']}, codecid: {videos[0]['codecid']}")
     video_url = videos[0]['base_url']
@@ -94,27 +89,25 @@ async def get_video(bvid, aid, cid, progress_callback=None):
       if i['id'] == 30216:
         audio_url = i['base_url']
         break
-    
+
     result = await asyncio.gather(
       client.getImg(
-        video_url, 
-        headers={'referer': f'https://www.bilibili.com/video/{bvid}'}
-      ), 
-      client.getImg(
-        audio_url,
-        headers={'referer': f'https://www.bilibili.com/video/{bvid}'}
+        video_url, headers={'referer': f'https://www.bilibili.com/video/{bvid}'}
       ),
-    ) 
-  
+      client.getImg(
+        audio_url, headers={'referer': f'https://www.bilibili.com/video/{bvid}'}
+      ),
+    )
+
   path = util.getCache(f'{bvid}_{cid}.mp4')
   command = ['ffmpeg', '-i', result[0]]
   if result[1] != '':
     command.extend(['-i', result[1]])
   command.extend(['-c:v', 'copy', '-c:a', 'copy', '-y', path])
   logger.info(f'{command = }')
-  
+
   returncode, stdout = await util.media.ffmpeg(command, progress_callback)
-  if returncode != 0: 
+  if returncode != 0:
     logger.error(stdout)
     return None
   return path
@@ -133,7 +126,7 @@ async def _get_video(bvid, cid, client=None):
   r = await client.get(
     url,
     params=wbi(mixin_key, params),
-    headers={ 'referer': f'https://www.bilibili.com/video/{bvid}' }
+    headers={'referer': f'https://www.bilibili.com/video/{bvid}'},
   )
   # logger.info(r.text)
   res = r.json()['data']
@@ -142,4 +135,3 @@ async def _get_video(bvid, cid, client=None):
   if 'durl' not in res:
     return None, None
   return res['durl'][0]['url'], None
-  

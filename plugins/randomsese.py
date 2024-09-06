@@ -2,15 +2,16 @@
 # @Author  : HBcao
 # @Email   : hbcaoqaq@gmail.com
 
-from telethon import events, types, utils, functions
+from telethon import types
 import time
 
 import util
-from util.log import logger
 from plugin import InlineCommand
 
 
 url = 'https://api.lolicon.app/setu/v2?size=regular&size=thumb&tag=萝莉&r18=1'
+
+
 @InlineCommand(' *$')
 async def _(event):
   r = await util.get(url)
@@ -22,13 +23,13 @@ async def _(event):
     thumb=types.InputWebDocument(
       url=res['urls']['thumb'],
       size=0,
-      mime_type="image/jpeg",
+      mime_type='image/jpeg',
       attributes=[],
     ),
     content=types.InputWebDocument(
       url=res['urls']['regular'],
       size=0,
-      mime_type="image/jpeg",
+      mime_type='image/jpeg',
       attributes=[],
     ),
     send_message=types.InputBotInlineMessageMediaAuto(

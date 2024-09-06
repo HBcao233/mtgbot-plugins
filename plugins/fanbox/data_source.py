@@ -10,47 +10,47 @@ class PluginException(Exception):
 
 async def get_post(pid):
   try:
-    headers={
+    headers = {
       'origin': 'https://www.fanbox.cc',
       'referer': 'https://www.fanbox.cc/',
     }
-    url = f"https://api.fanbox.cc/post.info?postId={pid}"
+    url = f'https://api.fanbox.cc/post.info?postId={pid}'
     r = await util.get(url, headers=headers)
   except Exception:
     logger.error(traceback.format_exc())
     raise PluginException('连接错误')
   res = r.json()
-  if res.get("error", None):
+  if res.get('error', None):
     logger.error(r.text)
-    raise PluginException(res["error"])
+    raise PluginException(res['error'])
   return res['body']
-  
-  
+
+
 def parse_msg(res, hide=False):
-  pid = res["id"]
+  pid = res['id']
   title = res['title']
   creatorId = res['creatorId']
-  uid = res['user']['userId']
+  # uid = res['user']['userId']
   username = res['user']['name']
-  msg = f"<a href=\"https://{creatorId}.fanbox.cc/posts/{pid}\">{title}</a> - <a href=\"https://{creatorId}.fanbox.cc\">{username}</a>"
-  
+  msg = f'<a href="https://{creatorId}.fanbox.cc/posts/{pid}">{title}</a> - <a href="https://{creatorId}.fanbox.cc">{username}</a>'
+
   body = res.get('body', None) if res.get('body', None) else {}
   if hide:
     return msg
   text = (
     body.get('text', '')
-    .replace("<br />", "\n")
-    .replace("<br/>", "\n")
-    .replace("<br>", "\n")
-    .replace(' target="_blank"', "")
+    .replace('<br />', '\n')
+    .replace('<br/>', '\n')
+    .replace('<br>', '\n')
+    .replace(' target="_blank"', '')
   )
   if not text and body.get('blocks', []):
     length = 0
     texts = [i['text'] for i in body['blocks'] if i['type'] == 'p']
     index = 0
-    while (index < len(texts) and (l := length + len(texts[index])) < 400):
+    while index < len(texts) and (new_length := length + len(texts[index])) < 400:
       index += 1
-      length = l
+      length = new_length
     text = '\n'.join(texts[:index])
     if index < len(texts) - 1:
       text += '\n......'
