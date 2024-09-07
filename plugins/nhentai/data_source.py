@@ -92,15 +92,15 @@ async def get_telegraph(gid, title, media_id, exts, nocache, mid):
 
     url = f'https://i.nhentai.net/galleries/{media_id}/{i+1}.{exts[i]}'
     try:
-      r = await client.post(
-        'https://telegra.ph/upload', files={'file': (await client.get(url)).content}
-      )
-      url = r.json()[0]['src']
-      data[key] = url
+      r = await client.get(url)
+      r.raise_for_status()
+      url = await util.curl.postimg_upload(r.content, client)
     except Exception:
       w = f'p{i+1} 获取失败'
       logger.warning(w, exc_info=1)
       return Res(None, w)
+    else:
+      data[key] = url
 
     return Res(url)
 

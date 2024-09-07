@@ -3,6 +3,7 @@ import asyncio
 import re
 import os
 import ujson as json
+import time
 
 import util
 import config
@@ -215,14 +216,13 @@ async def get_telegraph(arr, title, num, nocache, mid):
       return res
     url = res.url
     try:
-      r = await client.post(
-        'https://telegra.ph/upload', files={'file': (await client.get(url)).content}
-      )
+      r = await client.get(url)
+      r.raise_for_status()
+      url = await util.curl.postimg_upload(r.content, client)
     except Exception:
       logger.warning(f'p{i+1} 上传失败', exc_info=1)
       return Res(url)
     else:
-      url = r.json()[0]['src']
       data[key] = url
     return Res(url)
 
