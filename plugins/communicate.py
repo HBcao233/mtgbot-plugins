@@ -39,13 +39,13 @@ class EchoedMessage(MessageData):
   @classmethod
   def add_echo(cls, chat_id, message_id, echo_chat_id, echo_message_id):
     cls.init()
-    mid = cls.get_message(chat_id, message_id)
-    echo_mid = cls.get_message(echo_chat_id, echo_message_id)
-    logger.debug(f'add_echo mid: {mid} echo_mid: {echo_mid}')
+    m = cls.get_message(chat_id, message_id)
+    echo_m = cls.get_message(echo_chat_id, echo_message_id)
+    logger.debug(f'add_echo mid: {m.id} echo_mid: {echo_m.id}')
 
     cursor = cls._conn.cursor()
     cursor.execute(
-      'insert into echoed_messages(mid, echo_mid) values(?,?)', (mid, echo_mid)
+      'insert into echoed_messages(mid, echo_mid) values(?,?)', (m.id, echo_m.id)
     )
     cls._conn.commit()
     return cursor.lastrowid
@@ -53,8 +53,8 @@ class EchoedMessage(MessageData):
   @classmethod
   def get_echo(cls, chat_id, message_id=None):
     cls.init()
-    mid = cls.get_message(chat_id, message_id)
-    r = cls._conn.execute(f"SELECT echo_mid FROM echoed_messages WHERE mid='{mid}'")
+    m = cls.get_message(chat_id, message_id)
+    r = cls._conn.execute('SELECT echo_mid FROM echoed_messages WHERE mid=?', (m.id,))
     if res := r.fetchone():
       return cls.get_message_by_rid(res[0])
     return None
@@ -62,8 +62,8 @@ class EchoedMessage(MessageData):
   @classmethod
   def get_origin(cls, chat_id, message_id=None):
     cls.init()
-    mid = cls.get_message(chat_id, message_id)
-    r = cls._conn.execute(f"SELECT mid FROM echoed_messages WHERE echo_mid='{mid}'")
+    m = cls.get_message(chat_id, message_id)
+    r = cls._conn.execute('SELECT mid FROM echoed_messages WHERE echo_mid=?', (m.id,))
     if res := r.fetchone():
       return cls.get_message_by_rid(res[0])
     return None
@@ -97,7 +97,7 @@ async def _(event):
       buttons=buttons,
       reply_to=reply_to,
     )
-    EchoedMessage.add_echo(peer_id, message, config.echo_chat_id, m)
+    EchoedMessage.add_echo(peer_id, message.id, config.echo_chat_id, m.id)
     return
 
   if reply_message:
@@ -107,7 +107,7 @@ async def _(event):
       message,
       reply_to=res.message_id,
     )
-    EchoedMessage.add_echo(config.echo_chat_id, message, res.chat_id, m)
+    EchoedMessage.add_echo(config.echo_chat_id, message.id, res.chat_id, m.id)
 
 
 @bot.on(events.Raw)
