@@ -457,6 +457,7 @@ async def telegraph_merge_button(event):
         force_large_media=True,
         optional=True,
       ),
+      buttons=Button.clear(),
     )
 
   MergeData.delete_merge(peer)
