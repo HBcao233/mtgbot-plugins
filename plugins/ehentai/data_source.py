@@ -3,7 +3,6 @@ import asyncio
 import re
 import os
 import ujson as json
-import time
 
 import util
 import config
@@ -270,6 +269,7 @@ async def get_telegraph(arr, title, num, nocache, mid):
     data = util.Data('urls')
     tasks = [parse(i) for i in range(len(urls))]
     result = await asyncio.gather(*tasks)
+    data.save()
 
   success_num = len(result)
   result.extend(
@@ -279,6 +279,5 @@ async def get_telegraph(arr, title, num, nocache, mid):
     ]
   )
   content = [res.parse() for res in result]
-  data.save()
   page = await createPage(title, content)
   return page
