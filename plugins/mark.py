@@ -2,8 +2,9 @@
 # @Author  : HBcao
 # @Email   : hbcaoqaq@gmail.com
 
-from telethon import events, utils, errors, Button
+from telethon import types, events, utils, errors, Button
 import re
+import asyncio
 from collections.abc import Sequence
 
 import util
@@ -298,10 +299,14 @@ async def add_merge_button(event):
   if res.grouped_id:
     ids = MessageData.get_group(res.grouped_id)
 
+  buttons = [
+    [Button.inline('完成合并', data=b'fmerge')],
+    [Button.inline('创建Telegraph', data=b'tmerge')],
+  ]
   if not MergeData.has_merge(peer):
     m = await event.respond(
       f'已添加 {len(ids)} 条媒体',
-      buttons=Button.inline('完成合并', data=b'fmerge'),
+      buttons=buttons,
       reply_to=btn_message.reply_to.reply_to_msg_id,
     )
     MergeData.add_merge(peer, ids, m.id)
@@ -312,7 +317,7 @@ async def add_merge_button(event):
     ids = res.mids + ids
     m = await event.respond(
       f'已添加 {len(ids)} 条媒体',
-      buttons=Button.inline('完成合并', data=b'fmerge'),
+      buttons=buttons,
       reply_to=btn_message.reply_to.reply_to_msg_id,
     )
     for i in res.pin_mids:
@@ -342,6 +347,75 @@ async def finish_merge_button(event):
     await event.answer('待合并媒体被删除', alert=True)
   else:
     await bot.send_file(peer, messages)
+
+  MergeData.delete_merge(peer)
+  try:
+    await bot.delete_messages(peer, res.pin_mids)
+  except errors.MessageIdInvalidError:
+    pass
+
+
+telegraph_merge_button_pattern = re.compile(rb'^tmerge$').match
+
+
+@bot.on(events.CallbackQuery(pattern=telegraph_merge_button_pattern))
+async def telegraph_merge_button(event):
+  async def parse(m):
+    nonlocal data, client
+    key = str(m.media.photo.id)
+    if url := data.get(key):
+      return url
+    img = util.getCache(key + '.jpg')
+    await m.download_media(file=img)
+    url = await util.curl.postimg_upload(open(img, 'rb').read(), client)
+    data[key] = url
+    return url
+
+  peer = event.query.peer
+  if not MergeData.has_merge(peer):
+    return await event.delete()
+
+  async with bot.conversation(event.chat_id) as conv:
+    mid = await conv.send_message(
+      '请在 60 秒内发送您想要设置的 telegraph 标题',
+      buttons=Button.text('取消', single_use=True),
+    )
+    try:
+      message = await conv.get_response()
+    except asyncio.TimeoutError:
+      return await event.respond('设置超时', buttons=Button.clear(), reply_to=mid)
+    if message.message == '取消':
+      return await event.respond('设置取消', buttons=Button.clear(), reply_to=mid)
+    title = message.message
+
+  res = MergeData.get_merge(peer)
+  messages = await bot.get_messages(peer, ids=res.mids)
+  if any(m is None for m in messages):
+    await event.answer('待合并媒体被删除', alert=True)
+  else:
+    data = util.Data('urls')
+    async with util.curl.Client() as client:
+      tasks = [parse(m) for m in messages]
+      result = await asyncio.gather(*tasks)
+    data.save()
+
+    content = [
+      {
+        'tag': 'img',
+        'attrs': {'src': url},
+      }
+      for url in result
+    ]
+    page = await util.telegraph.createPage(title, content)
+    await bot.send_file(
+      peer,
+      caption=f'已创建 telegraph: {page}',
+      file=types.InputMediaWebPage(
+        url=page,
+        force_large_media=True,
+        optional=True,
+      ),
+    )
 
   MergeData.delete_merge(peer)
   try:
