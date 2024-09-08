@@ -17,7 +17,7 @@ _pattern = re.compile(
 ).match
 
 
-@handler('kid', pattern=_pattern, info='kenomo爬取 /kid <url>')
+@handler('kid', pattern=_pattern, info='kemono爬取 /kid <url>')
 async def _kid(event, text):
   if event.message.photo or event.message.video:
     return
