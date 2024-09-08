@@ -5,6 +5,7 @@
 from telethon import types, events, utils, errors, Button
 import re
 import asyncio
+import functools
 from collections.abc import Sequence
 
 import util
@@ -58,13 +59,13 @@ async def _unmark(event):
   return await _mark(event, False)
 
 
-_mark_button_pattern = re.compile(
+mark_button_pattern = re.compile(
   rb'mark_([\x00-\xff]{4,4})(?:~([\x00-\xff]{6,6}))?$'
 ).match
 
 
-@bot.on(events.CallbackQuery(pattern=_mark_button_pattern))
-async def _mark_button(event):
+@bot.on(events.CallbackQuery(pattern=mark_button_pattern))
+async def mark_button(event):
   """
   mark_{message_id}~{sender_id}
   添加/移除遮罩按钮回调
@@ -84,9 +85,11 @@ async def _mark_button(event):
       return await event.answer('只有消息发送者可以修改', alert=True)
 
   message = await bot.get_messages(peer, ids=message_id)
-  mark = not message.media.spoiler
   if message is None:
-    return await event.answer('消息被删除', alert=True)
+    await event.answer('消息不存在', alert=True)
+    await event.delete()
+    return
+  mark = not message.media.spoiler
 
   messages = [message]
   if message.grouped_id:
@@ -106,7 +109,7 @@ async def _mark_button(event):
   text = '移除遮罩' if mark else '添加遮罩'
   index = 0
   for i, ai in enumerate(buttons[0]):
-    if _mark_button_pattern(ai.data):
+    if mark_button_pattern(ai.data):
       index = i
       data = ai.data
       break
@@ -119,6 +122,9 @@ async def _mark_button(event):
   await event.answer()
 
 
+_delay_events = []
+
+
 @bot.on(events.NewMessage)
 @bot.on(events.Album)
 async def _(event):
@@ -128,26 +134,48 @@ async def _(event):
   if not event.is_private:
     return
   if not getattr(event, 'messages', None):
-    event.messages = [event.message]
     if event.message.grouped_id:
       return
+    event.messages = [event.message]
   if any(not (m.photo or m.video) for m in event.messages):
     return
 
-  buttons = []
-  if any(not (mid := m).media.spoiler for m in event.messages):
-    mid_bytes = mid.id.to_bytes(4, 'big')
-    buttons.append(Button.inline('添加遮罩', b'smark_' + mid_bytes))
-  if any((mid := m).media.spoiler for m in event.messages):
-    mid_bytes = mid.id.to_bytes(4, 'big')
-    buttons.append(Button.inline('移除遮罩', b'smark_' + mid_bytes))
-
-  mid_bytes = event.messages[0].id.to_bytes(4, 'big')
-  buttons.append(Button.inline('合并图片', data=b'amerge_' + mid_bytes))
-  await event.reply(
-    f'收到 {len(event.messages)} 个媒体',
-    buttons=buttons,
+  _delay_events.append(event)
+  bot.loop.call_later(
+    0.5, functools.partial(bot.loop.create_task, delay_callback(event))
   )
+
+
+async def delay_callback(event):
+  global _delay_events
+  if id(_delay_events[-1]) != id(event):
+    return
+
+  if len(_delay_events) == 1:
+    messages = event.messages
+  else:
+    messages = []
+    for i in _delay_events:
+      messages.extend(i.messages)
+    sorted(messages, key=lambda m: m.id)
+
+  start_mid = messages[0].id.to_bytes(4, 'big')
+  end_mid = messages[-1].id.to_bytes(4, 'big')
+  add_bytes = start_mid + b'_' + end_mid
+
+  buttons = []
+  if any(not m.media.spoiler for m in messages):
+    buttons.append(Button.inline('添加遮罩', b'smark_1_' + add_bytes))
+  if any(m.media.spoiler for m in messages):
+    buttons.append(Button.inline('移除遮罩', b'smark_0_' + add_bytes))
+
+  buttons.append(Button.inline('合并图片', data=b'amerge_' + add_bytes))
+  await event.respond(
+    f'收到 {len(messages)} 个媒体',
+    buttons=buttons,
+    reply_to=None if len(_delay_events) > 1 else event.messages[0],
+  )
+  _delay_events = []
 
 
 def finish_buttons(buttons):
@@ -159,7 +187,9 @@ def finish_buttons(buttons):
   return buttons
 
 
-smark_button_pattern = re.compile(rb'smark_([\x00-\xff]{4,4})$').match
+smark_button_pattern = re.compile(
+  rb'smark_([01])_([\x00-\xff]{4,4})_([\x00-\xff]{4,4})$'
+).match
 
 
 @bot.on(events.CallbackQuery(pattern=smark_button_pattern))
@@ -169,27 +199,35 @@ async def smark_button(event):
   """
   peer = event.query.peer
   match = event.pattern_match
-  message_id = int.from_bytes(match.group(1), 'big')
-  message = await bot.get_messages(peer, ids=message_id)
-  if message is None:
-    return await event.answer('消息被删除', alert=True)
+  if match.group(1) == b'1':
+    mark = True
+  else:
+    mark = False
 
-  messages = [message]
-  if message.grouped_id:
-    ids = util.data.MessageData.get_group(message.grouped_id)
-    messages = await bot.get_messages(peer, ids=ids)
+  start_mid = int.from_bytes(match.group(2), 'big')
+  end_mid = int.from_bytes(match.group(3), 'big')
+  if start_mid == end_mid:
+    ids = [start_mid]
+  else:
+    ids = [i for i in range(start_mid, end_mid + 1)]
+  messages = await bot.get_messages(peer, ids=ids)
+  if all(m is None for m in messages):
+    await event.answer('消息不存在', alert=True)
+    await event.delete()
+    return
 
-  mark = not message.media.spoiler
   btn_message = await event.get_message()
   m = await bot.send_file(
     peer,
     [override_message_spoiler(m, mark) for m in messages],
     caption=[m.message for m in messages],
-    reply_to=btn_message.reply_to.reply_to_msg_id,
+    reply_to=btn_message.reply_to and btn_message.reply_to.reply_to_msg_id,
   )
   await m[0].reply(
     '操作完成',
-    buttons=Button.inline('添加遮罩', data=b'mark_' + m[0].id.to_bytes(4, 'big')),
+    buttons=Button.inline(
+      '添加遮罩' if not mark else '移除遮罩', b'mark_' + m[0].id.to_bytes(4, 'big')
+    ),
   )
 
   # 处理完毕修改按钮
@@ -286,7 +324,9 @@ class MergeData(MessageData):
     cls._conn.commit()
 
 
-add_merge_button_pattern = re.compile(rb'^amerge_([\x00-\xff]{4,4})$').match
+add_merge_button_pattern = re.compile(
+  rb'^amerge_([\x00-\xff]{4,4})_([\x00-\xff]{4,4})$'
+).match
 
 
 @bot.on(events.CallbackQuery(pattern=add_merge_button_pattern))
@@ -294,32 +334,33 @@ async def add_merge_button(event):
   peer = event.query.peer
   match = event.pattern_match
   btn_message = await event.get_message()
-  ids = [int.from_bytes(match.group(1), 'big')]
-  res = MessageData.get_message(peer, ids[0])
-  if res.grouped_id:
-    ids = MessageData.get_group(res.grouped_id)
+
+  start_mid = int.from_bytes(match.group(1), 'big')
+  end_mid = int.from_bytes(match.group(2), 'big')
+  if start_mid == end_mid:
+    ids = [start_mid]
+  else:
+    ids = [i for i in range(start_mid, end_mid + 1)]
 
   buttons = [
     [Button.inline('完成合并', data=b'fmerge')],
     [Button.inline('创建Telegraph', data=b'tmerge')],
   ]
+  reply_to = btn_message.reply_to and btn_message.reply_to.reply_to_msg_id
+  future = event.respond(
+    f'已添加 {len(ids)} 条媒体',
+    buttons=buttons,
+    reply_to=reply_to,
+  )
   if not MergeData.has_merge(peer):
-    m = await event.respond(
-      f'已添加 {len(ids)} 条媒体',
-      buttons=buttons,
-      reply_to=btn_message.reply_to.reply_to_msg_id,
-    )
+    m = await future
     MergeData.add_merge(peer, ids, m.id)
     m = await m.pin()
     await m.delete()
   else:
     res = MergeData.get_merge(peer)
     ids = res.mids + ids
-    m = await event.respond(
-      f'已添加 {len(ids)} 条媒体',
-      buttons=buttons,
-      reply_to=btn_message.reply_to.reply_to_msg_id,
-    )
+    m = await future
     for i in res.pin_mids:
       try:
         await bot.edit_message(peer, i, buttons=None)
@@ -371,6 +412,7 @@ async def telegraph_merge_button(event):
     data[key] = url
     return url
 
+  await event.answer()
   peer = event.query.peer
   if not MergeData.has_merge(peer):
     return await event.delete()
