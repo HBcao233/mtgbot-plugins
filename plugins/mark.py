@@ -401,7 +401,7 @@ telegraph_merge_button_pattern = re.compile(rb'^tmerge$').match
 
 @bot.on(events.CallbackQuery(pattern=telegraph_merge_button_pattern))
 async def telegraph_merge_button(event):
-  async def parse(m):
+  async def _parse(m):
     nonlocal data, client
     key = str(m.media.photo.id)
     if url := data.get(key):
@@ -410,6 +410,12 @@ async def telegraph_merge_button(event):
     await m.download_media(file=img)
     url = await util.curl.postimg_upload(open(img, 'rb').read(), client)
     data[key] = url
+    return url
+
+  async def parse(m):
+    nonlocal bar
+    url = await _parse(m)
+    await bar.add(1)
     return url
 
   await event.answer()
@@ -430,7 +436,10 @@ async def telegraph_merge_button(event):
       return await event.respond('设置取消', buttons=Button.clear(), reply_to=mid)
     title = message.message
 
+  mid = await bot.send_message(peer, '请等待', buttons=Button.clear())
+
   res = MergeData.get_merge(peer)
+  bar = util.progress.Progress(mid, len(res.mids), '上传中...', False)
   messages = await bot.get_messages(peer, ids=res.mids)
   if any(m is None for m in messages):
     await event.answer('待合并媒体被删除', alert=True)
@@ -457,11 +466,11 @@ async def telegraph_merge_button(event):
         force_large_media=True,
         optional=True,
       ),
-      buttons=Button.clear(),
     )
 
   MergeData.delete_merge(peer)
   try:
+    await bot.delete_messages(peer, mid)
     await bot.delete_messages(peer, res.pin_mids)
   except errors.MessageIdInvalidError:
     pass
