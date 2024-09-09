@@ -9,11 +9,7 @@ from util.progress import Progress
 from .data_source import video2gif, tgs2ext, video2ext
 
 
-@handler(
-  'gif',
-  info='视频转gif',
-  desc="""用法: /gif 将回复的消息中的动图/视频的实际格式转为gif \n(ps:telegram中的动图GIF的实际格式可以为mp4/gif)""",
-)
+@handler('gif', info='视频转gif')
 async def _gif(event):
   if not (reply_message := await event.message.get_reply_message()):
     return await event.reply('请用命令回复一条消息')
