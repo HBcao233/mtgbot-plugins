@@ -34,7 +34,7 @@ async def _mark(event, spoiler=True):
     caption = reply_message.text
   else:
     ids = util.data.MessageData.get_group(reply_message.grouped_id)
-    logger.info(ids)
+    # logger.info(ids)
     messages = await bot.get_messages(reply_message.peer_id, ids=ids)
     if (spoiler and all(getattr(i.media, 'spoiler', False) for i in messages)) or (
       not spoiler and not any(getattr(i.media, 'spoiler', False) for i in messages)
@@ -220,7 +220,7 @@ async def smark_button(event):
   m = await bot.send_file(
     peer,
     [override_message_spoiler(m, mark) for m in messages],
-    caption=[m.message for m in messages],
+    caption=[m.text for m in messages],
     reply_to=btn_message.reply_to and btn_message.reply_to.reply_to_msg_id,
   )
   await m[0].reply(
@@ -378,6 +378,9 @@ finish_merge_button_pattern = re.compile(rb'^fmerge$').match
 
 @bot.on(events.CallbackQuery(pattern=finish_merge_button_pattern))
 async def finish_merge_button(event):
+  """
+  完成合并
+  """
   peer = event.query.peer
   if not MergeData.has_merge(peer):
     return await event.delete()
@@ -387,7 +390,7 @@ async def finish_merge_button(event):
   if any(m is None for m in messages):
     await event.answer('待合并媒体被删除', alert=True)
   else:
-    await bot.send_file(peer, messages)
+    await bot.send_file(peer, messages, caption=[i.text for i in messages])
 
   MergeData.delete_merge(peer)
   try:
@@ -401,6 +404,10 @@ telegraph_merge_button_pattern = re.compile(rb'^tmerge$').match
 
 @bot.on(events.CallbackQuery(pattern=telegraph_merge_button_pattern))
 async def telegraph_merge_button(event):
+  """
+  合并为 telegraph
+  """
+
   async def _parse(m):
     nonlocal data, client
     key = str(m.media.photo.id)
