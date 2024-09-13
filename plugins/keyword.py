@@ -62,10 +62,8 @@ async def _list(event, text):
   )
 
 
-@handler()
+@handler(pattern=r'^(?!/).+$')
 async def _(event, text):
-  if not text or event.message.message.startswith('/'):
-    return
   data = util.Data('keywords')
   ms = []
   for i in data.keys():
