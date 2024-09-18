@@ -15,7 +15,7 @@ ipb_member_id = env.get('ex_ipb_member_id', '')
 ipb_pass_hash = env.get('ex_ipb_pass_hash', '')
 igneous = env.get('ex_igneous', '')
 eheaders = {
-  'cookie': f'ipb_member_id={ipb_member_id};ipb_pass_hash={ipb_pass_hash};igneous={igneous}',
+  'cookie': f'ipb_member_id={ipb_member_id};ipb_pass_hash={ipb_pass_hash};igneous={igneous};nw=1',
 }
 api_url = 'https://s.exhentai.org/api.php'
 
