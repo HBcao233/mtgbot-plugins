@@ -10,8 +10,8 @@ import config
 from util.log import logger
 
 
-PHPSESSID = config.env.get("pixiv_PHPSESSID", "")
-gheaders = {"cookie": f"PHPSESSID={PHPSESSID};"}
+PHPSESSID = config.env.get('pixiv_PHPSESSID', '')
+gheaders = {'cookie': f'PHPSESSID={PHPSESSID};'}
 
 
 class PixivClient(util.curl.Client):
@@ -29,7 +29,7 @@ class PixivClient(util.curl.Client):
     if headers is None:
       headers = {}
     _headers = httpx.Headers(gheaders)
-    _headers.update({"referer": f"https://www.pixiv.net/artworks/{pid}"})
+    _headers.update({'referer': f'https://www.pixiv.net/artworks/{pid}'})
     _headers.update(headers)
     super().__init__(
       proxy=proxy, headers=_headers, follow_redirects=follow_redirects, timeout=timeout
@@ -37,31 +37,31 @@ class PixivClient(util.curl.Client):
 
   async def get_pixiv(self):
     try:
-      r = await self.get(f"https://www.pixiv.net/ajax/illust/{self.pid}")
+      r = await self.get(f'https://www.pixiv.net/ajax/illust/{self.pid}')
     except Exception:
-      return "连接超时"
+      return '连接超时'
     res = r.json()
-    if "error" in res and res["error"]:
+    if 'error' in res and res['error']:
       logger.error(r.text)
-      return "错误: " + res["message"]
-    return res["body"]
+      return '错误: ' + res['message']
+    return res['body']
 
   async def get_anime(self):
-    name = f"{self.pid}_ugoira"
-    r = await self.get(f"https://www.pixiv.net/ajax/illust/{self.pid}/ugoira_meta")
-    res = r.json()["body"]
-    frames = res["frames"]
-    if not os.path.isdir(util.getCache(name + "/")):
+    name = f'{self.pid}_ugoira'
+    r = await self.get(f'https://www.pixiv.net/ajax/illust/{self.pid}/ugoira_meta')
+    res = r.json()['body']
+    frames = res['frames']
+    if not os.path.isdir(util.getCache(name + '/')):
       zi = await self.getImg(
-        res["src"],
+        res['src'],
         saveas=name,
-        ext="zip",
+        ext='zip',
       )
       proc = await asyncio.create_subprocess_exec(
-        "unzip",
-        "-o",
-        "-d",
-        util.getCache(name + "/"),
+        'unzip',
+        '-o',
+        '-d',
+        util.getCache(name + '/'),
         zi,
         stdout=PIPE,
         stdin=PIPE,
@@ -69,10 +69,10 @@ class PixivClient(util.curl.Client):
       )
       await proc.wait()
 
-    f = frames[0]["file"]
+    f = frames[0]['file']
     f, ext = os.path.splitext(f)
-    rate = str(round(1000 / frames[0]["delay"], 2))
-    img = util.getCache(f"{self.pid}.mp4")
+    rate = str(round(1000 / frames[0]['delay'], 2))
+    img = util.getCache(f'{self.pid}.mp4')
     # fmt: off
     command = [
       'ffmpeg', 
@@ -92,21 +92,21 @@ class PixivClient(util.curl.Client):
     )
     stdout, stderr = await proc.communicate()
     if proc.returncode != 0 and stderr:
-      logger.warning(stderr.decode("utf8"))
+      logger.warning(stderr.decode('utf8'))
       return False
 
-    logger.info(f"生成动图成功: {img}")
+    logger.info(f'生成动图成功: {img}')
     return img
 
 
 def parse_msg(res, hide=False):
-  pid = res["illustId"]
+  pid = res['illustId']
 
   tags = []
-  for i in res["tags"]["tags"]:
-    tags.append(("#" + i["tag"]).replace("#R-", "#R"))
-    if "translation" in i.keys():
-      tags.append(("#" + i["translation"]["en"]).replace("#R-", "#R"))
+  for i in res['tags']['tags']:
+    tags.append(('#' + i['tag']).replace('#R-', '#R'))
+    if 'translation' in i.keys():
+      tags.append(('#' + i['translation']['en']).replace('#R-', '#R'))
   """
   tags = (
     json.dumps(tags, ensure_ascii=False)
@@ -116,19 +116,19 @@ def parse_msg(res, hide=False):
   )"""
 
   props = []
-  if any((tag := t) in tags for t in ["#R18", "#R17.9"]):
-    props.append("#NSFW")
+  if any((tag := t) in tags for t in ['#R18', '#R17.9']):
+    props.append('#NSFW')
     props.append(tag)
-  if "#R18G" in tags:
-    props.append("#R18G")
-    props.append("#NSFW")
-  if res["illustType"] == 2:
-    props.append("#动图")
-  if res["aiType"] == 2:
-    props.append("#AI生成")
-  prop = " ".join(props)
-  if prop != "":
-    prop += "\n"
+  if '#R18G' in tags:
+    props.append('#R18G')
+    props.append('#NSFW')
+  if res['illustType'] == 2:
+    props.append('#动图')
+  if res['aiType'] == 2:
+    props.append('#AI生成')
+  prop = ' '.join(props)
+  if prop != '':
+    prop += '\n'
 
   # t = dateutil.parser.parse(res["createDate"]) + datetime.timedelta(hours=8)
   msg = (
@@ -136,39 +136,39 @@ def parse_msg(res, hide=False):
     + f"<a href=\"https://www.pixiv.net/artworks/{pid}/\">{res['illustTitle']}</a> - <a href=\"https://www.pixiv.net/users/{res['userId']}/\">{res['userName']}</a>"
   )
   if not hide:
-    comment = res["illustComment"]
+    comment = res['illustComment']
     comment = (
-      comment.replace("<br />", "\n")
-      .replace("<br/>", "\n")
-      .replace("<br>", "\n")
-      .replace(' target="_blank"', "")
+      comment.replace('<br />', '\n')
+      .replace('<br/>', '\n')
+      .replace('<br>', '\n')
+      .replace(' target="_blank"', '')
     )
-    comment = re.sub(r"<span[^>]*>(((?!</span>).)*)</span>", r"\1", comment)
+    comment = re.sub(r'<span[^>]*>(((?!</span>).)*)</span>', r'\1', comment)
     if len(comment) > 400:
-      comment = re.sub(r"<[^/]+[^<]*(<[^>]*)?$", "", comment[:400])
-      comment = re.sub(r"\n$", "", comment)
-      comment = comment + "\n......"
-    if comment != "":
-      comment = ":\n" + comment
+      comment = re.sub(r'<[^/]+[^<]*(<[^>]*)?$', '', comment[:400])
+      comment = re.sub(r'\n$', '', comment)
+      comment = comment + '\n......'
+    if comment != '':
+      comment = ':\n' + comment
       msg += comment
 
   return msg, tags
 
 
 async def get_telegraph(res, tags):
-  data = util.Data("urls")
+  data = util.Data('urls')
   now = datetime.now()
-  pid = res["illustId"]
-  key = f"{pid}-{now:%m-%d}"
+  pid = res['illustId']
+  key = f'{pid}-{now:%m-%d}'
   if not (url := data[key]):
-    imgUrl = res["urls"]["original"].replace("i.pximg.net", "i.pixiv.re")
+    imgUrl = res['urls']['original'].replace('i.pximg.net', 'i.pixiv.re')
     content = []
-    for i in range(res["pageCount"]):
+    for i in range(res['pageCount']):
       content.append(
         {
-          "tag": "img",
-          "attrs": {
-            "src": imgUrl.replace("_p0", f"_p{i}"),
+          'tag': 'img',
+          'attrs': {
+            'src': imgUrl.replace('_p0', f'_p{i}'),
           },
         }
       )
