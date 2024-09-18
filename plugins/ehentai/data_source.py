@@ -31,7 +31,7 @@ async def get(url, params=None, headers=None, *args, **kwargs):
     url, params=params, headers={**eheaders, **headers}, *args, **kwargs
   )
   if 'IP address has been' in r.text:
-    raise PluginException('IP被禁')
+    raise PluginException('IP被禁\n' + r.text)
   if 'Not Found' in r.text:
     raise PluginException('页面不存在')
   return r
@@ -89,7 +89,7 @@ async def gallery_info(gid, token):
   data = json.dumps({'method': 'gdata', 'gidlist': [[gid, token]], 'namespace': 1})
   r = await util.post(api_url, data=data, headers=eheaders)
   if 'IP address has been' in r.text:
-    raise PluginException('请求过于频繁, IP被禁, 请十分钟后再试')
+    raise PluginException('请求过于频繁, IP被禁\n' + r.text)
   if 'Not Found' in r.text:
     raise PluginException('页面不存在')
   try:
