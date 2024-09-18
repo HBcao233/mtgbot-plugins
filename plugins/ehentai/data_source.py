@@ -30,7 +30,7 @@ async def get(url, params=None, headers=None, *args, **kwargs):
   r = await util.get(
     url, params=params, headers={**eheaders, **headers}, *args, **kwargs
   )
-  if 'Your IP address has been' in r.text:
+  if 'IP address has been' in r.text:
     raise PluginException('IP被禁')
   if 'Not Found' in r.text:
     raise PluginException('页面不存在')
@@ -88,12 +88,17 @@ async def parseEidGMsg(eid, soup):
 async def gallery_info(gid, token):
   data = json.dumps({'method': 'gdata', 'gidlist': [[gid, token]], 'namespace': 1})
   r = await util.post(api_url, data=data, headers=eheaders)
+  if 'IP address has been' in r.text:
+    raise PluginException('请求过于频繁, IP被禁, 请十分钟后再试')
+  if 'Not Found' in r.text:
+    raise PluginException('页面不存在')
   try:
     res = r.json()
     if 'error' in res:
       raise PluginException('解析错误')
     res = res['gmetadata'][0]
   except Exception:
+    logger.error(f'解析错误: {r.text}', exc_info=1)
     raise PluginException('解析错误')
 
   if res['title_jpn']:
