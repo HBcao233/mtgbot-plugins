@@ -142,7 +142,7 @@ async def _(event):
 
   _delay_events.append(event)
   bot.loop.call_later(
-    0.5, functools.partial(bot.loop.create_task, delay_callback(event))
+    0.25, functools.partial(bot.loop.create_task, delay_callback(event))
   )
 
 
