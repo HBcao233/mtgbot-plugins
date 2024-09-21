@@ -5,14 +5,17 @@
 from telethon import events, utils, types
 import re
 from util.log import logger
+from plugin import handler
+import filters
 
 
 del_time = 30
 caption = f'This message will delete in {del_time} seconds'
+file_pattern = re.compile('([a-zA-Z0-9-_]{31,34})')
 
 
 @bot.on(events.NewMessage)
-async def _(event):
+async def media2code(event):
   if not event.is_private:
     return
   if event.message.grouped_id:
@@ -27,7 +30,7 @@ async def _(event):
 
 
 @bot.on(events.Album)
-async def _(event):
+async def medias2code(event):
   if not event.is_private:
     return
   await bot.send_message(
@@ -46,21 +49,27 @@ async def _(event):
   )
 
 
-_pattern = re.compile('([a-zA-Z0-9-_]{31,34})')
-
-
-@bot.on(events.NewMessage(pattern=_pattern.search))
+@handler(pattern=file_pattern.search, enable=True, filter=filters.PRIVATE)
+@handler(
+  'file',
+  pattern=file_pattern.search,
+  enable=False,
+  filter=(
+    filters.PRIVATE
+    & filters.Filter(lambda event: event.message.message.startswith('/file '))
+    & (~filters.MEDIA)
+  ),
+)
 async def file(event):
-  if not event.is_private:
-    return
-  r = _pattern.findall(event.message.message)
   medias = []
   documents = []
   others = []
-  for i in r:
+  for i in file_pattern.findall(event.message.message):
+    logger.info(f'file_id: {i}')
     t = utils.resolve_bot_file_id(i)
+    if t is None:
+      continue
     add = utils.get_input_media(t)
-    logger.debug(t.to_dict())
     if isinstance(t, types.Photo):
       medias.append(add)
     elif isinstance(t, types.Document):
