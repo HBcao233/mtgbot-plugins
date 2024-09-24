@@ -16,28 +16,32 @@ import util
 from util.log import logger
 from plugin import handler
 from .data_source import headers, get_twitter, parseTidMsg, parseMedias
+import filters
 
 
+cmd_header_pattern = re.compile(r'/?tid(?:@%s)' % bot.me.username)
 _p = (
   r'(?:^|^(?:/?tid(?:@%s)?) ?|(?:https?://)?(?:twitter|x|vxtwitter|fxtwitter)\.com/[a-zA-Z0-9_]+/status/)(\d{13,20})(?:[^0-9].*)?$|^/tid'
   % bot.me.username
 )
 _pattern = re.compile(_p).search
-_group_pattern = re.compile(_p.replace(r'(?:^|', r'^(?:')).search
+_group_pattern = re.compile(_p.replace(r'(?:^|', r'^(?:', 1)).search
 
 
 @handler(
   'tid',
   pattern=_pattern,
   info='获取推文 /tid <url/tid> [hide] [mark]',
+  filter=(
+    filters.PRIVATE
+    | filters.Filter(lambda event: _group_pattern(event.message.message))
+  )
+  & ~(filters.PHOTO | filters.VIDEO),
 )
 async def _tid(event, text):
-  if not event.message.is_private and not _group_pattern(text):
-    return
-  if event.message.photo or event.message.video:
-    return
-  match = event.pattern_match
-  if match.group(1) is None:
+  text = cmd_header_pattern.sub('', text).strip()
+  match = _pattern(text)
+  if match is None or not (tid := match.group(1)):
     return await event.reply(
       '用法: /tid <url/tid> [options]:\n'
       '获取推文\n'
@@ -46,7 +50,6 @@ async def _tid(event, text):
       '- [mark/遮罩]: 添加遮罩'
     )
 
-  tid = match.group(1)
   options = util.string.Options(text, hide=('简略', '省略'), mark=('spoiler', '遮罩'))
   logger.info(f'{tid = }, {options = }')
 

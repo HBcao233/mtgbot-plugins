@@ -16,8 +16,10 @@ from util.log import logger
 from util.progress import Progress
 from plugin import handler
 from .data_source import PixivClient, parse_msg, get_telegraph
+import filters
 
 
+cmd_header_pattern = re.compile(r'/?pid(?:@%s)' % bot.me.username)
 _p = (
   r'(?:^|^(?:/?pid(?:@%s)?) ?|(?:https?://)?(?:www\.)?(?:pixiv\.net/(?:member_illust\.php\?.*illust_id=|artworks/|i/)))(\d{6,12})(?:[^0-9].*)?$|^/pid.*$'
   % bot.me.username
@@ -30,14 +32,16 @@ _group_pattern = re.compile(_p.replace(r'(?:^|', r'^(?:')).search
   'pid',
   pattern=_pattern,
   info='获取p站作品 /pid <url/pid> [hide] [mark]',
+  filter=(
+    filters.PRIVATE
+    | filters.Filter(lambda event: _group_pattern(event.message.message))
+  )
+  & ~(filters.PHOTO | filters.VIDEO),
 )
 async def _pixiv(event, text):
-  if not event.message.is_private and not _group_pattern(text):
-    return
-  if event.message.photo or event.message.video:
-    return
-  match = event.pattern_match
-  if not (pid := match.group(1)):
+  text = cmd_header_pattern.sub('', text).strip()
+  match = _pattern(text)
+  if match is None or not (pid := match.group(1)):
     return await event.reply(
       '用法: /pid <url/pid> [options]\n'
       '获取p站图片\n'
