@@ -130,7 +130,7 @@ async def _pixiv(event, text):
   async with PixivClient(pid) as client:
     res = await client.get_pixiv()
     if isinstance(res, str):
-      return await event.reply(res)
+      return await mid.edit(res)
     msg, tags = parse_msg(res, options.hide)
     if res['illustType'] == 2:
       return await send_animation()
