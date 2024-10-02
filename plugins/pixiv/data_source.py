@@ -162,7 +162,17 @@ async def get_telegraph(res, tags):
   key = f'{pid}-{now:%m-%d}'
   if not (url := data[key]):
     imgUrl = res['urls']['original'].replace('i.pximg.net', 'i.pixiv.re')
-    content = []
+    content = [
+      {
+        'tag': 'img',
+        'attrs': {
+          'src': res['urls']['regular'].replace('i.pximg.net', 'i.pixiv.re'),
+        },
+      },
+      {'tag': 'br'},
+      {'tag': 'br'},
+      {'tag': 'hr'},
+    ]
     for i in range(res['pageCount']):
       content.append(
         {
@@ -174,17 +184,17 @@ async def get_telegraph(res, tags):
       )
 
     url = await util.telegraph.createPage(
-      f"[pixiv] {pid} {res['illustTitle']}", content
+      f"[pixiv] {pid} {res['illustTitle']}",
+      content,
     )
     with data:
       data[key] = url
 
   msg = (
     f"标题: {res['illustTitle']}\n"
-    f"预览: {url}\n"
     f"标签: {' '.join(tags)}\n"
     f"作者: <a href=\"https://www.pixiv.net/users/{res['userId']}/\">{res['userName']}</a>\n"
     f"数量: {res['pageCount']}\n"
-    f"原链接: https://www.pixiv.net/artworks/{pid}"
+    f"<a href=\"{url}\">预览</a> | <a href=\"https://www.pixiv.net/artworks/{pid}\">原链接</a>"
   )
   return url, msg
