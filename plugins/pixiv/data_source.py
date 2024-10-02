@@ -43,6 +43,8 @@ class PixivClient(util.curl.Client):
     res = r.json()
     if 'error' in res and res['error']:
       logger.error(r.text)
+      if res['message'] == '':
+        res['message'] = '尚无此页'
       return '错误: ' + res['message']
     return res['body']
 
