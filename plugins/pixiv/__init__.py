@@ -248,13 +248,15 @@ async def _(event):
   match = event.pattern_match
   pid = int.from_bytes(match.group(1), 'big')
   message = await event.get_message()
+  buttons = message.buttons
+  buttons.pop(1)
   try:
-    await event.edit(buttons=message.buttons[0])
+    await event.edit(buttons=buttons)
   except errors.MessageNotModifiedError:
     logger.warning('MessageNotModifiedError')
 
   hide = ''
-  for i in message.buttons[0]:
+  for i in buttons[0]:
     if i.text == '详细描述':
       hide = 'hide'
       break
