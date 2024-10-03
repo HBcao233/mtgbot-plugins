@@ -195,7 +195,7 @@ async def _(event):
   sender_id = None
   if t := match.group(3):
     sender_id = int.from_bytes(t, 'big')
-  logger.info(f'{message_id=}, {pid=}, {sender_id=}, {event.sender_id=}')
+  # logger.info(f'{message_id=}, {pid=}, {sender_id=}, {event.sender_id=}')
 
   if sender_id and event.sender_id and sender_id != event.sender_id:
     participant = await bot.get_permissions(peer, event.sender_id)
