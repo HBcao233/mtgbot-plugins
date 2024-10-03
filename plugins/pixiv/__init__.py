@@ -62,7 +62,7 @@ async def _pixiv(event, text):
     nonlocal mid
     async with bot.action(event.peer_id, 'file'):
       data = util.Animations()
-      mid.edit('生成动图中...')
+      await mid.edit('生成动图中...')
       if not (file := data[pid]):
         file = await client.get_anime()
         if not file:
