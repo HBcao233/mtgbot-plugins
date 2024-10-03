@@ -12,6 +12,7 @@ from util.log import logger
 
 PHPSESSID = config.env.get('pixiv_PHPSESSID', '')
 gheaders = {'cookie': f'PHPSESSID={PHPSESSID};'}
+max_comment_length = 600
 
 
 class PixivClient(util.curl.Client):
@@ -106,16 +107,9 @@ def parse_msg(res, hide=False):
 
   tags = []
   for i in res['tags']['tags']:
-    tags.append(('#' + i['tag']).replace('#R-', '#R'))
+    tags.append(('#' + i['tag']).replace('#R-', '#R').replace(' ', '_'))
     if 'translation' in i.keys():
-      tags.append(('#' + i['translation']['en']).replace('#R-', '#R'))
-  """
-  tags = (
-    json.dumps(tags, ensure_ascii=False)
-      .replace('"', "")
-      .replace("[", "")
-      .replace("]", "")
-  )"""
+      tags.append(('#' + i['translation']['en']).replace('#R-', '#R').replace(' ', '_'))
 
   props = []
   if any((tag := t) in tags for t in ['#R18', '#R17.9']):
@@ -135,7 +129,7 @@ def parse_msg(res, hide=False):
   # t = dateutil.parser.parse(res["createDate"]) + datetime.timedelta(hours=8)
   msg = (
     prop
-    + f"<a href=\"https://www.pixiv.net/artworks/{pid}/\">{res['illustTitle']}</a> - <a href=\"https://www.pixiv.net/users/{res['userId']}/\">{res['userName']}</a>"
+    + f"<a href=\"https://www.pixiv.net/artworks/{pid}/\">{res['illustTitle']}[{pid}]</a> - <a href=\"https://www.pixiv.net/users/{res['userId']}/\">{res['userName']}</a>的插画 - pixiv"
   )
   if not hide:
     comment = res['illustComment']
@@ -146,13 +140,19 @@ def parse_msg(res, hide=False):
       .replace(' target="_blank"', '')
     )
     comment = re.sub(r'<span[^>]*>(((?!</span>).)*)</span>', r'\1', comment)
-    if len(comment) > 400:
-      comment = re.sub(r'<[^/]+[^<]*(<[^>]*)?$', '', comment[:400])
+    if len(comment) > max_comment_length:
+      comment = re.sub(r'<[^/]+[^<]*(<[^>]*)?$', '', comment[:max_comment_length])
       comment = re.sub(r'\n$', '', comment)
       comment = comment + '\n......'
     if comment != '':
-      comment = ':\n' + comment
+      comment = ':\n<blockquote expandable>' + comment + '</blockquote>'
       msg += comment
+
+    msg += (
+      '\n<blockquote expandable>'
+      + (' '.join(i for i in tags if i not in ['R18', '#R18G']))
+      + '</blockquote>'
+    )
 
   return msg, tags
 

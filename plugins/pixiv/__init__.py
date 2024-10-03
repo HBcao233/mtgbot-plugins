@@ -185,6 +185,9 @@ _button_pattern = re.compile(
 
 @bot.on(events.CallbackQuery(pattern=_button_pattern))
 async def _(event):
+  """
+  简略描述/详细描述 按钮回调
+  """
   peer = event.query.peer
   match = event.pattern_match
   message_id = int.from_bytes(match.group(1), 'big')
@@ -203,7 +206,7 @@ async def _(event):
   if message is None:
     return await event.answer('消息被删除', alert=True)
 
-  hide = '):\n' in message.text
+  hide = any(isinstance(i, types.MessageEntityBlockquote) for i in message.entities)
 
   async with PixivClient(pid) as client:
     res = await client.get_pixiv()
@@ -238,6 +241,9 @@ _ori_pattern = re.compile(rb'pidori_([\x00-\xff]{4,4})$').match
 
 @bot.on(events.CallbackQuery(pattern=_ori_pattern))
 async def _(event):
+  """
+  获取原图按钮回调
+  """
   peer = event.query.peer
   match = event.pattern_match
   pid = int.from_bytes(match.group(1), 'big')
