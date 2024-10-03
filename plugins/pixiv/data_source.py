@@ -129,7 +129,7 @@ def parse_msg(res, hide=False):
   # t = dateutil.parser.parse(res["createDate"]) + datetime.timedelta(hours=8)
   msg = (
     prop
-    + f"<a href=\"https://www.pixiv.net/artworks/{pid}/\">{res['illustTitle']}[{pid}]</a> - <a href=\"https://www.pixiv.net/users/{res['userId']}/\">{res['userName']}</a>的插画 - pixiv"
+    + f"[<code>{pid}</code>] <a href=\"https://www.pixiv.net/artworks/{pid}/\">{res['illustTitle']}</a> | <a href=\"https://www.pixiv.net/users/{res['userId']}/\">{res['userName']}</a> #pixiv"
   )
   if not hide:
     comment = res['illustComment']
@@ -150,7 +150,7 @@ def parse_msg(res, hide=False):
 
     msg += (
       '\n<blockquote expandable>'
-      + (' '.join(i for i in tags if i not in ['R18', '#R18G']))
+      + (' '.join(i for i in tags if i not in ['#R18', '#R18G']))
       + '</blockquote>'
     )
 
