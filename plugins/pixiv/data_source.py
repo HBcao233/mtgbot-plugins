@@ -126,11 +126,9 @@ def parse_msg(res, hide=False):
   if prop != '':
     prop += '\n'
 
-  # t = dateutil.parser.parse(res["createDate"]) + datetime.timedelta(hours=8)
-  msg = (
-    prop
-    + f"[<code>{pid}</code>] <a href=\"https://www.pixiv.net/artworks/{pid}/\">{res['illustTitle']}</a> | <a href=\"https://www.pixiv.net/users/{res['userId']}/\">{res['userName']}</a> #pixiv"
-  )
+  title = res['illustTitle']
+  uid = res['userId']
+  username = res['userName']
   if not hide:
     comment = res['illustComment']
     comment = (
@@ -146,14 +144,16 @@ def parse_msg(res, hide=False):
       comment = comment + '\n......'
     if comment != '':
       comment = ':\n<blockquote expandable>' + comment + '</blockquote>'
-      msg += comment
 
-    msg += (
-      '\n<blockquote expandable>'
-      + (' '.join(i for i in tags if i not in ['#R18', '#R18G']))
-      + '</blockquote>'
+  msg = (
+    f'{prop}[<code>{pid}</code>] <a href="https://www.pixiv.net/artworks/{pid}/">{title}</a>'
+    f' | <a href="https://www.pixiv.net/users/{uid}/">{username}</a> #pixiv'
+    + (
+      f"{comment}\n<blockquote expandable>{' '.join(i for i in tags if i not in ['#R18', '#R18G'])}</blockquote>"
+      if hide
+      else ''
     )
-
+  )
   return msg, tags
 
 
