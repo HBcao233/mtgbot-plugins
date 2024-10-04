@@ -1,7 +1,5 @@
 import re
-import dateutil.parser
-import datetime
-import urllib.parse
+import time
 import traceback
 import ujson as json
 
@@ -13,7 +11,7 @@ from util.log import logger
 env = config.env
 csrf_token = env.get('twitter_csrf_token', '')
 auth_token = env.get('twitter_auth_token', '')
-headers = {
+gheaders = {
   'content-type': 'application/json; charset=utf-8',
   'authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA',
   'x-csrf-token': csrf_token,
@@ -57,17 +55,14 @@ async def get_twitter(tid):
     'responsive_web_media_download_video_enabled': False,
     'responsive_web_enhance_cards_enabled': False,
   }
-  data = urllib.parse.urlencode(
-    {
-      'variables': json.dumps(variables),
-      'features': json.dumps(features),
-    }
-  )
   try:
     r = await util.get(
       url,
-      params=data,
-      headers=headers,
+      params={
+        'variables': json.dumps(variables),
+        'features': json.dumps(features),
+      },
+      headers=gheaders,
     )
     res = r.json()
     if 'errors' in res and len(res['errors']) > 0:
@@ -98,7 +93,7 @@ async def get_twitter(tid):
     return '连接超时'
 
 
-def parseTidMsg(res):
+def parse_msg(res):
   tweet = res['legacy']
   user = res['core']['user_results']['result']['legacy']
 
@@ -109,25 +104,29 @@ def parseTidMsg(res):
       full_text = full_text.replace(i['url'], i['expanded_url'])
   full_text = re.sub(r'\s*https:\/\/t\.co\/\w+$', '', full_text)
   full_text = re.sub(
-    r'#([^ \n]+)', r'<a href="https://x.com/hashtag/\1">#\1</a>', full_text
+    r'#([^ \n#]+)', r'<a href="https://x.com/hashtag/\1">#\1</a>', full_text
   )
   full_text = re.sub(
     r'([^@]*[^/@]+)@([0-9a-zA-Z_]*)', r'\1<a href="https://x.com/\2">@\2</a>', full_text
   )
 
-  user_name = user['name']
-  user_screen_name = user['screen_name']
-  t = dateutil.parser.parse(tweet['created_at']) + datetime.timedelta(hours=8)
-  time = t.strftime('%Y年%m月%d日 %H:%M:%S')
-  msg = (
-    f'<a href="https://x.com/{user_screen_name}/status/{tid}">{time}</a>\n'
-    f'<a href="https://x.com/{user_screen_name}">{user_name}</a>'
+  nickname = user['name']
+  username = user['screen_name']
+  utc_time = time.strptime(tweet['created_at'], r'%a %b %d %H:%M:%S %z %Y')
+  local_time = time.localtime(
+    time.mktime(utc_time) + utc_time.tm_gmtoff - time.timezone
   )
-  if full_text != '':
-    msg += f':\n{full_text}'
-  # f"\n\n<a href=\"https://x.com/{user_screen_name}/status/{tid}\">From X at {time}</a>\n"
-
-  return msg, full_text, time
+  create_time = time.strftime('%Y年%m月%d日 %H:%M:%S', local_time)
+  msg = (
+    f'<a href="https://x.com/{username}/status/{tid}">{tid}</a>'
+    f' | <a href="https://x.com/{username}">{nickname}</a> #X'
+    + (
+      f':\n<blockquote expandable>{full_text}\n{create_time}</blockquote>'
+      if full_text != ''
+      else f':\n{create_time}'
+    )
+  )
+  return msg, full_text, create_time
 
 
 def parseMedias(tweet):

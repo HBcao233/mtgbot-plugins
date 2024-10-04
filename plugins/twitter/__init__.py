@@ -15,7 +15,7 @@ import ujson as json
 import util
 from util.log import logger
 from plugin import handler
-from .data_source import headers, get_twitter, parseTidMsg, parseMedias
+from .data_source import gheaders, get_twitter, parse_msg, parseMedias
 import filters
 
 
@@ -60,7 +60,7 @@ async def _tid(event, text):
     logger.info('tombstone: %s', json.dumps(res))
     return await event.reply(res['tombstone']['text']['text'].replace('了解更多', ''))
 
-  msg, full_text, time = parseTidMsg(res)
+  msg, full_text, time = parse_msg(res)
   msg = msg if not options.hide else 'https://x.com/i/status/' + tid
   tweet = res['legacy']
   medias_info = parseMedias(tweet)
@@ -79,7 +79,7 @@ async def _tid(event, text):
       if file_id := t[md5]:
         media = util.media.file_id_to_media(file_id, options.mark)
       else:
-        file = await util.getImg(url, headers=headers, ext=ext)
+        file = await util.getImg(url, headers=gheaders, ext=ext)
         if i['type'] == 'video':
           file = await util.media.video2mp4(file)
         media = await util.media.file_to_media(file, options.mark)
@@ -128,6 +128,9 @@ _button_pattern = re.compile(
 
 @bot.on(events.CallbackQuery(pattern=_button_pattern))
 async def _event(event):
+  """
+  简略描述/详细描述 按钮回调
+  """
   peer = event.query.peer
   match = event.pattern_match
   message_id = int.from_bytes(match.group(1), 'big')
@@ -135,7 +138,7 @@ async def _event(event):
   sender_id = None
   if t := match.group(3):
     sender_id = int.from_bytes(t, 'big')
-  logger.info(f'{message_id=}, {tid=}, {sender_id=}, {event.sender_id=}')
+  # logger.info(f'{message_id=}, {tid=}, {sender_id=}, {event.sender_id=}')
 
   if sender_id and event.sender_id and sender_id != event.sender_id:
     participant = await bot.get_permissions(peer, event.sender_id)
@@ -145,6 +148,7 @@ async def _event(event):
   message = await bot.get_messages(peer, ids=message_id)
   if message is None:
     return await event.answer('消息被删除', alert=True)
+
   hide = '年' in message.message
   msg = f'https://x.com/i/status/{tid}'
   if not hide:
@@ -153,7 +157,7 @@ async def _event(event):
       if isinstance(res, str):
         res = res['tombstone']['text']['text'].replace('了解更多', '')
       return await event.answer(res, alert=True)
-    msg, _, _ = parseTidMsg(res)
+    msg, _, _ = parse_msg(res)
   try:
     await message.edit(msg, parse_mode='html')
   except errors.MessageNotModifiedError:
