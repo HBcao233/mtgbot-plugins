@@ -100,7 +100,8 @@ async def get_telegraph(gid, title, media_id, exts, nocache, mid):
       logger.warning(w, exc_info=1)
       return Res(None, w)
     else:
-      data[key] = url
+      with data:
+        data[key] = url
 
     return Res(url)
 
