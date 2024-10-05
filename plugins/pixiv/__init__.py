@@ -139,7 +139,7 @@ async def _pixiv(event, text):
     if count <= 10:
       res = await send_photos()
     else:
-      url, msg = await get_telegraph(res, tags)
+      url, msg = await get_telegraph(res, tags, client, mid)
       await mid.delete()
       return await bot.send_file(
         event.peer_id,

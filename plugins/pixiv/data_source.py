@@ -157,37 +157,59 @@ def parse_msg(res, hide=False):
   return msg, tags
 
 
-async def get_telegraph(res, tags):
+async def get_telegraph(res, tags, client, mid):
+  class Res:
+    def __init__(self, url=None, text=None):
+      self.url = url
+      self.text = text
+
+    def parse(self):
+      if self.url:
+        return {
+          'tag': 'img',
+          'attrs': {'src': self.url},
+        }
+      return {
+        'tag': 'p',
+        'children': [self.text],
+      }
+
+  async def _parse(i):
+    nonlocal data, client
+    _key = f'pximg{pid}-{i}'
+    if url := data.get(_key, None):
+      return Res(url)
+    try:
+      r = await client.get(imgUrl.replace('_p0', f'_p{i}'))
+      r.raise_for_status()
+      return Res(await util.curl.postimg_upload(r.content, client))
+    except Exception:
+      return Res(None, f'p{i+1} 获取失败')
+    else:
+      with data:
+        data[_key] = url
+
+  async def parse(i):
+    res = await _parse(i)
+    await bar.add(1)
+    return res
+
   data = util.Data('urls')
   now = datetime.now()
   pid = res['illustId']
   key = f'{pid}-{now:%m-%d}'
+  count = res['pageCount']
+  bar = util.progress.Progress(mid, count, '上传中...', False)
   if not (url := data[key]):
-    imgUrl = res['urls']['original'].replace('i.pximg.net', 'i.pixiv.re')
-    content = [
-      {
-        'tag': 'img',
-        'attrs': {
-          'src': res['urls']['regular'].replace('i.pximg.net', 'i.pixiv.re'),
-        },
-      },
-      {'tag': 'br'},
-      {'tag': 'br'},
-      {'tag': 'hr'},
-    ]
-    for i in range(res['pageCount']):
-      content.append(
-        {
-          'tag': 'img',
-          'attrs': {
-            'src': imgUrl.replace('_p0', f'_p{i}'),
-          },
-        }
-      )
-
+    imgUrl = res['urls']['regular']
+    tasks = (parse(i) for i in range(count))
+    result = await asyncio.gather(*tasks)
+    result.append(
+      Res(None, f'原链接: https://www.pixiv.net/artworks/{pid}'),
+    )
+    content = [i.parse() for i in result]
     url = await util.telegraph.createPage(
-      f"[pixiv] {pid} {res['illustTitle']}",
-      content,
+      f"[pixiv] {pid} {res['illustTitle']}", content
     )
     with data:
       data[key] = url
