@@ -59,9 +59,11 @@ def parse_msg(res, p=1):
       if i['page'] == p:
         cid = i['cid']
   title = res['title'].replace('&', '&gt;').replace('<', '&lt;').replace('>', '&gt;')
+  uid = res['owner']['mid']
+  nickname = res['owner']['name']
   msg = (
-    f"<a href=\"https://www.bilibili.com/video/{bvid}{p_url}\">{title}{p_tip}</a> - "
-    f"<a href=\"https://space.bilibili.com/{res['owner']['mid']}\">{res['owner']['name']}</a>"
+    f'[<code>{bvid}</code>] <a href="https://www.bilibili.com/video/{bvid}{p_url}">{title}{p_tip}</a> | '
+    f'<a href="https://space.bilibili.com/{uid}">{nickname}</a> #Bilibili'
   )
   return bvid, aid, cid, title, msg
 
