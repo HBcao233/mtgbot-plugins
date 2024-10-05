@@ -6,10 +6,15 @@ import util
 from util import logger
 from plugin import handler
 from util.progress import Progress
+import filters
 from .data_source import video2gif, tgs2ext, video2ext
 
 
-@handler('gif', info='视频转gif')
+@handler(
+  'gif',
+  info='视频转gif',
+  filter=filters.PRIVATE,
+)
 async def _gif(event):
   if not (reply_message := await event.message.get_reply_message()):
     return await event.reply('请用命令回复一条消息')

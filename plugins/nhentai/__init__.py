@@ -9,6 +9,7 @@ from datetime import datetime
 
 import util
 from plugin import handler
+import filters
 from .data_source import PluginException, gallery_info, get_telegraph
 
 
@@ -17,10 +18,13 @@ _pattern = re.compile(
 ).match
 
 
-@handler('nid', pattern=_pattern, info='n站爬取 /nid <url> [hide] [mark]')
+@handler(
+  'nid',
+  pattern=_pattern,
+  info='n站爬取 /nid <url> [hide] [mark]',
+  filter=filters.PRIVATE & filters.ONLYTEXT,
+)
 async def nid(event, text):
-  if not event.message.is_private or event.message.photo or event.message.video:
-    return
   match = event.pattern_match
   gid = match.group(1)
 

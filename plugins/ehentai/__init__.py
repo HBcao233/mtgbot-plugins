@@ -14,6 +14,7 @@ from datetime import datetime
 
 import util
 from plugin import handler
+import filters
 from .data_source import (
   get,
   getImg,
@@ -29,7 +30,12 @@ _pattern = re.compile(
 ).match
 
 
-@handler('eid', pattern=_pattern, info='e站爬取 /eid <url> [hide] [mark]')
+@handler(
+  'eid',
+  pattern=_pattern,
+  info='e站爬取 /eid <url> [hide] [mark]',
+  filter=filters.PRIVATE & filters.ONLYTEXT,
+)
 async def eid(event, text):
   if not event.message.is_private or event.message.photo or event.message.video:
     return

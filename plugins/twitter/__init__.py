@@ -36,7 +36,7 @@ _group_pattern = re.compile(_p.replace(r'(?:^|', r'^(?:', 1)).search
     filters.PRIVATE
     | filters.Filter(lambda event: _group_pattern(event.message.message))
   )
-  & ~(filters.PHOTO | filters.VIDEO),
+  & filters.ONLYTEXT,
 )
 async def _tid(event, text):
   text = cmd_header_pattern.sub('', text).strip()

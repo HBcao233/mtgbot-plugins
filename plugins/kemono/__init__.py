@@ -8,6 +8,7 @@ import util
 from util.log import logger
 from util.progress import Progress
 from plugin import handler
+import filters
 from .data_source import parse_msg, parse_page
 
 
@@ -17,10 +18,13 @@ _pattern = re.compile(
 ).match
 
 
-@handler('kid', pattern=_pattern, info='kemono爬取 /kid <url>')
+@handler(
+  'kid',
+  pattern=_pattern,
+  info='kemono爬取 /kid <url>',
+  filter=filters.ONLYTEXT,
+)
 async def _kid(event, text):
-  if event.message.photo or event.message.video:
-    return
   match = event.pattern_match
   if not (_kid := match.group(3)):
     return await event.reply('用法: /kid <kemono_url>')

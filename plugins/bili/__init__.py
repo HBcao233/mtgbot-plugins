@@ -12,6 +12,7 @@ import re
 import util
 from util.log import logger
 from plugin import handler
+import filters
 from .data_source import get_bili, parse_msg, get_video
 
 
@@ -25,10 +26,9 @@ _pattern = re.compile(
   'bili',
   pattern=_pattern,
   info='av号或bv号获取视频',
+  filter=filters.ONLYTEXT,
 )
 async def _(event, text):
-  if event.message.photo or event.message.video:
-    return
   match = event.pattern_match
   if match.group(1) is None and match.group(2) is None:
     return await event.reply(

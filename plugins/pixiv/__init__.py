@@ -15,8 +15,8 @@ import util
 from util.log import logger
 from util.progress import Progress
 from plugin import handler
-from .data_source import PixivClient, parse_msg, get_telegraph
 import filters
+from .data_source import PixivClient, parse_msg, get_telegraph
 
 
 cmd_header_pattern = re.compile(r'/?pid(?:@%s)' % bot.me.username)
@@ -36,7 +36,7 @@ _group_pattern = re.compile(_p.replace(r'(?:^|', r'^(?:')).search
     filters.PRIVATE
     | filters.Filter(lambda event: _group_pattern(event.message.message))
   )
-  & ~(filters.PHOTO | filters.VIDEO),
+  & filters.ONLYTEXT,
 )
 async def _pixiv(event, text):
   text = cmd_header_pattern.sub('', text).strip()
