@@ -21,11 +21,15 @@ from .data_source import PixivClient, parse_msg, get_telegraph
 
 cmd_header_pattern = re.compile(r'/?pid(?:@%s)' % bot.me.username)
 _p = (
-  r'(?:^|^(?:/?pid(?:@%s)?) ?|(?:https?://)?(?:www\.)?(?:pixiv\.net/(?:member_illust\.php\?.*illust_id=|artworks/|i/)))(\d{6,12})(?:[^0-9].*)?$|^/pid.*$'
+  r"""(?:^|(?#
+  cmd)^(?:/?pid(?:@%s)?) ?|(?#
+  url)(?:https?://)?(?:www\.)?(?:pixiv\.net/(?:member_illust\.php\?.*illust_id=|artworks/|i/))(?#
+))(?#
+)(\d{6,12})(?:[^a-zA-Z\n].*)?$|^/pid"""
   % bot.me.username
 )
 _pattern = re.compile(_p).search
-_group_pattern = re.compile(_p.replace(r'(?:^|', r'^(?:')).search
+_group_pattern = re.compile(_p.replace(r'(?:^|', r'(?:')).search
 
 
 @handler(
@@ -33,10 +37,12 @@ _group_pattern = re.compile(_p.replace(r'(?:^|', r'^(?:')).search
   pattern=_pattern,
   info='获取p站作品 /pid <url/pid> [hide] [mark]',
   filter=(
-    filters.PRIVATE
-    | filters.Filter(lambda event: _group_pattern(event.message.message))
-  )
-  & filters.ONLYTEXT,
+    filters.ONLYTEXT
+    & (
+      filters.PRIVATE
+      | filters.Filter(lambda event: _group_pattern(event.message.message))
+    )
+  ),
 )
 async def _pixiv(event, text):
   text = cmd_header_pattern.sub('', text).strip()
