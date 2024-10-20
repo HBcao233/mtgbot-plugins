@@ -14,19 +14,20 @@ from plugin import import_plugin
 
 
 mark = import_plugin('mark')
+get_url = import_plugin('hosting').get_url
+_get_buttons = mark.DelayMedia.get_buttons
 
 
-class DelayMedia(mark.DelayMedia):
-  def get_buttons(self):
-    buttons = super().get_buttons()
-    start_mid = self.messages[0].id.to_bytes(4, 'big')
-    end_mid = self.messages[-1].id.to_bytes(4, 'big')
-    add_bytes = start_mid + b'_' + end_mid
-    buttons.append(Button.inline('合并图片', data=b'amerge_' + add_bytes))
-    return buttons
+def get_buttons(self):
+  buttons = _get_buttons(self)
+  start_mid = self.messages[0].id.to_bytes(4, 'big')
+  end_mid = self.messages[-1].id.to_bytes(4, 'big')
+  add_bytes = start_mid + b'_' + end_mid
+  buttons.append(Button.inline('合并图片', data=b'amerge_' + add_bytes))
+  return buttons
 
 
-mark.DelayMedia = DelayMedia
+mark.DelayMedia.get_buttons = get_buttons
 
 
 class MergeData(MessageData):
@@ -191,39 +192,38 @@ class Tmerge:
   @staticmethod
   @bot.on(events.CallbackQuery(pattern=pattern))
   async def button(event):
-    await event.answer()
-    t = Tmerge(event)
-    await t.main()
-
-    MergeData.delete_merge(t.peer)
-    try:
-      await bot.delete_messages(t.peer, t.mid)
-      await bot.delete_messages(t.peer, t.res.pin_mids)
-    except errors.MessageIdInvalidError:
-      pass
+    async with Tmerge(event) as t:
+      await t.main()
 
   def __init__(self, event):
     self.event = event
     self.peer = event.query.peer
+
+  async def __aenter__(self):
+    return self
+
+  async def __aexit__(self, type, value, trace):
+    if type is not None:
+      return await self.event.answer()
+    return await self.event.answer('错误', alert=True)
 
   async def main(self):
     if not MergeData.has_merge(self.peer):
       return await self.event.delete()
 
     await self.get_title()
-    self.mid = await bot.send_message(self.peer, '请等待', buttons=Button.clear())
     self.res = MergeData.get_merge(self.peer)
     self.bar = util.progress.Progress(self.mid, len(self.res.mids), '上传中...', False)
     self.messages = await bot.get_messages(self.peer, ids=self.res.mids)
     if any(m is None for m in self.messages):
       return await self.event.answer('待合并媒体被删除', alert=True)
     if any(not m.photo for m in self.messages):
-      return await self.event.answer('telegraph合并暂不支持视频', alert=True)
+      return await self.event.answer('telegraph 合并暂时仅支持图片', alert=True)
+    self.mid = await bot.send_message(self.peer, '请等待', buttons=Button.clear())
 
     with util.Data('urls') as data:
-      async with util.curl.Client() as client:
-        tasks = [self.parse(m, client, data) for m in self.messages]
-        result = await asyncio.gather(*tasks)
+      tasks = [self.parse(m, data) for m in self.messages]
+      result = await asyncio.gather(*tasks)
 
     content = [
       {
@@ -242,10 +242,15 @@ class Tmerge:
         optional=True,
       ),
     )
+    MergeData.delete_merge(self.peer)
+    try:
+      await bot.delete_messages(self.peer, self.res.pin_mids)
+    except errors.MessageIdInvalidError:
+      pass
 
   async def get_title(self):
     async with bot.conversation(self.event.chat_id) as conv:
-      self.mid = await conv.send_message(
+      mid = await conv.send_message(
         '请在 60 秒内发送您想要设置的 telegraph 标题',
         buttons=Button.text('取消', single_use=True),
       )
@@ -260,18 +265,19 @@ class Tmerge:
           '设置取消', buttons=Button.clear(), reply_to=self.mid
         )
       self.title = message.message
+      await bot.delete_messages(self.peer, mid)
 
-  async def _parse(self, m, client, data):
+  async def _parse(self, m, data):
     key = str(m.media.photo.id)
     if url := data.get(key):
       return url
     img = util.getCache(key + '.jpg')
     await m.download_media(file=img)
-    url = await util.curl.postimg_upload(open(img, 'rb').read(), client)
+    url = get_url(img)
     data[key] = url
     return url
 
-  async def parse(self, m, client, data):
-    url = await self._parse(m, client, data)
+  async def parse(self, m, data):
+    url = await self._parse(m, data)
     await self.bar.add(1)
     return url

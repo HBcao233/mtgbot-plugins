@@ -4,7 +4,7 @@
 
 from telethon import events, utils, errors, Button
 import re
-import functools
+import asyncio
 
 import util
 from util.log import logger
@@ -141,9 +141,8 @@ class DelayMedia:
 
     ins.append(event)
     # 延迟回调以接收全部媒体
-    bot.loop.call_later(
-      0.25, functools.partial(bot.loop.create_task, ins.delay_callback(event))
-    )
+    await asyncio.sleep(0.25)
+    await ins.delay_callback(event)
 
   def __init__(self):
     self.events = []
@@ -165,7 +164,8 @@ class DelayMedia:
 
     try:
       buttons = self.get_buttons()
-      await event.respond(
+      await bot.send_message(
+        event.chat_id,
         f'收到 {len(self.messages)} 个媒体',
         buttons=buttons,
         reply_to=self.messages[0],
