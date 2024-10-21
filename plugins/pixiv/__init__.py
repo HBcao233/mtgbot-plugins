@@ -25,7 +25,7 @@ _p = (
   cmd)^(?:/?pid(?:@%s)?) ?|(?#
   url)(?:https?://)?(?:www\.)?(?:pixiv\.net/(?:member_illust\.php\?.*illust_id=|artworks/|i/))(?#
 ))(?#
-)(\d{6,12})(?:[^a-zA-Z\n].*)?$|^/pid"""
+)(\d{6,12})(?:[^a-zA-Z0-9\n].*)?$|^/pid"""
   % bot.me.username
 )
 _pattern = re.compile(_p).search
