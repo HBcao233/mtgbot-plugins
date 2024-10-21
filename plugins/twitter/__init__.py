@@ -21,7 +21,7 @@ import filters
 
 cmd_header_pattern = re.compile(r'/?tid(?:@%s)' % bot.me.username)
 _p = (
-  r'(?:^|^(?:/?tid(?:@%s)?) ?|(?:https?://)?(?:twitter|x|vxtwitter|fxtwitter)\.com/[a-zA-Z0-9_]+/status/)(\d{13,20})(?:[^0-9].*)?$|^/tid'
+  r'(?:^|^(?:/?tid(?:@%s)?) ?|(?:https?://)?[a-z]*?(?:twitter|x)\.com/[a-zA-Z0-9_]+/status/)(\d{13,20})(?:[^0-9].*)?$|^/tid'
   % bot.me.username
 )
 _pattern = re.compile(_p).search
