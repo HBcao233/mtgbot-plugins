@@ -8,11 +8,13 @@ from asyncio.subprocess import PIPE
 import util
 import config
 from util.log import logger
+from plugin import import_plugin
 
 
 PHPSESSID = config.env.get('pixiv_PHPSESSID', '')
 gheaders = {'cookie': f'PHPSESSID={PHPSESSID};'}
 max_comment_length = 600
+get_url = import_plugin('hosting').get_url
 
 
 class PixivClient(util.curl.Client):
@@ -174,36 +176,15 @@ async def get_telegraph(res, tags, client, mid):
         'children': [self.text],
       }
 
-  async def _parse(i):
-    nonlocal data, client
-    _key = f'pximg{pid}-{i}'
-    if url := data.get(_key, None):
-      return Res(url)
-    try:
-      r = await client.get(imgUrl.replace('_p0', f'_p{i}'))
-      r.raise_for_status()
-      return Res(await util.curl.postimg_upload(r.content, client))
-    except Exception:
-      return Res(None, f'p{i+1} 获取失败')
-    else:
-      with data:
-        data[_key] = url
-
-  async def parse(i):
-    res = await _parse(i)
-    await bar.add(1)
-    return res
-
   data = util.Data('urls')
   now = datetime.now()
   pid = res['illustId']
   key = f'{pid}-{now:%m-%d}'
   count = res['pageCount']
-  bar = util.progress.Progress(mid, count, '上传中...', False)
   if not (url := data[key]):
     imgUrl = res['urls']['regular']
-    tasks = (parse(i) for i in range(count))
-    result = await asyncio.gather(*tasks)
+    imgUrl_re = imgUrl.replace('i.pximg.net', 'i.pixiv.re')
+    result = [Res(imgUrl_re.replace('_p0', f'_p{i}')) for i in range(count)]
     result.append(
       Res(None, f'原链接: https://www.pixiv.net/artworks/{pid}'),
     )
