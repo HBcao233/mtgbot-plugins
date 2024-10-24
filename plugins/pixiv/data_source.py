@@ -149,9 +149,9 @@ def parse_msg(res, hide=False):
     f'{prop}[<code>{pid}</code>] <a href="https://www.pixiv.net/artworks/{pid}/">{title}</a>'
     f' | <a href="https://www.pixiv.net/users/{uid}/">{username}</a> #pixiv'
     + (
-      f"{comment}\n<blockquote expandable>{' '.join(i for i in tags if i not in ['#R18', '#R18G'])}</blockquote>"
+      ''
       if hide
-      else ''
+      else f"{comment}\n<blockquote expandable>{' '.join(i for i in tags if i not in ['#R18', '#R18G'])}</blockquote>"
     )
   )
   return msg, tags
