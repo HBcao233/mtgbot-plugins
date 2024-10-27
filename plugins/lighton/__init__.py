@@ -1,4 +1,4 @@
-from telethon import events, Button
+from telethon import events, Button, errors
 import re
 
 from util.log import logger
@@ -73,7 +73,12 @@ async def _event(event):
     if all(buttons[int(k / row)][k % row].text == '\u2588' for k in range(row * row)):
       logger.info('won')
       await event.answer('你赢啦！', alert=True)
-    await event.edit(buttons=buttons)
+
+    try:
+      await event.edit(buttons=buttons)
+    except errors.MessageNotModifiedError:
+      pass
+
   await event.answer()
 
 

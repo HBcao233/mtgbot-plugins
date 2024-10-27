@@ -8,13 +8,11 @@ from asyncio.subprocess import PIPE
 import util
 import config
 from util.log import logger
-from plugin import import_plugin
 
 
 PHPSESSID = config.env.get('pixiv_PHPSESSID', '')
 gheaders = {'cookie': f'PHPSESSID={PHPSESSID};'}
 max_comment_length = 600
-get_url = import_plugin('hosting').get_url
 
 
 class PixivClient(util.curl.Client):

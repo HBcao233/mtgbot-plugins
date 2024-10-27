@@ -32,156 +32,189 @@ _pattern = re.compile(_p).search
 _group_pattern = re.compile(_p.replace(r'(?:^|', r'(?:')).search
 
 
-@handler(
-  'pid',
-  pattern=_pattern,
-  info='获取p站作品 /pid <url/pid> [hide] [mark]',
-  filter=(
-    filters.ONLYTEXT
-    & (
-      filters.PRIVATE
-      | filters.Filter(lambda event: _group_pattern(event.message.message))
-    )
-  ),
-)
-async def _pixiv(event, text):
-  text = cmd_header_pattern.sub('', text).strip()
-  match = _pattern(text)
-  if match is None or not (pid := match.group(1)):
-    return await event.reply(
-      '用法: /pid <url/pid> [options]\n'
-      '获取p站图片\n'
-      '- <url/pid>: p站链接或pid\n'
-      '- [hide/省略]: 省略图片说明\n'
-      '- [mark/遮罩]: 给图片添加遮罩\n'
-      '- [origin/原图]: 发送原图\n'
-    )
-
-  options = util.string.Options(
-    text, hide=('简略', '省略'), mark=('spoiler', '遮罩'), origin='原图'
+class Pixiv:
+  @staticmethod
+  @handler(
+    'pid',
+    pattern=_pattern,
+    info='获取p站作品 /pid <url/pid> [hide] [mark]',
+    filter=(
+      filters.ONLYTEXT
+      & (
+        filters.PRIVATE
+        | filters.Filter(lambda event: _group_pattern(event.message.message))
+      )
+    ),
   )
-  logger.info(f'{pid = }, {options = }')
+  async def _pixiv(event, text=''):
+    await Pixiv(event).main(text)
 
-  mid = await event.reply('请等待...')
+  def __init__(self, event):
+    self.event = event
 
-  async def send_animation():
-    nonlocal mid
-    async with bot.action(event.peer_id, 'file'):
+  async def main(self, text):
+    """
+    主逻辑
+    """
+    text = cmd_header_pattern.sub('', text).strip()
+    match = _pattern(text)
+    if match is None or not (pid := match.group(1)):
+      return await self.event.reply(
+        '用法: /pid <url/pid> [options]\n'
+        '获取p站图片\n'
+        '- <url/pid>: p站链接或pid\n'
+        '- [hide/省略]: 省略图片说明\n'
+        '- [mark/遮罩]: 给图片添加遮罩\n'
+        '- [origin/原图]: 发送原图\n'
+      )
+
+    self.pid = pid
+    self.options = util.string.Options(
+      text, hide=('简略', '省略'), mark=('spoiler', '遮罩'), origin='原图'
+    )
+    logger.info(f'pid: {self.pid}, options: {self.options}')
+    self.mid = await self.event.reply('请等待...')
+
+    async with PixivClient(self.pid) as client:
+      self.res = await client.get_pixiv()
+      if isinstance(self.res, str):
+        return await self.mid.edit(self.res)
+      self.msg, self.tags = parse_msg(self.res, self.options.hide)
+      if self.res['illustType'] == 2:
+        return await self.send_animation(client)
+
+      self.count = self.res['pageCount']
+      if self.count > 10:
+        return self.send_telegraph()
+      m = await self.send_photos(client)
+
+    if not self.options.origin:
+      self.send_buttons(m)
+
+  async def send_buttons(self, m):
+    """
+    发送按钮
+    """
+    message_id_bytes = m[0].id.to_bytes(4, 'big')
+    sender_bytes = b'~' + self.event.sender_id.to_bytes(6, 'big', signed=True)
+    pid_bytes = int(self.pid).to_bytes(4, 'big')
+    await self.event.reply(
+      '获取完成',
+      buttons=[
+        [
+          Button.inline(
+            '移除遮罩' if self.options.mark else '添加遮罩',
+            b'mark_' + message_id_bytes + sender_bytes,
+          ),
+          Button.inline(
+            '详细描述' if self.options.hide else '简略描述',
+            b'pid_' + message_id_bytes + b'_' + pid_bytes + sender_bytes,
+          ),
+        ],
+        [Button.inline('获取原图', b'pidori_' + pid_bytes)],
+        [Button.inline('关闭面板', b'delete' + sender_bytes)],
+      ],
+    )
+
+  async def send_animation(self, client):
+    """
+    发送动图
+    """
+    async with bot.action(self.event.peer_id, 'file'):
       data = util.Animations()
-      await mid.edit('生成动图中...')
-      if not (file := data[pid]):
+      await self.mid.edit('生成动图中...')
+      if not (file := data[self.pid]):
         file = await client.get_anime()
         if not file:
-          return await event.reply('生成动图失败')
+          return await self.event.reply('生成动图失败')
 
-      bar = Progress(mid, prefix='上传中...')
+      bar = Progress(self.mid, prefix='上传中...')
       res = await bot.send_file(
-        event.peer_id,
+        self.event.peer_id,
         file,
-        reply_to=event.message,
-        caption=msg,
+        reply_to=self.event.message,
+        caption=self.msg,
         parse_mode='html',
         force_document=False,
         attributes=[types.DocumentAttributeAnimated()],
         progress_callback=bar.update,
       )
       with data:
-        data[pid] = res
-      await mid.delete()
+        data[self.pid] = res
+      await self.mid.delete()
 
-  async def send_photos():
-    nonlocal mid
-    pid = res['illustId']
-    imgUrl = res['urls']['original']
-    data = util.Documents() if options.origin else util.Photos()
-    bar = Progress(
-      mid,
-      total=count,
-      prefix=f'正在获取 p1 ~ {count}',
+  async def send_telegraph(self, client):
+    """
+    发送telegraph
+    """
+    url, msg = await get_telegraph(self.res, self.tags, client, self.mid)
+    await self.mid.delete()
+    await bot.send_file(
+      self.event.peer_id,
+      caption=self.msg,
+      parse_mode='HTML',
+      file=types.InputMediaWebPage(
+        url=url,
+        force_large_media=True,
+        optional=True,
+      ),
+      reply_to=self.event.message,
     )
 
-    async def get_img(i):
-      nonlocal data
-      url = imgUrl.replace('_p0', f'_p{i}')
-      key = f'{pid}_p{i}'
-      if file_id := data[key]:
-        return util.media.file_id_to_media(file_id, options.mark)
+  async def send_photos(self, client):
+    """
+    发送图片
+    """
+    data = util.Documents() if self.options.origin else util.Photos()
+    self.bar = Progress(
+      self.mid,
+      total=self.count,
+      prefix=f'正在获取 p1 ~ {self.count}',
+    )
 
-      try:
-        img = await client.getImg(url, saveas=key, ext=True)
-      except Exception:
-        logger.error(f'p{i} 图片获取失败', exc_info=1)
-        return await mid.edit(f'p{i} 图片获取失败')
-      await bar.add(1)
-      return await util.media.file_to_media(
-        img,
-        options.mark,
-        force_document=options.origin,
-      )
-
-    tasks = [get_img(i) for i in range(count)]
+    tasks = [self.get_img(i, client, data) for i in range(self.count)]
     result = await asyncio.gather(*tasks)
-    async with bot.action(event.peer_id, 'photo'):
+    async with bot.action(self.event.peer_id, 'photo'):
       m = await bot.send_file(
-        event.peer_id, result, caption=msg, parse_mode='html', reply_to=event.message
+        self.event.peer_id,
+        result,
+        caption=self.msg,
+        parse_mode='html',
+        reply_to=self.event.message,
       )
 
     with data:
-      for i in range(count):
-        key = f'{pid}_p{i}'
+      for i in range(self.count):
+        key = f'{self.pid}_p{i}' + ('' if self.options.origin else '_regular')
         data[key] = m[i]
-    await mid.delete()
+    await self.mid.delete()
     return m
 
-  async with PixivClient(pid) as client:
-    res = await client.get_pixiv()
-    if isinstance(res, str):
-      return await mid.edit(res)
-    msg, tags = parse_msg(res, options.hide)
-    if res['illustType'] == 2:
-      return await send_animation()
+  async def get_img(self, i, client, data):
+    """
+    获取图片
+    """
+    imgUrl = (
+      self.res['urls']['original']
+      if self.options.origin
+      else self.res['urls']['regular']
+    )
+    url = imgUrl.replace('_p0', f'_p{i}')
+    key = f'{self.pid}_p{i}'
+    if file_id := data[key]:
+      return util.media.file_id_to_media(file_id, self.options.mark)
 
-    count = res['pageCount']
-    if count <= 10:
-      res = await send_photos()
-    else:
-      url, msg = await get_telegraph(res, tags, client, mid)
-      await mid.delete()
-      return await bot.send_file(
-        event.peer_id,
-        caption=msg,
-        parse_mode='HTML',
-        file=types.InputMediaWebPage(
-          url=url,
-          force_large_media=True,
-          optional=True,
-        ),
-        reply_to=event.message,
-      )
-
-  if options.origin:
-    return
-
-  message_id_bytes = res[0].id.to_bytes(4, 'big')
-  sender_bytes = b'~' + event.sender_id.to_bytes(6, 'big', signed=True)
-  pid_bytes = int(pid).to_bytes(4, 'big')
-  await event.reply(
-    '获取完成',
-    buttons=[
-      [
-        Button.inline(
-          '移除遮罩' if options.mark else '添加遮罩',
-          b'mark_' + message_id_bytes + sender_bytes,
-        ),
-        Button.inline(
-          '详细描述' if options.hide else '简略描述',
-          b'pid_' + message_id_bytes + b'_' + pid_bytes + sender_bytes,
-        ),
-      ],
-      [Button.inline('获取原图', b'pidori_' + pid_bytes)],
-      [Button.inline('关闭面板', b'delete' + sender_bytes)],
-    ],
-  )
+    try:
+      img = await client.getImg(url, saveas=key, ext=True)
+    except Exception:
+      logger.error(f'p{i} 图片获取失败', exc_info=1)
+      return await self.mid.edit(f'p{i} 图片获取失败')
+    await self.bar.add(1)
+    return await util.media.file_to_media(
+      img,
+      self.options.mark,
+      force_document=self.options.origin,
+    )
 
 
 _button_pattern = re.compile(
@@ -274,4 +307,4 @@ async def _(event):
   event.peer_id = peer
   text = f'/pid {pid} origin {hide}'
   event.pattern_match = _pattern(text)
-  await _pixiv(event, text)
+  await Pixiv(event).main(text)

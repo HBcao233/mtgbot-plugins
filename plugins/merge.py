@@ -14,7 +14,10 @@ from plugin import import_plugin
 
 
 mark = import_plugin('mark')
-get_url = import_plugin('hosting').get_url
+try:
+  hosting = import_plugin('hosting')
+except ModuleNotFoundError:
+  hosting = None
 _get_buttons = mark.DelayMedia.get_buttons
 
 
@@ -273,7 +276,7 @@ class Tmerge:
       return url
     img = util.getCache(key + '.jpg')
     await m.download_media(file=img)
-    url = get_url(img)
+    url = hosting.get_url(img)
     data[key] = url
     return url
 
