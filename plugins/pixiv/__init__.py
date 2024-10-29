@@ -89,7 +89,7 @@ class Pixiv:
       m = await self.send_photos(client)
 
     if not self.options.origin:
-      self.send_buttons(m)
+      await self.send_buttons(m)
 
   async def send_buttons(self, m):
     """
@@ -200,7 +200,7 @@ class Pixiv:
       else self.res['urls']['regular']
     )
     url = imgUrl.replace('_p0', f'_p{i}')
-    key = f'{self.pid}_p{i}'
+    key = f'{self.pid}_p{i}' + ('' if self.options.origin else '_regular')
     if file_id := data[key]:
       return util.media.file_id_to_media(file_id, self.options.mark)
 

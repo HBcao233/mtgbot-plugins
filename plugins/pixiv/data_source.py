@@ -54,18 +54,20 @@ class PixivClient(util.curl.Client):
     r = await self.get(f'https://www.pixiv.net/ajax/illust/{self.pid}/ugoira_meta')
     res = r.json()['body']
     frames = res['frames']
-    if not os.path.isdir(util.getCache(name + '/')):
+    _dir = util.getCache(name + '/')
+    if not os.path.isdir(_dir):
       zi = await self.getImg(
         res['src'],
         saveas=name,
-        ext='zip',
+        ext='gz',
       )
+      os.mkdir(_dir)
       proc = await asyncio.create_subprocess_exec(
-        'unzip',
-        '-o',
-        '-d',
-        util.getCache(name + '/'),
+        'tar',
+        'xf',
         zi,
+        '-C',
+        _dir,
         stdout=PIPE,
         stdin=PIPE,
         stderr=PIPE,

@@ -117,7 +117,7 @@ async def _(update):
   logger.debug(update.stringify())
 
   message = (await bot.get_messages(update.peer, ids=[update.msg_id]))[0]
-  if utils.get_peer_id(message.from_id) == bot.me.id:
+  if message and utils.get_peer_id(message.from_id) == bot.me.id:
     res = EchoedMessage.get_origin(update.peer, update.msg_id)
   else:
     res = EchoedMessage.get_echo(update.peer, update.msg_id)
