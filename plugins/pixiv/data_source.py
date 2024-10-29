@@ -77,7 +77,7 @@ class PixivClient(util.curl.Client):
     f = frames[0]['file']
     f, ext = os.path.splitext(f)
     rate = str(round(1000 / frames[0]['delay'], 2))
-    img = util.getCache(f'{self.pid}.mp4')
+    img = util.getCache(f'{self.pid}_ugoira.mp4')
     # fmt: off
     command = [
       'ffmpeg', 
@@ -99,6 +99,10 @@ class PixivClient(util.curl.Client):
     if proc.returncode != 0 and stderr:
       logger.warning(stderr.decode('utf8'))
       return False
+
+    for i in os.listdir(_dir):
+      os.remove(os.path.join(_dir, i))
+    os.rmdir(_dir)
 
     logger.info(f'生成动图成功: {img}')
     return img
