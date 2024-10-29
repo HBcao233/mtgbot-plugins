@@ -71,7 +71,7 @@ async def _tid(event, text):
   photos = util.Photos()
   videos = util.Videos()
   async with bot.action(event.chat_id, medias_info[0]['type']):
-    for i in medias_info:
+    for index, i in enumerate(medias_info):
       url = i['url']
       md5 = i['md5']
       t = photos if i['type'] == 'photo' else videos
@@ -79,7 +79,9 @@ async def _tid(event, text):
       if file_id := t[md5]:
         media = util.media.file_id_to_media(file_id, options.mark)
       else:
-        file = await util.getImg(url, headers=gheaders, ext=ext)
+        file = await util.getImg(
+          url, headers=gheaders, saveas=f'{tid}_{index}', ext=ext
+        )
         if i['type'] == 'video':
           file = await util.media.video2mp4(file)
         media = await util.media.file_to_media(file, options.mark)
