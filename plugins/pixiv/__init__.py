@@ -86,7 +86,7 @@ class Pixiv:
 
       self.count = self.res['pageCount']
       if self.count > 10:
-        return self.send_telegraph()
+        return await self.send_telegraph(client)
       m = await self.send_photos(client)
 
     if not self.options.origin:
@@ -152,7 +152,7 @@ class Pixiv:
     await self.mid.delete()
     await bot.send_file(
       self.event.peer_id,
-      caption=self.msg,
+      caption=msg,
       parse_mode='HTML',
       file=types.InputMediaWebPage(
         url=url,
@@ -181,7 +181,7 @@ class Pixiv:
       result = await asyncio.gather(*tasks)
     except Pixiv.GetImageError as e:
       logger.error(str(e), exc_info=1)
-      return await self.mid.edit(e)
+      return await self.mid.edit(str(e))
 
     async with bot.action(self.event.peer_id, 'photo'):
       self.bar.set_prefix('上传中...')
@@ -218,7 +218,7 @@ class Pixiv:
     try:
       img = await client.getImg(url, saveas=key, ext=True)
     except httpx.ConnectError as e:
-      raise Pixiv.GetImageError(f'p{i} 图片获取失败') from e
+      raise Pixiv.GetImageError(f'p{i} 图片获取失败')
 
     await self.bar.add(1)
     return await util.media.file_to_media(
