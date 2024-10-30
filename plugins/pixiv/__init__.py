@@ -184,12 +184,14 @@ class Pixiv:
       return await self.mid.edit(e)
 
     async with bot.action(self.event.peer_id, 'photo'):
+      self.bar.set_prefix('上传中...')
       m = await bot.send_file(
         self.event.peer_id,
         result,
         caption=self.msg,
         parse_mode='html',
         reply_to=self.event.message,
+        progress_callback=self.bar.update,
       )
 
     with data:
