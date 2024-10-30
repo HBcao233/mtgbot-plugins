@@ -1,6 +1,6 @@
 import re
 import time
-import traceback
+import httpx
 import ujson as json
 
 import config
@@ -87,10 +87,11 @@ async def get_twitter(tid):
       return tweet_result
   except json.JSONDecodeError:
     return f'未找到tid为{tid}的推文'
-  except Exception:
-    logger.info(r.text)
-    logger.warning(traceback.format_exc())
+  except httpx.ConnectError:
     return '连接超时'
+  except Exception:
+    logger.error('未知错误: ', exc_info=1)
+    return '未知错误'
 
 
 def parse_msg(res):
