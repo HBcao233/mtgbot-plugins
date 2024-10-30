@@ -10,6 +10,7 @@ pixiv_PHPSESSID =
 from telethon import types, events, errors, Button
 import re
 import asyncio
+import httpx
 
 import util
 from util.log import logger
@@ -161,6 +162,9 @@ class Pixiv:
       reply_to=self.event.message,
     )
 
+  class GetImageError(Exception):
+    pass
+
   async def send_photos(self, client):
     """
     发送图片
@@ -172,8 +176,13 @@ class Pixiv:
       prefix=f'正在获取 p1 ~ {self.count}',
     )
 
-    tasks = [self.get_img(i, client, data) for i in range(self.count)]
-    result = await asyncio.gather(*tasks)
+    try:
+      tasks = [self.get_img(i, client, data) for i in range(self.count)]
+      result = await asyncio.gather(*tasks)
+    except Pixiv.GetImageError as e:
+      logger.error(str(e), exc_info=1)
+      return await self.mid.edit(e)
+
     async with bot.action(self.event.peer_id, 'photo'):
       m = await bot.send_file(
         self.event.peer_id,
@@ -206,9 +215,9 @@ class Pixiv:
 
     try:
       img = await client.getImg(url, saveas=key, ext=True)
-    except Exception:
-      logger.error(f'p{i} 图片获取失败', exc_info=1)
-      return await self.mid.edit(f'p{i} 图片获取失败')
+    except httpx.ConnectError as e:
+      raise Pixiv.GetImageError(f'p{i} 图片获取失败') from e
+
     await self.bar.add(1)
     return await util.media.file_to_media(
       img,
