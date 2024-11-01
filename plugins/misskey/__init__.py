@@ -33,7 +33,6 @@ _pattern = re.compile(
 async def _misskey(event, text=''):
   # match = event.pattern_match
   text = re.sub(r'^/?misskey', '', text).strip()
-  logger.info(text)
   match = _pattern(text)
   if match is None or not (noteId := match.group(1)):
     return await event.reply(
@@ -53,22 +52,26 @@ async def _misskey(event, text=''):
   msg = parse_msg(res)
   medias = parse_medias(res)
   photos = util.Photos()
+  documents = util.Documents()
+  force_document = False
   async with bot.action(event.chat_id, medias[0]['type']):
 
     async def get_file(i):
-      nonlocal medias
+      nonlocal force_document
       key = f'{noteId}_{i}'
       data = photos
       if file_id := data[key]:
         return util.media.file_id_to_media(file_id, options.mark)
 
-      ext = 'jpg' if medias[i]['type'] == 'photo' else 'mp4'
       file = await util.getImg(
         medias[i]['url'],
         headers={'referer': f'https://misskey.io/notes/{noteId}'},
         saveas=key,
-        ext=ext,
+        ext=medias[i]['ext'],
       )
+      if medias[i]['ext'] == 'gif':
+        force_document = True
+        return file
       if medias[i]['type'] == 'video':
         file = await util.media.video2mp4(file)
       return await util.media.file_to_media(file, options.mark)
@@ -81,12 +84,14 @@ async def _misskey(event, text=''):
       reply_to=event.message,
       caption=msg,
       parse_mode='HTML',
+      force_document=force_document,
     )
 
-  with photos:
+  with photos, documents:
     for i, ai in enumerate(m):
+      data = photos if not force_document else documents
       key = f'{noteId}_{i}'
-      photos[key] = ai
+      data[key] = ai
 
   message_id_bytes = m[0].id.to_bytes(4, 'big')
   sender_bytes = b'~' + event.sender_id.to_bytes(6, 'big', signed=True)

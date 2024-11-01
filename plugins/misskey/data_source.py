@@ -77,6 +77,7 @@ def parse_medias(res):
       'md5': i['md5'],
       'url': i['url'],
       'content-type': i['type'],
+      'ext': 'gif' if i['type'] == 'image/gif' else 'jpg',
     }
     for i in res['files']
     if i['type'].startswith('image')
