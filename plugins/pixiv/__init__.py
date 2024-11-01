@@ -217,7 +217,7 @@ class Pixiv:
 
     try:
       img = await client.getImg(url, saveas=key, ext=True)
-    except httpx.ConnectError as e:
+    except httpx.ConnectError:
       raise Pixiv.GetImageError(f'p{i} 图片获取失败')
 
     await self.bar.add(1)
