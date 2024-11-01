@@ -12,7 +12,8 @@
 | telegraph_setting | 提供用户自定义 telegraph作者配置项 | | |
 |||||
 | pixiv | pixiv爬取 | `pixiv_PHPSESSID` | |
-| twitter | X爬取 | `twitter_csrf_token`, `twitter_auth_token`|
+| twitter | X爬取 | `twitter_csrf_token`, `twitter_auth_token` |
+| misskey | misskey get note | `misskey_token` |
 | bili | bili爬取 | `bili_SESSDATA` |
 | kemono | kemono爬取 | |
 | ehentai | ehentai爬取 | `ex_ipb_member_id`, `ex_ipb_pass_hash`, `ex_igneous` |
