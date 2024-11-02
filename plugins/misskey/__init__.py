@@ -52,6 +52,7 @@ async def _misskey(event, text=''):
   msg = parse_msg(res)
   medias = parse_medias(res)
   photos = util.Photos()
+  videos = util.Videos()
   documents = util.Documents()
   force_document = False
   async with bot.action(event.chat_id, medias[0]['type']):
@@ -59,7 +60,11 @@ async def _misskey(event, text=''):
     async def get_file(i):
       nonlocal force_document
       key = f'{noteId}_{i}'
-      data = photos
+      data = (
+        (photos if medias[i]['type'] == 'photo' else videos)
+        if medias[i]['ext'] != 'gif'
+        else documents
+      )
       if file_id := data[key]:
         return util.media.file_id_to_media(file_id, options.mark)
 
@@ -87,9 +92,13 @@ async def _misskey(event, text=''):
       force_document=force_document,
     )
 
-  with photos, documents:
+  with photos, documents, videos:
     for i, ai in enumerate(m):
-      data = photos if not force_document else documents
+      data = (
+        (photos if medias[i]['type'] == 'photo' else videos)
+        if not force_document
+        else documents
+      )
       key = f'{noteId}_{i}'
       data[key] = ai
 

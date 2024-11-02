@@ -73,12 +73,16 @@ def parse_medias(res):
   """
   return [
     {
-      'type': 'photo',
+      'type': 'photo' if i['type'].startswith('image') else 'video',
       'md5': i['md5'],
       'url': i['url'],
       'content-type': i['type'],
-      'ext': 'gif' if i['type'] == 'image/gif' else 'jpg',
+      'ext': (
+        ('gif' if i['type'] == 'image/gif' else 'jpg')
+        if i['type'].startswith('image')
+        else i['name'].split('.')[-1]
+      ),
     }
     for i in res['files']
-    if i['type'].startswith('image')
+    if i['type'].startswith('image') or i['type'].startswith('video')
   ]
