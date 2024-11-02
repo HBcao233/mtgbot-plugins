@@ -196,17 +196,18 @@ async def get_telegraph(arr, title, num, nocache, mid):
     )
     try:
       r = await client.post(api_url, data=data, headers=eheaders)
-    except Exception:
+    except httpx.ConnectError:
+      logger.warning(f'p{i+1} 获取第一次尝试失败，正在重试')
       try:
         r = await client.post(api_url, data=data, headers=eheaders)
-      except Exception:
+      except httpx.ConnectError:
         w = f'p{i+1} 获取失败'
-        logger.warning(w, exc_info=1)
+        logger.warning(w)
         return Res(None, w)
     match = re.search(
       r'''<a.*?load_image\((\d*),.*?'(.*?)'\).*?<img.*?src="(.*?)"''', r.json()['i3']
     )
-    next_i, next_imgkey = match.group(1), match.group(2)  # noqa: F841
+    # next_i, next_imgkey = match.group(1), match.group(2)
     return Res(match.group(3))
 
   async def _parse(i):
