@@ -285,4 +285,5 @@ async def get_telegraph(arr, title, num, nocache, mid):
   )
   content = [res.parse() for res in result]
   page = await createPage(title, content)
+  logger.info(f'生成telegraph: {page}')
   return page

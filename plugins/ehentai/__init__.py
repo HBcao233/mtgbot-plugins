@@ -13,6 +13,7 @@ import re
 from datetime import datetime
 
 import util
+from util.log import logger
 from plugin import handler
 import filters
 from .data_source import (
@@ -45,6 +46,7 @@ async def eid(event, text):
     return await event.reply('请输入e站 url')
 
   options = util.string.Options(text, nocache=())
+  logger.info(f'eid: {eid} {options}')
 
   # 单页图片
   if arr[1] == 's':
