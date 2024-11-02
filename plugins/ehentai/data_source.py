@@ -3,6 +3,7 @@ import asyncio
 import re
 import os
 import ujson as json
+import httpx
 
 import util
 import config
@@ -113,7 +114,7 @@ async def gallery_info(gid, token):
   if _magnets:
     magnets = '磁力链：\n' + '\n'.join(_magnets) + '\n'
 
-  _tags = {
+  _tags: dict[str, list[str]] = {
     'language': [],
     'female': [],
     'male': [],
@@ -134,24 +135,35 @@ async def gallery_info(gid, token):
       if tag:
         _tags[k].append('#' + tag)
 
-  if _tags['language']:
-    _tags['language'] = _tags['language'][:1]
   _tags['other'] = _tags['mixed'] + _tags['other']
+  categories = {
+    'Doujinshi': '#同人志',
+    'Manga': '#漫画',
+    'Artist CG': '#画师CG',
+    'Game CG': '#游戏CG',
+    'Western': '#西方',
+    'Non-H': '#无H',
+    'Image Set': '#图集',
+    'Cosplay': '#Cosplay',
+    'Asian Porn': '#亚洲色情',
+    'Misc': '#其他',
+    'Private': '#私有',
+  }
+  if res['category'] in categories:
+    _tags['category'] = [categories[res['category']]]
+  else:
+    logger.warning(f"未知画廊分类: {res['category']}")
 
   ns = {
+    'category': '分类',
     'language': '语言',
     'female': '女性',
     'male': '男性',
     'other': '其他',
   }
-  tags = []
-  for k in ns:
-    if _tags[k]:
-      tags.append(ns[k] + ': ' + ' '.join(_tags[k]))
-  tags = '\n'.join(tags)
-  if tags:
-    tags += '\n'
-  return title, num, magnets, tags
+  # 命名空间名: #标签1 #标签2
+  tags = '\n'.join(ns[k] + ': ' + ' '.join(_tags[k]) for k in ns if _tags[k])
+  return title, num, magnets, tags + '\n'
 
 
 async def get_telegraph(arr, title, num, nocache, mid):
