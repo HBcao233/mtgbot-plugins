@@ -1,3 +1,27 @@
+def allbit_xor(n: int) -> int:
+  """
+  每一位异或, 返回 0 或 1
+  """
+  if n < 0:
+    raise ValueError("n can't be a negative")
+  res = 0
+  while n != 0:
+    res ^= n & 1
+    n >>= 1
+  return res
+
+
+def count_of_1(n: int):
+  """
+  计算二进制中 1 的数量
+  """
+  count = 0
+  while n & 0xFFFFFFFF != 0:
+    count += 1
+    n = n & (n - 1)
+  return count
+
+
 def gen_matrix(row: int) -> list[int]:
   """
   生成大小为 row * row 的求解矩阵
@@ -54,6 +78,32 @@ def gauss_elimination(matrix: list[int]) -> int:
     """
     return sum((matrix[i] >> row) * 2**i for i in range(row))
 
+  def find_optimal_solution(result: int, var_rule: list[int]) -> int:
+    """
+    寻找最优解 (点灯步骤最少的解)
+
+    Args:
+        result: 特解向量
+        var_rule: 非自由变量与自由变量之间的关系
+
+    Returns:
+        最优解向量
+    """
+    nonlocal row
+    freevar_num = row - len(var_rule)
+    return min(
+      # 遍历生成所有解
+      (
+        sum(
+          (allbit_xor(var_rule[j] & i) ^ (result >> j & 1)) * 2**j
+          for j in range(len(var_rule))
+        )
+        + (i << len(var_rule))
+        for i in range(2**freevar_num)
+      ),
+      key=lambda s: count_of_1(s),
+    )
+
   row = len(matrix)  # 此处 高斯矩阵的row 是原矩阵的 row*row
   for i in range(row):
     cur = i
@@ -63,7 +113,21 @@ def gauss_elimination(matrix: list[int]) -> int:
       # print(format_matrix(mat, row))
       # 多解时返回一个解
       if not matrix[i] >> row:
-        return to_result(matrix)
+        freevar_num = row - i
+        # print('解数量:', 2**freevar_num)
+        result = to_result(matrix)
+        # 解数量较少时尝试寻找最优解, 否则直接返回特解
+        return (
+          result
+          if freevar_num > 10
+          else find_optimal_solution(
+            result,
+            var_rule=[
+              sum((matrix[j] >> (row - k - 1) & 1) * 2**k for k in range(freevar_num))
+              for j in range(i)
+            ],
+          )
+        )
       return []
     if cur != i:
       matrix[cur], matrix[i] = matrix[i], matrix[cur]
