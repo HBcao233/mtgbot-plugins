@@ -151,7 +151,7 @@ class DelayMedia:
     self.events.append(event)
 
   async def delay_callback(self, event):
-    if id(self.events[-1]) != id(event):
+    if id(max(self.events, key=lambda e: e.messages[0].id)) != id(event):
       return
 
     if len(self.events) == 1:
