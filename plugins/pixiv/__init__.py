@@ -88,8 +88,10 @@ class Pixiv:
       if self.count > 10:
         return await self.send_telegraph(client)
       m = await self.send_photos(client)
+      if isinstance(m, str):
+        return await self.mid.edit(m)
 
-    if m and not self.options.origin:
+    if not self.options.origin:
       await self.send_buttons(m)
 
   async def send_buttons(self, m):
@@ -178,11 +180,15 @@ class Pixiv:
 
     try:
       tasks = [self.get_img(i, client, data) for i in range(self.count)]
-      result = await asyncio.gather(*tasks)
+      gather_task = asyncio.gather(*tasks)
+      result = await gather_task
     except Pixiv.GetImageError as e:
+      gather_task.cancel()
       logger.error(str(e))
-      await self.mid.edit(str(e))
-      return
+      return str(e)
+
+    if any((p := i) is None for i in result):
+      return f'p{p} 获取失败'
 
     async with bot.action(self.event.peer_id, 'photo'):
       self.bar.set_prefix('上传中...')
