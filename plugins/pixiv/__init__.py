@@ -11,7 +11,6 @@ from telethon import types, events, errors, Button
 import re
 import asyncio
 import httpx
-from collections.abc import Sequence
 
 import util
 from util.log import logger
@@ -90,15 +89,13 @@ class Pixiv:
         return await self.send_telegraph(client)
       m = await self.send_photos(client)
 
-    if not self.options.origin:
+    if m and not self.options.origin:
       await self.send_buttons(m)
 
   async def send_buttons(self, m):
     """
     发送按钮
     """
-    if not isinstance(m, Sequence):
-      m = (m,)
     message_id_bytes = m[0].id.to_bytes(4, 'big')
     sender_bytes = b'~' + self.event.sender_id.to_bytes(6, 'big', signed=True)
     pid_bytes = int(self.pid).to_bytes(4, 'big')
@@ -184,7 +181,8 @@ class Pixiv:
       result = await asyncio.gather(*tasks)
     except Pixiv.GetImageError as e:
       logger.error(str(e))
-      return await self.mid.edit(str(e))
+      await self.mid.edit(str(e))
+      return
 
     async with bot.action(self.event.peer_id, 'photo'):
       self.bar.set_prefix('上传中...')
