@@ -206,7 +206,7 @@ class Tmerge:
     return self
 
   async def __aexit__(self, type, value, trace):
-    if type is not None:
+    if type is None:
       return await self.event.answer()
     return await self.event.answer('错误', alert=True)
 
@@ -214,15 +214,15 @@ class Tmerge:
     if not MergeData.has_merge(self.peer):
       return await self.event.delete()
 
-    await self.get_title()
     self.res = MergeData.get_merge(self.peer)
-    self.bar = util.progress.Progress(self.mid, len(self.res.mids), '上传中...', False)
     self.messages = await bot.get_messages(self.peer, ids=self.res.mids)
     if any(m is None for m in self.messages):
       return await self.event.answer('待合并媒体被删除', alert=True)
     if any(not m.photo for m in self.messages):
       return await self.event.answer('telegraph 合并暂时仅支持图片', alert=True)
+    await self.get_title()
     self.mid = await bot.send_message(self.peer, '请等待', buttons=Button.clear())
+    self.bar = util.progress.Progress(self.mid, len(self.res.mids), '上传中...', False)
 
     with util.Data('urls') as data:
       tasks = [self.parse(m, data) for m in self.messages]
