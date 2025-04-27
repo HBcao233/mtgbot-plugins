@@ -151,6 +151,9 @@ class Pixiv:
     发送telegraph
     """
     url, msg = await get_telegraph(self.res, self.tags, client, self.mid)
+    if not url:
+      await self.mid.reply('生成 telegraph 失败, 可能是没有配置 telegraph_access_token')
+      return
     await self.mid.delete()
     await bot.send_file(
       self.event.peer_id,
