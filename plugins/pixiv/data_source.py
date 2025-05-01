@@ -59,19 +59,31 @@ class PixivClient(util.curl.Client):
       zi = await self.getImg(
         res['src'],
         saveas=name,
-        ext='gz',
+        ext=True,
       )
+      _, _ext = os.path.splitext(zi)
       os.mkdir(_dir)
-      proc = await asyncio.create_subprocess_exec(
-        'tar',
-        'xf',
-        zi,
-        '-C',
-        _dir,
-        stdout=PIPE,
-        stdin=PIPE,
-        stderr=PIPE,
-      )
+      if _ext == '.zip':
+        proc = await asyncio.create_subprocess_exec(
+          'unzip',
+          '-d',
+          _dir,
+          zi,
+          stdout=PIPE,
+          stdin=PIPE,
+          stderr=PIPE,
+        )
+      else:
+        proc = await asyncio.create_subprocess_exec(
+          'tar',
+          'xf',
+          zi,
+          '-C',
+          _dir,
+          stdout=PIPE,
+          stdin=PIPE,
+          stderr=PIPE,
+        )
       await proc.wait()
 
     f = frames[0]['file']
