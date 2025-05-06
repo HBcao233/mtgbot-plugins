@@ -9,7 +9,7 @@ from util.log import logger
 from util.progress import Progress
 from plugin import handler
 import filters
-from .data_source import parse_msg, parse_page
+from .data_source import parse_page, get_info
 
 
 _pattern = re.compile(
@@ -26,7 +26,7 @@ _pattern = re.compile(
 )
 async def _kid(event, text):
   match = event.pattern_match
-  if not (_kid := match.group(3)):
+  if not (pid := match.group(3)):
     return await event.reply('用法: /kid <kemono_url>')
   options = util.string.Options(text, nocache=(), mark=('遮罩', 'spoiler'))
   source = match.group(1)
@@ -34,23 +34,38 @@ async def _kid(event, text):
   kid = f'https://kemono.su/{source}'
   if uid:
     kid += f'/user/{uid}'
-  kid += f'/post/{_kid}'
+  kid += f'/post/{pid}'
   mid = await event.reply('请等待...')
 
-  r = await util.get(kid)
-  if r.status_code != 200:
-    return await event.reply('请求失败')
-  try:
-    title, user_name, user_url, attachments, files = parse_msg(kid, r.text)
-  except Exception as e:
-    logger.warning(traceback.format_exc())
-    return await mid.edit(str(e))
-
+  info = await get_info(source, uid, pid)
+  if not info:
+    return await mid.edit('请求失败')
+  # logger.info(info)
   # uid = user_url.split('/')[-1]
   # if source == 'fanbox' and len(files) > 1:
   #  files = files[1:]
+  title = info['post']['title']
+  user_name = info['author']['name']
+  user_url = f'https://www.pixiv.net/fanbox/creator/{uid}'
+  _files = {i['name']: {
+    'name': i['name'],
+    'thumbnail': i['server'] + '/data' + i['path'],
+  } for i in info['previews']}
+  for i in info['post']['attachments']: 
+    if i['name'] in _files:
+      _files[i['name']]['url'] = 'https://kemono.su/data' + i['path']
+  files = [i for i in _files.values()]
+  _attachments = [{
+    'name': i['name'],
+    'url': i['server'] + '/data' + i['path'],
+  } for i in info['attachments']]
+  attachments = '\n'.join([
+    f"<code>{i['name']}</code>: {i['url']}"
+    for i in _attachments
+  ])
+  
   if len(files) > 10:
-    key = f'kemono_{source}_{_kid}'
+    key = f'kemono_{source}_{pid}'
     with util.Data('urls') as data:
       if not (url := data[key]) or options.nocache:
         url = await parse_page(title, files, options.nocache)
@@ -62,7 +77,7 @@ async def _kid(event, text):
       f'原链接: {kid}'
     )
     if attachments:
-      msg += '\n' + attachments
+      msg += '\n\n' + attachments
     await bot.send_file(
       event.peer_id,
       caption=msg,
@@ -77,15 +92,15 @@ async def _kid(event, text):
     return await mid.delete()
 
   bar = Progress(mid, total=len(files), prefix='图片下载中...')
-  msg = f'<a href="{kid}">{title}</a> - ' f'<a href="{user_url}">{user_name}</a>'
+  msg = f'<a href="{kid}">{title}</a> - ' f'<a href="{user_url}">{user_name}</a> #kemono'
   if attachments:
-    msg += '\n' + attachments
+    msg += '\n\n' + attachments
 
   data = util.Photos()
 
   async def get_media(i):
     nonlocal files, data, options
-    key = f'kemono_{source}_{_kid}_p{i}'
+    key = f'kemono_{source}_{pid}_p{i}'
     if file_id := data[key]:
       return util.media.file_id_to_media(file_id, options.mark)
     url = files[i]['thumbnail']
@@ -111,7 +126,7 @@ async def _kid(event, text):
   await mid.delete()
   with data:
     for i, ai in enumerate(res):
-      key = f'kemono_{source}_{_kid}_p{i}'
+      key = f'kemono_{source}_{pid}_p{i}'
       data[key] = ai
 
   message_id_bytes = res[0].id.to_bytes(4, 'big')
