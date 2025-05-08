@@ -1,6 +1,5 @@
 from telethon import types, Button
 import re
-import traceback
 import os
 import asyncio
 
@@ -47,23 +46,28 @@ async def _kid(event, text):
   title = info['post']['title']
   user_name = info['author']['name']
   user_url = f'https://www.pixiv.net/fanbox/creator/{uid}'
-  _files = {i['name']: {
-    'name': i['name'],
-    'thumbnail': i['server'] + '/data' + i['path'],
-  } for i in info['previews']}
-  for i in info['post']['attachments']: 
+  _files = {
+    i['name']: {
+      'name': i['name'],
+      'thumbnail': i['server'] + '/data' + i['path'],
+    }
+    for i in info['previews']
+  }
+  for i in info['post']['attachments']:
     if i['name'] in _files:
       _files[i['name']]['url'] = 'https://kemono.su/data' + i['path']
   files = [i for i in _files.values()]
-  _attachments = [{
-    'name': i['name'],
-    'url': i['server'] + '/data' + i['path'],
-  } for i in info['attachments']]
-  attachments = '\n'.join([
-    f"<code>{i['name']}</code>: {i['url']}"
-    for i in _attachments
-  ])
-  
+  _attachments = [
+    {
+      'name': i['name'],
+      'url': i['server'] + '/data' + i['path'],
+    }
+    for i in info['attachments']
+  ]
+  attachments = '\n'.join(
+    [f'<code>{i["name"]}</code>: {i["url"]}' for i in _attachments]
+  )
+
   if len(files) > 10:
     key = f'kemono_{source}_{pid}'
     with util.Data('urls') as data:
@@ -92,7 +96,7 @@ async def _kid(event, text):
     return await mid.delete()
 
   bar = Progress(mid, total=len(files), prefix='图片下载中...')
-  msg = f'<a href="{kid}">{title}</a> - ' f'<a href="{user_url}">{user_name}</a> #kemono'
+  msg = f'<a href="{kid}">{title}</a> - <a href="{user_url}">{user_name}</a> #kemono'
   if attachments:
     msg += '\n\n' + attachments
 

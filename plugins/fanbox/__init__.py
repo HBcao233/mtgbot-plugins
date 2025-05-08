@@ -61,7 +61,7 @@ async def _fanbox(event, text):
     return await mid.edit(msg, parse_mode='HTML')
 
   if res['feeRequired'] > 0:
-    return await mid.edit(f"该投稿为付费内容 ({res['feeRequired']}日圓)")
+    return await mid.edit(f'该投稿为付费内容 ({res["feeRequired"]}日圓)')
 
   try:
     if len(medias) < 11:
@@ -256,15 +256,15 @@ async def get_telegraph(res, medias):
         }
       )
 
-    url = await util.telegraph.createPage(f"[fanbox] {pid} {res['title']}", content)
+    url = await util.telegraph.createPage(f'[fanbox] {pid} {res["title"]}', content)
     with data:
       data[key] = url
 
   msg = (
-    f"标题: {res['title']}\n"
-    f"预览: {url}\n"
-    f"作者: <a href=\"https://{res['creatorId']}.fanbox.cc/\">{res['user']['name']}</a>\n"
-    f"数量: {len(medias)}\n"
-    f"原链接: https://{res['creatorId']}.fanbox.cc/posts/{pid}"
+    f'标题: {res["title"]}\n'
+    f'预览: {url}\n'
+    f'作者: <a href="https://{res["creatorId"]}.fanbox.cc/">{res["user"]["name"]}</a>\n'
+    f'数量: {len(medias)}\n'
+    f'原链接: https://{res["creatorId"]}.fanbox.cc/posts/{pid}'
   )
   return url, msg

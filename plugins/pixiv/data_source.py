@@ -169,7 +169,7 @@ def parse_msg(res, hide=False):
     + (
       ''
       if hide
-      else f"{comment}\n<blockquote expandable>{' '.join(i for i in tags if i not in ['#R18', '#R18G'])}</blockquote>"
+      else f'{comment}\n<blockquote expandable>{" ".join(i for i in tags if i not in ["#R18", "#R18G"])}</blockquote>'
     )
   )
   return msg, tags
@@ -206,16 +206,16 @@ async def get_telegraph(res, tags, client, mid):
     )
     content = [i.parse() for i in result]
     url = await util.telegraph.createPage(
-      f"[pixiv] {pid} {res['illustTitle']}", content
+      f'[pixiv] {pid} {res["illustTitle"]}', content
     )
     with data:
       data[key] = url
 
   msg = (
-    f"标题: {res['illustTitle']}\n"
-    f"标签: {' '.join(tags)}\n"
-    f"作者: <a href=\"https://www.pixiv.net/users/{res['userId']}/\">{res['userName']}</a>\n"
-    f"数量: {res['pageCount']}\n"
-    f"<a href=\"{url}\">预览</a> | <a href=\"https://www.pixiv.net/artworks/{pid}\">原链接</a>"
+    f'标题: {res["illustTitle"]}\n'
+    f'标签: {" ".join(tags)}\n'
+    f'作者: <a href="https://www.pixiv.net/users/{res["userId"]}/">{res["userName"]}</a>\n'
+    f'数量: {res["pageCount"]}\n'
+    f'<a href="{url}">预览</a> | <a href="https://www.pixiv.net/artworks/{pid}">原链接</a>'
   )
   return url, msg

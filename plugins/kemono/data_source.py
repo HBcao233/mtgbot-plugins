@@ -1,5 +1,3 @@
-from urllib.parse import unquote
-
 import util
 
 
@@ -12,7 +10,7 @@ async def get_info(source, uid, pid):
   r1 = await util.get(f'https://kemono.su/api/v1/{source}/user/{uid}/profile')
   if r.status_code != 200:
     return False
-  info['author'] = r1.json();
+  info['author'] = r1.json()
   return info
 
 

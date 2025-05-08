@@ -90,13 +90,13 @@ async def get_telegraph(gid, title, media_id, exts, nocache, mid):
     if url := data.get(key):
       return Res(url)
 
-    url = f'https://i.nhentai.net/galleries/{media_id}/{i+1}.{exts[i]}'
+    url = f'https://i.nhentai.net/galleries/{media_id}/{i + 1}.{exts[i]}'
     try:
       r = await client.get(url)
       r.raise_for_status()
       url = await util.curl.postimg_upload(r.content, client)
     except Exception:
-      w = f'p{i+1} 获取失败'
+      w = f'p{i + 1} 获取失败'
       logger.warning(w, exc_info=1)
       return Res(None, w)
     else:
@@ -120,7 +120,7 @@ async def get_telegraph(gid, title, media_id, exts, nocache, mid):
   success_num = len(result)
   result.extend(
     [
-      Res(None, f"获取数量: {success_num} {f' / {num}' if num != success_num else ''}"),
+      Res(None, f'获取数量: {success_num} {f" / {num}" if num != success_num else ""}'),
       Res(None, f'原链接: https://nhentai.net/g/{gid}'),
     ]
   )

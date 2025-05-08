@@ -109,7 +109,7 @@ async def gallery_info(gid, token):
   num = res['filecount']
   _magnets = []
   for i in res['torrents']:
-    _magnets.append(f"· <code>magnet:?xt=urn:btih:{i['hash']}</code>")
+    _magnets.append(f'· <code>magnet:?xt=urn:btih:{i["hash"]}</code>')
   magnets = ''
   if _magnets:
     magnets = '磁力链：\n' + '\n'.join(_magnets) + '\n'
@@ -152,7 +152,7 @@ async def gallery_info(gid, token):
   if res['category'] in categories:
     _tags['category'] = [categories[res['category']]]
   else:
-    logger.warning(f"未知画廊分类: {res['category']}")
+    logger.warning(f'未知画廊分类: {res["category"]}')
 
   ns = {
     'category': '分类',
@@ -209,11 +209,11 @@ async def get_telegraph(arr, title, num, nocache, mid):
     try:
       r = await client.post(api_url, data=data, headers=eheaders)
     except httpx.ConnectError:
-      logger.warning(f'p{i+1} 获取第一次尝试失败，正在重试')
+      logger.warning(f'p{i + 1} 获取第一次尝试失败，正在重试')
       try:
         r = await client.post(api_url, data=data, headers=eheaders)
       except httpx.ConnectError:
-        w = f'p{i+1} 获取失败'
+        w = f'p{i + 1} 获取失败'
         logger.warning(w)
         return Res(None, w)
     match = re.search(
@@ -237,7 +237,7 @@ async def get_telegraph(arr, title, num, nocache, mid):
       r.raise_for_status()
       url = await util.curl.postimg_upload(r.content, client)
     except Exception:
-      logger.warning(f'p{i+1} 上传失败', exc_info=1)
+      logger.warning(f'p{i + 1} 上传失败', exc_info=1)
       return Res(url)
     else:
       data[key] = url
@@ -292,7 +292,7 @@ async def get_telegraph(arr, title, num, nocache, mid):
   success_num = len(result)
   result.extend(
     [
-      Res(None, f"获取数量: {success_num} {f' / {num}' if num != success_num else ''}"),
+      Res(None, f'获取数量: {success_num} {f" / {num}" if num != success_num else ""}'),
       Res(None, f'原链接: {eurl}'),
     ]
   )

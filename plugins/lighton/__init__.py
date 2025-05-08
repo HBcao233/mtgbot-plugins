@@ -55,7 +55,7 @@ async def _event(event):
     if len(buttons[0]) >= 8:
       return await event.answer('最大为8', alert=True)
     await event.edit(
-      caption + f'当前大小: {len(buttons[0])+1}',
+      caption + f'当前大小: {len(buttons[0]) + 1}',
       buttons=gen_buttons(len(buttons[0]) + 1),
     )
     return
@@ -63,7 +63,7 @@ async def _event(event):
     if len(buttons[0]) <= 1:
       return await event.answer('最小为1', alert=True)
     await event.edit(
-      caption + f'当前大小: {len(buttons[0])-1}',
+      caption + f'当前大小: {len(buttons[0]) - 1}',
       buttons=gen_buttons(len(buttons[0]) - 1),
     )
     return

@@ -46,9 +46,9 @@ async def _(event):
           data['telegraph']['author_name'] = {}
 
         mid = await conv.send_message(
-          "请在 60 秒内发送您想要设置的 telegraph 作者名 (不大于128个字符)\n"
-          f"当前值: {data['telegraph']['author_name'].get(key, config.telegraph_author_name)}\n"
-          f"默认值: {config.telegraph_author_name}\n",
+          '请在 60 秒内发送您想要设置的 telegraph 作者名 (不大于128个字符)\n'
+          f'当前值: {data["telegraph"]["author_name"].get(key, config.telegraph_author_name)}\n'
+          f'默认值: {config.telegraph_author_name}\n',
           buttons=buttons,
         )
         while True:
@@ -121,9 +121,9 @@ async def _(event):
           data['telegraph']['author_url'] = {}
 
         mid = await conv.send_message(
-          "请在 60 秒内发送您想要设置的 telegraph 作者链接 (不大于512个字符)\n"
-          f"当前值: {data['telegraph']['author_url'].get(key, config.telegraph_author_url)}\n"
-          f"默认值: {config.telegraph_author_url}\n",
+          '请在 60 秒内发送您想要设置的 telegraph 作者链接 (不大于512个字符)\n'
+          f'当前值: {data["telegraph"]["author_url"].get(key, config.telegraph_author_url)}\n'
+          f'默认值: {config.telegraph_author_url}\n',
           buttons=buttons,
         )
         while True:

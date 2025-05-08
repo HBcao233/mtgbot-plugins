@@ -85,7 +85,7 @@ async def get_video(bvid, aid, cid, progress_callback=None):
       )
 
     videos = sorted(videos, key=choose_video)
-    logger.info(f"qn: {videos[0]['id']}, codecid: {videos[0]['codecid']}")
+    logger.info(f'qn: {videos[0]["id"]}, codecid: {videos[0]["codecid"]}')
     video_url = videos[0]['base_url']
     for i in audios:
       if i['id'] == 30216:

@@ -38,9 +38,7 @@ async def nid(event, text):
   if page := match.group(2):
     page = int(page)
     msg = (
-      f'<code>{title}</code>\n'
-      f'{page}/{num}\n'
-      f'此页: https://nhentai.net/g/{gid}/{page}'
+      f'<code>{title}</code>\n{page}/{num}\n此页: https://nhentai.net/g/{gid}/{page}'
     )
     imgurl = f'https://i.nhentai.net/galleries/{media_id}/{page}.{exts[page - 1]}'
     async with bot.action(event.peer_id, 'photo'):
