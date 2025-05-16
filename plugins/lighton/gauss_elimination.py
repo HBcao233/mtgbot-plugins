@@ -178,9 +178,10 @@ if __name__ == '__main__':
   import sys
   
   # '''
-  # row = 3
-  row = int(sys.argv[1])
-  mat = gen_matrix(row, 0)
+  row = 3
+  # row = int(sys.argv[1])
+  print(0b010101111)
+  mat = gen_matrix(row, 0b010101111)
   # print(format_matrix(mat, row * row))
   r = gauss_elimination(mat)
   print(format_vector(r, row))
