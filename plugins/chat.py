@@ -207,7 +207,7 @@ async def _chat(event):
     file = util.file.getCache(f'output_{int(time.time())}.html')
     with open(file, 'w') as f:
       f.write(
-        """<html><head><style>
+        """<html><meta charset="utf-8"><title>小派魔的回答</title><head><style>
 body {
   width: 100vw;
   margin: 2px;
@@ -224,7 +224,7 @@ blockquote {
   background-color: #f9f9f9;
 }
 blockquote::after {
-  content: "\201D";
+  content: "\\201D";
   font-family: Georgia, serif;
   font-size: 60px;
   font-weight: bold;
