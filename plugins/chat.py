@@ -282,7 +282,7 @@ blockquote::after {
   except Exception as e:
     logger.exception('Chat API 调用失败')
     try:
-      m = (await bot.get_messages(event.chat_id, ids=[resp.id]))[0]
+      m = (await bot.get_messages(event.peer_id, ids=[resp.id]))[0]
       await resp.edit(
         m.text + f'\n\n⚠️ > 与 Chat API 通信出现错误 {type(e).__name__}：{e}'
       )
