@@ -16,7 +16,7 @@ from util.log import logger
 
 # ==============一些必须填写的变量=================================================================================：
 # API可以去薅Modelscope魔塔社区的免费一天2000次Inference，其它平台通用OpenAI格式的API也可以。
-# 参阅https://www.modelscope.cn/docs/model-service/API-Inference/intro
+# 参阅 https://www.modelscope.cn/docs/model-service/API-Inference/intro
 
 # 填写API地址，不要忘记后面有个/v1
 api_url = 'https://api-inference.modelscope.cn/v1/'
