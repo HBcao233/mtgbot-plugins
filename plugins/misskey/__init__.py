@@ -3,8 +3,10 @@
 # @Email   : hbcaoqaq@gmail.com
 # @Info    : misskey 爬取
 """.env.example
-# misskey cookie中的 token
+# misskey cookie 中的 token
 misskey_token =
+# (可选) dvd.chat cookie 中的 token
+dvd_token = 
 """
 
 from telethon import Button

@@ -6,6 +6,7 @@ import config
 
 
 token = config.env.get('misskey_token', '')
+dvd_token = config.env.get('dvd_token', '')
 
 
 async def get_note(noteId):
@@ -16,6 +17,7 @@ async def get_note(noteId):
       headers={
         'content-type': 'application/json',
         'referer': f'https://misskey.io/notes/{noteId}',
+        'Authorization': f'Bearer {token}',
       },
     )
     res = r.json()
@@ -24,7 +26,25 @@ async def get_note(noteId):
         return '未找到这篇笔记'
       return res['error']['message']
     if 'renote' in res:
-      return res['renote']
+      res = res['renote']
+    
+    if dvd_token:
+      try:
+        noteId = res['id']
+        r1 = await util.post(
+          'https://dvd.chat/api/ap/show',
+          data=f'{{"uri":"https://misskey.io/notes/{noteId}"}}',
+          headers={
+            'content-type': 'application/json',
+            'referer': f'https://dvd.chat/',
+            'Authorization': f'Bearer {dvd_token}',
+          },
+        )
+        res1 = r1.json()
+        res['dvdId'] = res1['object']['id']
+      except Exception:
+        logger.warn('获取dvdId错误', exc_info=1)
+    
     return res
   except httpx.ConnectError:
     return '连接超时'
@@ -44,6 +64,8 @@ def parse_msg(res):
     f'<a href="https://misskey.io/notes/{noteId}">{noteId}</a> | '
     f'<a href="https://misskey.io/@{username}">{nickname}</a> #Misskey'
   )
+  if (dvdId := res.get('dvdId', '')):
+    msg += f'\n<a href="https://dvd.chat/notes/{dvdId}">在 DVD Chat 上访问</a>'
   return msg
 
 
