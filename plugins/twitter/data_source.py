@@ -74,9 +74,11 @@ async def get_twitter(tid):
 
 
 def parse_msg(res):
+  user = res['core']['user_results']['result']['core']
+  nickname = user['name']
+  username = user['screen_name']
+  
   tweet = res['legacy']
-  user = res['core']['user_results']['result']['legacy']
-
   tid = tweet['id_str']
   full_text = tweet['full_text']
   if 'urls' in tweet['entities'].keys():
@@ -90,8 +92,6 @@ def parse_msg(res):
     r'([^@]*[^/@]+)@([0-9a-zA-Z_]*)', r'\1<a href="https://x.com/\2">@\2</a>', full_text
   )
 
-  nickname = user['name']
-  username = user['screen_name']
   utc_time = time.strptime(tweet['created_at'], r'%a %b %d %H:%M:%S %z %Y')
   local_time = time.localtime(
     time.mktime(utc_time) + utc_time.tm_gmtoff - time.timezone
