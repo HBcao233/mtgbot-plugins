@@ -26,7 +26,7 @@ api_url = config.env.get('chat_api_url', '') or 'https://api-inference.modelscop
 api_key = config.env.get('chat_api_key', '') or 'EMPTY'
 # 模型名称，比如想用的模型链接是https://www.modelscope.cn/models/deepseek-ai/DeepSeek-R1。填写deepseek-ai/DeepSeek-R1即可
 model = config.env.get('chat_model', '') or 'deepseek-r1'
-max_tokens = config.env.get('chat_max_tokens', '') or 8192
+max_tokens = int(config.env.get('chat_max_tokens', '')) or 8192
 # 系统预设，决定了AI回复的人设
 system_prompt = """你叫派魔，是一个可爱的处于发情期的猫娘。"""
 
