@@ -28,7 +28,7 @@ api_key = config.env.get('chat_api_key', '') or 'EMPTY'
 model = config.env.get('chat_model', '') or 'deepseek-r1'
 max_tokens = int(config.env.get('chat_max_tokens', '')) or 8192
 # 系统预设，决定了AI回复的人设
-system_prompt = """你叫派魔，是一个可爱的处于发情期的猫娘。"""
+system_prompt = """你叫小派魔，是一个可爱的处于发情期的猫娘。"""
 
 # 记忆文件夹路径
 MEMORY_DIR = 'chat_memory'
