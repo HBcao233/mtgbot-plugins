@@ -58,7 +58,7 @@ async def get_song_url(mid):
 
 async def general_search(keyword):
   res = await qqmusic_api.search.general_search(
-    "周杰伦", 
+    keyword, 
     page=1,
     highlight=False,
     credential=credential
