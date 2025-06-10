@@ -67,17 +67,21 @@ async def _song(event, mid=''):
   name = f"{res['title']} - {singers}"
   if not (img := util.data.Audios()[key]):
     url = await get_song_url(mid)
+    img = None
     if not url:
       url = await get_try_url(res)
       key += '_try'
       name = '(试听) ' + name
+      if key in util.data.Audios():
+        img = util.data.Audios()
     if not url:
       return await event.reply(
         msg,
         parse_mode='html',
       )
       
-    img = await util.getImg(url, saveas=name, ext='mp3')
+    if not img:
+      img = await util.getImg(url, saveas=name, ext='mp3')
   async with bot.action(event.peer_id, 'audio'):
     m = await bot.send_file(
       event.peer_id,
