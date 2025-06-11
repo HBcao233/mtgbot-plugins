@@ -77,7 +77,7 @@ def parse_msg(res):
   user = res['core']['user_results']['result']['core']
   nickname = user['name']
   username = user['screen_name']
-  
+
   tweet = res['legacy']
   tid = tweet['id_str']
   full_text = tweet['full_text']

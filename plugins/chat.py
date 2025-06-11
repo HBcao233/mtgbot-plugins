@@ -21,7 +21,9 @@ from util.log import logger
 # 参阅 https://www.modelscope.cn/docs/model-service/API-Inference/intro
 
 # 填写API地址，不要忘记后面有个/v1
-api_url = config.env.get('chat_api_url', '') or 'https://api-inference.modelscope.cn/v1/'
+api_url = (
+  config.env.get('chat_api_url', '') or 'https://api-inference.modelscope.cn/v1/'
+)
 # 输入你的API的密钥（Token），获取方法见上方文档
 api_key = config.env.get('chat_api_key', '') or 'EMPTY'
 # 模型名称，比如想用的模型链接是https://www.modelscope.cn/models/deepseek-ai/DeepSeek-R1。填写deepseek-ai/DeepSeek-R1即可
@@ -114,12 +116,11 @@ async def _chat(event):
     display = ''
     if first_piece:
       display = f'$ {raw_text}\n'
-    display += f"<blockquote{' expandable' if content else ''}>内心OS\n{reasoning_content}</blockquote>"
+    display += f'<blockquote{" expandable" if content else ""}>内心OS\n{reasoning_content}</blockquote>'
     if content:
       display += content
     else:
-      display += f"派魔正在思考中... {progress_chars[count % len(progress_chars)]}"
-      
+      display += f'派魔正在思考中... {progress_chars[count % len(progress_chars)]}'
 
     display = re.sub(
       r'```(\w+?)\n([\s\S]*?)```',
@@ -142,8 +143,7 @@ async def _chat(event):
       reasoning_contents, \
       first_piece, \
       last_edit, \
-      count \
-   
+      count
     try:
       if first_piece or not inline_mode:
         await resp.edit(
@@ -171,12 +171,12 @@ async def _chat(event):
           t = len(reasoning_content)
           if len(reasoning_contents) != 0:
             t = len(reasoning_contents[-1])
-        contents.append(content[:4096-t])
-        content = content[4096-t:]
+        contents.append(content[: 4096 - t])
+        content = content[4096 - t :]
       else:
         reasoning_contents.append(reasoning_content[:4096])
         reasoning_content = reasoning_content[4096:]
-      
+
       resp = await resp.respond(
         parse_display(reasoning_content, content),
         parse_mode='html',
@@ -188,7 +188,9 @@ async def _chat(event):
       count += 1
 
   def summon_html(reasoning_content, content):
-    file = util.file.getCache(f"output_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.html")
+    file = util.file.getCache(
+      f'output_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.html'
+    )
     with open(file, 'w') as f:
       f.write(
         """<html><meta charset="utf-8"><title>小派魔的回答</title><head><style>
@@ -227,7 +229,11 @@ blockquote::after {
     now = 0
     # 流式调用
     for chunk in client.chat.completions.create(
-      model=f'{model}', messages=msgs, temperature=0.2, max_tokens=max_tokens, stream=True
+      model=f'{model}',
+      messages=msgs,
+      temperature=0.2,
+      max_tokens=max_tokens,
+      stream=True,
     ):
       logger.info(chunk)
       delta = chunk.choices[0].delta
@@ -238,9 +244,9 @@ blockquote::after {
         continue
       c = delta.content or ''
       rc = delta.reasoning_content or ''
-      if c: 
+      if c:
         content += c
-      elif rc: 
+      elif rc:
         reasoning_content += rc
       else:
         continue

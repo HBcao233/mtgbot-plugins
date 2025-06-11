@@ -27,7 +27,7 @@ async def get_note(noteId):
       return res['error']['message']
     if 'renote' in res:
       res = res['renote']
-    
+
     if dvd_token:
       try:
         noteId = res['id']
@@ -44,7 +44,7 @@ async def get_note(noteId):
         res['dvdId'] = res1['object']['id']
       except Exception:
         logger.warn('获取dvdId错误', exc_info=1)
-    
+
     return res
   except httpx.ConnectError:
     return '连接超时'
@@ -64,7 +64,7 @@ def parse_msg(res):
     f'<a href="https://misskey.io/notes/{noteId}">{noteId}</a> | '
     f'<a href="https://misskey.io/@{username}">{nickname}</a> #Misskey'
   )
-  if (dvdId := res.get('dvdId', '')):
+  if dvdId := res.get('dvdId', ''):
     msg += f'\n<a href="https://dvd.chat/notes/{dvdId}">在 DVD Chat 上访问</a>'
   return msg
 

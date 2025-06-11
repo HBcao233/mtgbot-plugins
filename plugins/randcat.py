@@ -6,7 +6,7 @@
 
 from telethon import types, utils
 import time
-import os 
+import os
 import mimetypes
 
 import util
@@ -17,13 +17,13 @@ from plugin import InlineCommand
 async def _cat(event):
   r = await util.get('https://cataas.com/cat?json=true')
   if r.status_code != 200:
-    return 
+    return
   res = r.json()
-  
+
   html_parser = utils.sanitize_parse_mode('html')
   msg = f'猫猫 <a href="https://cataas.com/cat/{res["id"]}">{res["id"]}</a>'
   message, entities = html_parser.parse(msg)
-  
+
   result = types.InputBotInlineResult(
     id=str(time.time()),
     type='photo',
@@ -53,9 +53,9 @@ async def _cat(event):
 async def _cat(event):
   r = await util.get('https://dog.ceo/api/breeds/image/random')
   if r.status_code != 200:
-    return 
+    return
   res = r.json()
-  
+
   url = res['message']
   _, name = os.path.split(url)
   _name, _ext = os.path.splitext(name)
@@ -63,7 +63,7 @@ async def _cat(event):
   html_parser = utils.sanitize_parse_mode('html')
   msg = f'狗狗 <a href="{url}">{_name}</a>'
   message, entities = html_parser.parse(msg)
-  
+
   result = types.InputBotInlineResult(
     id=str(time.time()),
     type='photo',

@@ -6,7 +6,7 @@
 # misskey cookie 中的 token
 misskey_token =
 # (可选) dvd.chat cookie 中的 token
-dvd_token = 
+dvd_token =
 """
 
 from telethon import Button
