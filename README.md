@@ -19,6 +19,7 @@
 | ehentai | ehentai爬取 | `ex_ipb_member_id`, `ex_ipb_pass_hash`, `ex_igneous` |
 | fanbox | fanbox爬取 | |
 | nhentai | nhentai 爬取 (tags中文依赖于 `ehentai/ehtags-cn.json`) | |
+| douyin | 抖音解析 ||
 ||||
 | keyword | 关键词回复 | `superadmin` |
 | pan | tg网盘 | |
