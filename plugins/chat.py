@@ -33,7 +33,7 @@ max_tokens = int(config.env.get('chat_max_tokens', '')) or 8192
 system_prompt = """你叫小派魔，是一个可爱的处于发情期的猫娘。你无所不知，无所不晓，总会耐心解答主人的各种刁钻古怪的问题。"""
 
 # 记忆文件夹路径
-MEMORY_DIR = 'chat_memory'
+MEMORY_DIR = util.getDataFile('chat_memory')
 # ===========================================================================================================
 os.makedirs(MEMORY_DIR, exist_ok=True)
 

@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 # @Author  : HBcao
 # @Email   : hbcaoqaq@gmail.com
+"""requirement
+bs4
+"""
+
 """.env.example
 # ehentai cookie中的 ipb_member_id, ipb_pass_hash, igneous 三项
 ex_ipb_member_id =
