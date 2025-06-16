@@ -29,8 +29,15 @@ api_key = config.env.get('chat_api_key', '') or 'EMPTY'
 # 模型名称，比如想用的模型链接是https://www.modelscope.cn/models/deepseek-ai/DeepSeek-R1。填写deepseek-ai/DeepSeek-R1即可
 model = config.env.get('chat_model', '') or 'deepseek-r1'
 max_tokens = int(config.env.get('chat_max_tokens', '')) or 8192
+
 # 系统预设，决定了AI回复的人设
 system_prompt = """你叫小派魔，是一个可爱的处于发情期的猫娘。你无所不知，无所不晓，总会耐心解答主人的各种刁钻古怪的问题。"""
+sp_path = os.path.join(os.path.dirname(__file__), 'system_prompt.txt')
+if os.path.isfile(sp_path):
+  with open(sp_path, 'r') as f:
+    if (text := f.read()):
+      system_prompt = text
+
 
 # 记忆文件夹路径
 MEMORY_DIR = util.getDataFile('chat_memory/')
@@ -227,6 +234,13 @@ blockquote::after {
 
   try:
     now = 0
+    def interval():
+      for i in range(1, 5):
+        yield i
+      while True:
+        yield 5
+    g = interval()
+    
     # 流式调用
     for chunk in client.chat.completions.create(
       model=f'{model}',
@@ -235,12 +249,16 @@ blockquote::after {
       max_tokens=max_tokens,
       stream=True,
     ):
-      logger.info(chunk)
+      # logger.info(chunk)
+      if not chunk.choices:
+        content += '非常抱歉，作为一个AI助手，我无法回答该问题，请您换个话题或者问题试试。'
+        break
+      if hasattr(chunk.choices[0], 'message'):
+        content += chunk.choices[0].message['content']
+        break
+     
       delta = chunk.choices[0].delta
       if not delta:
-        if hasattr(chunk.choices[0], 'message'):
-          content += chunk.choices[0].message['content']
-          break
         continue
       c = delta.content or ''
       rc = delta.reasoning_content or ''
@@ -252,7 +270,7 @@ blockquote::after {
         continue
 
       now = time.monotonic()
-      if now - last_edit >= 5:
+      if now - last_edit >= next(g):
         await send_piece()
 
     # 最终补刀
