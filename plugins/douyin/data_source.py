@@ -1,15 +1,20 @@
-# 大部分代码来自 https://github.com/Evil0ctal/Douyin_TikTok_Download_API/
+# 部分代码参考了 https://github.com/Johnserf-Seed/f2/
+
 from pydantic import BaseModel
+from urllib.parse import urlencode
+import re 
 
 import util
+from util.log import logger
 from .abogus import ABogus
 
 
+user_agent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36'
+cookie = 'MONITOR_WEB_ID=a0a75cdb-c044-4f33-965b-2c96e8b2543a; UIFID_TEMP=47e05068b0a7733abcb242917ae42006325e9c99f9c28424accd11477c730b0102fc181b2d67db5fc4318e0c68e133e54283edad8b3cdf0ede13fdb54a721a9e6e0b4dd41c59d3335a0469fa605beaa4; hevc_supported=true; s_v_web_id=verify_maqom34f_4CqWXVbC_9I88_4Alw_9iJ3_5guXZCuXKoas; fpk1=U2FsdGVkX1/Kj2aYTRUPzvPwKcPE1c052sltw63SIKMbtTyEwjTPKevBdXoHrLfIW18lXp40SEMxzrHuwm1Zcg==; fpk2=b837718ffb5a3b4b1d9498234a1f1b0b; odin_tt=15722bc1d9d736666ed41d73c1b05c5219cc5b233c4186fa9977556aa462b692ad0c332b6a78ee88c1c2ce4d0d5a242ef9b20c9d67864c93dbcd40522b25729844e2d095f44b20231c857ed0d9ec66be; passport_csrf_token=c54d245d2f1f708045ea3939c5ed5c44; passport_csrf_token_default=c54d245d2f1f708045ea3939c5ed5c44; __security_mc_1_s_sdk_cert_key=cae837bb-4502-913d; __security_mc_1_s_sdk_sign_data_key_web_protect=5194a426-472a-8db9; __security_mc_1_s_sdk_crypt_sdk=9d897122-4d74-b93c; bd_ticket_guard_client_web_domain=2; SEARCH_RESULT_LIST_TYPE=%22single%22; _tea_utm_cache_1243=undefined; dy_swidth=360; dy_sheight=800; enter_pc_once=1; UIFID=47e05068b0a7733abcb242917ae42006325e9c99f9c28424accd11477c730b01c21c8a712edb7373e33eeddd3c28f97cf62ff02357da085657e1202a3975a63270c9d61869478f888384e7bbd196cc96c1467982718d4bad69461e137a0f0a456bef8db0a20bc803a6e4e63261dc6905c4eda7e24f55c1d58be7a009116cef8a90ad97e2935120884ed1b728412691df18500ef98f86ca4eb839433eb6f50f67; home_can_add_dy_2_desktop=%220%22; xgplayer_user_id=343579313575; stream_player_status_params=%22%7B%5C%22is_auto_play%5C%22%3A0%2C%5C%22is_full_screen%5C%22%3A0%2C%5C%22is_full_webscreen%5C%22%3A0%2C%5C%22is_mute%5C%22%3A1%2C%5C%22is_speed%5C%22%3A1%2C%5C%22is_visible%5C%22%3A0%7D%22; __security_mc_1_s_sdk_sign_data_key_sso=6518d1b0-4316-826c; volume_info=%7B%22isUserMute%22%3Afalse%2C%22isMute%22%3Atrue%2C%22volume%22%3A0.5%7D; strategyABtestKey=%221750205684.706%22; stream_recommend_feed_params=%22%7B%5C%22cookie_enabled%5C%22%3Atrue%2C%5C%22screen_width%5C%22%3A360%2C%5C%22screen_height%5C%22%3A800%2C%5C%22browser_online%5C%22%3Atrue%2C%5C%22cpu_core_num%5C%22%3A8%2C%5C%22device_memory%5C%22%3A8%2C%5C%22downlink%5C%22%3A10%2C%5C%22effective_type%5C%22%3A%5C%224g%5C%22%2C%5C%22round_trip_time%5C%22%3A50%7D%22; __ac_nonce=06852222e00af938ce2dc; __ac_signature=_02B4Z6wo00f01fQydTgAAIDCtcN8p.0BJF30EnGAABVg36; ttwid=1%7CnkPSEnPtqgkqkIc6H3nnW8Kmaa1fzUCKJEnmewwwXZ0%7C1750213191%7C51b160c897ae5a3edf7a64c69eaab1e4c3f8519249243d6d28a8d06da4a65a79; biz_trace_id=7fd815ed; bd_ticket_guard_client_data=eyJiZC10aWNrZXQtZ3VhcmQtdmVyc2lvbiI6MiwiYmQtdGlja2V0LWd1YXJkLWl0ZXJhdGlvbi12ZXJzaW9uIjoxLCJiZC10aWNrZXQtZ3VhcmQtcmVlLXB1YmxpYy1rZXkiOiJCQjVCbnZXUzhUdGxRZFZ3M2RkdkdhM3ZhNWU5aXN0dnpLR21tTmdCc2NGRkQvdDZDSC9lNzdlZGxNR013TkhxWm83ZVVnV2REbEtTTlV4U1l5NkREKzA9IiwiYmQtdGlja2V0LWd1YXJkLXdlYi12ZXJzaW9uIjoyfQ%3D%3D; douyin.com; xg_device_score=7.658235294117647; device_web_cpu_core=8; device_web_memory_size=8; architecture=amd64; IsDouyinActive=false'
 headers = {
-  'Accept-Language': 'zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2',
-  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36',
+  'user-agent': user_agent,
   'Referer': 'https://www.douyin.com/',
-  'cookie': '__ac_nonce=067d687ac00d70af16eab; __ac_signature=_02B4Z6wo00f018O6kmgAAIDAR1H8JrcivBPDi5bAAJdBcf; ttwid=1%7C46sVJ6G5zO0ZRKBqbFef2B13U3CqP9gLwQEH8IV2y6A%7C1742112685%7Cae649397cca7dde21884d5f8e3e3d53eb2361aa64af04cd6889fa71d7f23344b; UIFID_TEMP=986fab8dfc2c74111fac2b883dbdee67777473ded35e2c4bebbf68cc8b91739da61f6b365ad9795b0aa3a8bddce6cc3e39c5d4fd4bad667aaefd3d3ec08baac66fe3b215343f12d8aae84e0a24048f44; douyin.com; device_web_cpu_core=16; device_web_memory_size=-1; architecture=amd64; hevc_supported=true; IsDouyinActive=true; home_can_add_dy_2_desktop=%220%22; dy_swidth=1835; dy_sheight=1147; stream_recommend_feed_params=%22%7B%5C%22cookie_enabled%5C%22%3Atrue%2C%5C%22screen_width%5C%22%3A1835%2C%5C%22screen_height%5C%22%3A1147%2C%5C%22browser_online%5C%22%3Atrue%2C%5C%22cpu_core_num%5C%22%3A16%2C%5C%22device_memory%5C%22%3A0%2C%5C%22downlink%5C%22%3A%5C%22%5C%22%2C%5C%22effective_type%5C%22%3A%5C%22%5C%22%2C%5C%22round_trip_time%5C%22%3A0%7D%22; strategyABtestKey=%221742112685.842%22; volume_info=%7B%22isUserMute%22%3Afalse%2C%22isMute%22%3Afalse%2C%22volume%22%3A0.5%7D; stream_player_status_params=%22%7B%5C%22is_auto_play%5C%22%3A0%2C%5C%22is_full_screen%5C%22%3A0%2C%5C%22is_full_webscreen%5C%22%3A0%2C%5C%22is_mute%5C%22%3A0%2C%5C%22is_speed%5C%22%3A1%2C%5C%22is_visible%5C%22%3A1%7D%22; xgplayer_user_id=835787001711; fpk1=U2FsdGVkX19Ke0llbjXpGOOr1Jeel/2GnaSJz41VO3mAFs271jC0hG7gdWlk+2pYLM4GF8TVGtwClCJIXsTKUw==; fpk2=2333b8d335abc6e14aef1caed0ae26fc; s_v_web_id=verify_m8bcww86_XfwSCnmj_5i3F_4Joq_8edO_9gRH9JENh07f; csrf_session_id=6f34e666e71445c9d39d8d06a347a13f; FORCE_LOGIN=%7B%22videoConsumedRemainSeconds%22%3A180%7D; biz_trace_id=c34e5eaf; passport_csrf_token=ab84b3e39ad78e719b236035a27379c0; passport_csrf_token_default=ab84b3e39ad78e719b236035a27379c0; __security_mc_1_s_sdk_crypt_sdk=ac2d56c3-44cd-a161; __security_mc_1_s_sdk_cert_key=ccf2bd2d-4718-b8de; __security_mc_1_s_sdk_sign_data_key_web_protect=9995d368-4e45-b17f; bd_ticket_guard_client_data=eyJiZC10aWNrZXQtZ3VhcmQtdmVyc2lvbiI6MiwiYmQtdGlja2V0LWd1YXJkLWl0ZXJhdGlvbi12ZXJzaW9uIjoxLCJiZC10aWNrZXQtZ3VhcmQtcmVlLXB1YmxpYy1rZXkiOiJCUHR2ZDlUeGU4UlhPaWdIczFqaStJWityQlF4UWZMKytiL2drbXlYUmNrelNua1lQUjJTRVZHVlo4MWFCU0EvSW4xSnBmbzN3TFlvSnhIZTZTV29DTmc9IiwiYmQtdGlja2V0LWd1YXJkLXdlYi12ZXJzaW9uIjoyfQ%3D%3D; bd_ticket_guard_client_web_domain=2; xg_device_score=8.208487995540095; sdk_source_info=7e276470716a68645a606960273f276364697660272927676c715a6d6069756077273f276364697660272927666d776a68605a607d71606b766c6a6b5a7666776c7571273f275e58272927666a6b766a69605a696c6061273f27636469766027292762696a6764695a7364776c6467696076273f275e5827292771273f27303035353c3337343437313234272927676c715a75776a716a666a69273f2763646976602778; bit_env=LVdHnIescW9BCGpo5gGuqIlwNfgj757SBdMhdZXBSWjPWbxp9Nv_B2vUt_LtEvr-ioRv0E9b8N8HWiOHe20JqcUhO4YmpIM6gB83hjgqZfmAhYEbzJR7z2bRViJaPg4xeoyGhwdjwK_Bzogp6uoUs4ov-P4JYzMh78i7jaY5Pzd6h3CaVO-eUKnTiFfUlJo_jmhSfHXGdwkurXwR4lO_UnU4Loqa0YlmDiyi0fPxURFIN5t4Ny6Ua8LLSYcUrBXHlXoQ5G4bQN4XqwuWwT9YauexXbkotU1Jv8pMJUiAhlFIMjbvfTutTSnOXJLoH_JsR_doifURl0wf8CIa_OcYw-A2VglrpbaFU6HDVTKbSRKovzIMY9bUwl_4EAiLBf87g2BU0Uz1MHd_lGNdH3ImEWpLtdRvUsW_KD7q87rPsEGVTceyQ5U3ZlETqoEOwOiggNGu5lL_1O8lt8_7eydeGA%3D%3D; gulu_source_res=eyJwX2luIjoiM2Y3NGJhZDgxMzc3OThkNmVkN2U5ZjM3NDMzNGJkYjMwNzRhYjI0ZWJhMDZkMzdmYWNiNjgzNTY2ZjY0OGUyNCJ9; passport_auth_mix_state=c534f2qcgpohqv4juisp74wq28e90snz',
+  'cookie': cookie,
 }
 
 
@@ -17,36 +22,36 @@ class BaseRequestModel(BaseModel):
   device_platform: str = 'webapp'
   aid: str = '6383'
   channel: str = 'channel_pc_web'
+  update_version_code: str = '170400'
   pc_client_type: int = 1
-  version_code: str = '290100'
-  version_name: str = '29.1.0'
+  pc_libra_divert: str = 'Linux'
+  support_h265: str = '1'
+  support_dash: str = '0'
+  version_code: str = '190500'
+  version_name: str = '19.5.0'
   cookie_enabled: str = 'true'
-  screen_width: int = 1920
-  screen_height: int = 1080
+  screen_width: int = 360
+  screen_height: int = 800
   browser_language: str = 'zh-CN'
-  browser_platform: str = 'Win32'
+  browser_platform: str = 'Linux'
   browser_name: str = 'Chrome'
-  browser_version: str = '130.0.0.0'
+  browser_version: str = '137.0.0.0'
   browser_online: str = 'true'
   engine_name: str = 'Blink'
-  engine_version: str = '130.0.0.0'
-  os_name: str = 'Windows'
-  os_version: str = '10'
-  cpu_core_num: int = 12
+  engine_version: str = '137.0.0.0'
+  os_name: str = 'Linux'
+  os_version: str = 'x86_64'
+  cpu_core_num: int = 8
   device_memory: int = 8
   platform: str = 'PC'
   downlink: str = '10'
   effective_type: str = '4g'
+  round_trip_time: str = '50'
   from_user_page: str = '1'
-  locate_query: str = 'false'
-  need_time_list: str = '1'
-  pc_libra_divert: str = 'Windows'
-  publish_video_strategy_type: str = '2'
-  round_trip_time: str = '0'
-  show_live_replay_strategy: str = '1'
-  time_list_query: str = '0'
-  whale_cut_token: str = ''
-  update_version_code: str = '170400'
+  webid: str = '7504995072430982665'
+  uifid: str = '47e05068b0a7733abcb242917ae42006325e9c99f9c28424accd11477c730b01c21c8a712edb7373e33eeddd3c28f97cf62ff02357da085657e1202a3975a63270c9d61869478f888384e7bbd196cc96c1467982718d4bad69461e137a0f0a456bef8db0a20bc803a6e4e63261dc6905c4eda7e24f55c1d58be7a009116cef8a90ad97e2935120884ed1b728412691df18500ef98f86ca4eb839433eb6f50f67'
+  verifyFp: str = 'verify_maqom34f_4CqWXVbC_9I88_4Alw_9iJ3_5guXZCuXKoas'
+  fp: str = 'verify_maqom34f_4CqWXVbC_9I88_4Alw_9iJ3_5guXZCuXKoas'
 
 
 class PostDetail(BaseRequestModel):
@@ -54,8 +59,13 @@ class PostDetail(BaseRequestModel):
 
 
 async def get_aweme_detail(aid: str):
-  params = PostDetail(aweme_id=aid).dict()
-  a_bogus = ABogus().get_value(params)
+  params = PostDetail(aweme_id=aid).model_dump()
+  
+  a_bogus = ABogus(user_agent=user_agent).generate_abogus(
+    urlencode(params)
+  )[1]
+  logger.info(a_bogus)
+  
   params.update({
     'a_bogus': a_bogus,
   })
@@ -64,6 +74,8 @@ async def get_aweme_detail(aid: str):
     params=params,
     headers=headers,
   )
+  if not r.text:
+    return
   if r.status_code != 200:
     return 
   res = r.json()
@@ -73,14 +85,14 @@ async def get_aweme_detail(aid: str):
   res = {
     k: v
     for k, v in res.items()
-    if k in ['author', 'aweme_id', 'video', 'desc', 'region', 'preview_title']
+    if k in ['author', 'aweme_id', 'video', 'desc', 'region', 'preview_title', 'item_title']
   }
   return res
 
 
 def parse_aweme_detail(res):
   aid = res['aweme_id']
-  title = res['preview_title']
+  title = res['item_title'] or res['desc']
   url = f'https://www.douyin.com/video/{aid}'
   uid = res['author']['uid']
   username = res['author']['unique_id']

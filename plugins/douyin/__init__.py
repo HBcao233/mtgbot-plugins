@@ -19,7 +19,7 @@ from .data_source import (
 
 
 _pattern = re.compile(
-  r'(?:(?:https?://)?(?:www\.)douyin\.com/video/([0-9a-zA-Z]{12,20})|(?:v\.douyin\.com/([0-9a-zA-Z]{5,10}))|^/douyin(?!_))'
+  r'(?:(?:https?://)?(?:www\.)(?:ies)?douyin\.com/(?:share/)?(?:video/|user/.*?modal_id=)([0-9]{12,20})|(?:v\.douyin\.com/([0-9a-zA-Z_]{5,14}))|^/douyin(?!_))'
 ).search
 
 
@@ -35,7 +35,7 @@ async def _douyin(event):
     return await event.reply(
       '用法: /douyin <url/aid>',
     )
-  
+
   if match.group(2) is not None:
     r = await util.get('https://v.douyin.com/' + match.group(2))
     text = str(r.url)
@@ -44,21 +44,21 @@ async def _douyin(event):
     await event.reply(
       f'https://www.douyin.com/video/{aid}',
     )
-  
+
   # logger.info(aid)
   res = await get_aweme_detail(aid)
   if not res:
     return await event.reply('获取失败')
   msg = parse_aweme_detail(res)
-  
-  urls = res['video']['download_addr']['url_list']
-  url = urls[0]
+
+  url = res['video']['play_addr']['url_list'][-1]
+  logger.info(url)
   key = f'douyin_{aid}'
   data = util.Videos()
   if not (img := data.get(key, '')):
     async with bot.action(event.peer_id, 'record-video'):
       img = await util.getImg(url, saveas=key, ext='mp4')
-    
+
   async with bot.action(event.peer_id, 'video'):
     m = await bot.send_file(
       event.peer_id,
@@ -68,4 +68,3 @@ async def _douyin(event):
     )
   with data:
     data[key] = m
-    
