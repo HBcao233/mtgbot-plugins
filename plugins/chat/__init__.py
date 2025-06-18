@@ -253,12 +253,12 @@ blockquote::after {
       if not chunk.choices:
         content += '非常抱歉，作为一个AI助手，我无法回答该问题，请您换个话题或者问题试试。'
         break
-      if hasattr(chunk.choices[0], 'message'):
-        content += chunk.choices[0].message['content']
-        break
-     
+      
       delta = chunk.choices[0].delta
       if not delta:
+        if hasattr(chunk.choices[0], 'message'):
+          content += chunk.choices[0].message['content']
+          break
         continue
       c = delta.content or ''
       rc = delta.reasoning_content or ''
