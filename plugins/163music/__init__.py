@@ -73,7 +73,7 @@ async def _song(event, mid=''):
       key += '_try'
       name = '(试听) ' + name
       if key in util.data.Audios():
-        img = util.data.Audios()
+        img = util.data.Audios()[key]
     if not url:
       return await event.reply(
         msg,

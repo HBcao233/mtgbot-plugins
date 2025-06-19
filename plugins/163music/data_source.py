@@ -114,7 +114,7 @@ async def get_song_url(mid):
     {
       'ids': f'[{mid}]',
       'level': 'exhigh',
-      'encodeType': 'aac',
+      'encodeType': 'mp3', # aac ; mp3
     },
   )
   if not res:
