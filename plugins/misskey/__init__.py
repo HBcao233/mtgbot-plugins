@@ -16,7 +16,7 @@ import asyncio
 
 import util
 from util.log import logger
-from plugin import handler
+from plugin import Command, Scope
 import filters
 from .data_source import get_note, parse_msg, parse_medias
 
@@ -26,11 +26,12 @@ _pattern = re.compile(
 ).search
 
 
-@handler(
+@Command(
   'misskey',
   pattern=_pattern,
   info='获取misskey笔记 /misskey <url/noteId> [hide] [mark]',
   filter=filters.PRIVATE & filters.ONLYTEXT,
+  scope=Scope.private(),
 )
 async def _misskey(event, text=''):
   # match = event.pattern_match

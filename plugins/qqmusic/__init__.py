@@ -18,7 +18,7 @@ qqmusic_encrypt_uin =
 import re
 from telethon import Button, types
 
-from plugin import Command
+from plugin import Command, Scope
 from .data_source import (
   get_song_info,
   parse_song_info,
@@ -41,6 +41,7 @@ _pattern = re.compile(
   pattern=_pattern,
   info='qq音乐链接解析',
   filter=filters.ONLYTEXT & filters.PRIVATE,
+  scope=Scope.private(),
 )
 async def _song(event, mid=''):
   if not mid:

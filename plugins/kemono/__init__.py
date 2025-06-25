@@ -6,7 +6,7 @@ import asyncio
 import util
 from util.log import logger
 from util.progress import Progress
-from plugin import handler
+from plugin import Command, Scope
 import filters
 from .data_source import parse_page, get_info
 
@@ -17,11 +17,12 @@ _pattern = re.compile(
 ).match
 
 
-@handler(
+@Command(
   'kid',
   pattern=_pattern,
   info='kemono爬取 /kid <url>',
   filter=filters.ONLYTEXT & filters.PRIVATE,
+  scope=Scope.private(),
 )
 async def _kid(event, text):
   match = event.pattern_match

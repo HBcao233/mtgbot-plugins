@@ -15,12 +15,12 @@ import httpx
 import util
 from util.log import logger
 from util.progress import Progress
-from plugin import handler
+from plugin import Command, Scope
 import filters
 from .data_source import PixivClient, parse_msg, get_telegraph
 
 
-cmd_header_pattern = r'/?pid'
+cmd_header_pattern = re.compile(r'/?pid')
 _p = r"""(?:^|(?#
   cmd)^(?:/?pid) ?|(?#
   url)(?:https?://)?(?:www\.)?(?:pixiv\.net/(?:member_illust\.php\?.*illust_id=|artworks/|i/))(?#
@@ -31,11 +31,12 @@ _pattern = re.compile(_p).search
 
 class Pixiv:
   @staticmethod
-  @handler(
+  @Command(
     'pid',
     pattern=_pattern,
     info='获取p站作品 /pid <url/pid> [hide] [mark]',
     filter=filters.ONLYTEXT & filters.PRIVATE,
+    scope=Scope.private(),
   )
   async def _pixiv(event, text=''):
     await Pixiv(event).main(text)

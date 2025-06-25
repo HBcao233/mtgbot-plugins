@@ -18,7 +18,7 @@ from datetime import datetime
 
 import util
 from util.log import logger
-from plugin import handler
+from plugin import Command, Scope
 import filters
 from .data_source import (
   get,
@@ -35,11 +35,12 @@ _pattern = re.compile(
 ).match
 
 
-@handler(
+@Command(
   'eid',
   pattern=_pattern,
   info='e站爬取 /eid <url> [hide] [mark]',
   filter=filters.PRIVATE & filters.ONLYTEXT,
+  scope=Scope.private(),
 )
 async def eid(event, text):
   if not event.message.is_private or event.message.photo or event.message.video:

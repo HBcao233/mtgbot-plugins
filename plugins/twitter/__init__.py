@@ -14,7 +14,7 @@ import ujson as json
 
 import util
 from util.log import logger
-from plugin import handler
+from plugin import Command, Scope
 from .data_source import gheaders, get_twitter, parse_msg, parseMedias
 import filters
 
@@ -24,11 +24,12 @@ _p = r'(?:^|^(?:/?tid) ?|(?:https?://)?[a-z]*?(?:twitter|x)\.com/[a-zA-Z0-9_]+/s
 _pattern = re.compile(_p).search
 
 
-@handler(
+@Command(
   'tid',
   pattern=_pattern,
   info='获取推文 /tid <url/tid> [hide] [mark]',
   filter=filters.ONLYTEXT & filters.PRIVATE,
+  scope=Scope.private(),
 )
 async def _tid(event, text):
   text = cmd_header_pattern.sub('', text).strip()

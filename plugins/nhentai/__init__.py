@@ -8,7 +8,7 @@ import re
 from datetime import datetime
 
 import util
-from plugin import handler
+from plugin import Command, Scope
 import filters
 from .data_source import PluginException, gallery_info, get_telegraph
 
@@ -23,6 +23,7 @@ _pattern = re.compile(
   pattern=_pattern,
   info='n站爬取 /nid <url> [hide] [mark]',
   filter=filters.PRIVATE & filters.ONLYTEXT,
+  scope=Scope.private(),
 )
 async def nid(event, text):
   match = event.pattern_match

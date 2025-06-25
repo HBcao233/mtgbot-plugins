@@ -15,7 +15,10 @@ pycryptodome
 import re
 from telethon import Button
 
-from plugin import Command
+from plugin import Command, Scope
+import filters
+import util
+from util.log import logger
 from .data_source import (
   get_song_detail,
   parse_song_detail,
@@ -25,9 +28,6 @@ from .data_source import (
   parse_search,
   getImg,
 )
-import filters
-import util
-from util.log import logger
 
 
 _pattern = re.compile(
@@ -40,6 +40,7 @@ _pattern = re.compile(
   pattern=_pattern,
   info='网易云音乐链接解析',
   filter=filters.ONLYTEXT & filters.PRIVATE,
+  scope=Scope.private(),
 )
 async def _song(event, mid=''):
   if not mid:

@@ -7,7 +7,7 @@ import ujson as json
 
 import util
 from util.log import logger
-from plugin import handler
+from plugin import Command, Scope
 import filters
 from .data_source import PluginException, get_post, parse_msg, parse_medias
 
@@ -18,11 +18,12 @@ _pattern = re.compile(
 ).match
 
 
-@handler(
+@Command(
   'fanbox',
   pattern=_pattern,
   info='获取fanbox作品 /fanbox <url/postId> [hide] [mark]',
   filter=filters.ONLYTEXT & filters.PRIVATE,
+  scope=Scope.private(),
 )
 async def _fanbox(event, text):
   if event.message.photo or event.message.video:

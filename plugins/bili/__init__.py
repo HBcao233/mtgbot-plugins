@@ -11,7 +11,7 @@ import re
 
 import util
 from util.log import logger
-from plugin import handler
+from plugin import Command, Scope
 import filters
 from .data_source import get_bili, parse_msg, get_video
 
@@ -21,11 +21,12 @@ _pattern = re.compile(
 ).search
 
 
-@handler(
+@Command(
   'bili',
   pattern=_pattern,
   info='av号或bv号获取视频',
   filter=filters.ONLYTEXT & filters.PRIVATE,
+  scope=Scope.private(),
 )
 async def _(event, text):
   match = event.pattern_match

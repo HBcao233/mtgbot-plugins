@@ -4,16 +4,17 @@ from asyncio import CancelledError
 
 import util
 from util import logger
-from plugin import handler
+from plugin import Command, Scope
 from util.progress import Progress
 import filters
 from .data_source import video2gif, tgs2ext, video2ext
 
 
-@handler(
+@Command(
   'gif',
   info='视频转gif',
   filter=filters.PRIVATE & filters.ONLYTEXT,
+  scope=Scope.private(),
 )
 async def _gif(event):
   if not (reply_message := await event.message.get_reply_message()):

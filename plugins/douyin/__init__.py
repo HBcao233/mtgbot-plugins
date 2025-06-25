@@ -10,7 +10,7 @@ import re
 
 import util
 from util.log import logger
-from plugin import Command
+from plugin import Command, Scope
 import filters
 from .data_source import (
   get_aweme_detail,
@@ -28,6 +28,7 @@ _pattern = re.compile(
   pattern=_pattern,
   info='抖音视频解析',
   filter=filters.ONLYTEXT & filters.PRIVATE,
+  scope=Scope.private(),
 )
 async def _douyin(event):
   match = event.pattern_match
