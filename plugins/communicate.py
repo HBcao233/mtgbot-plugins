@@ -7,8 +7,13 @@ from telethon.custom import Button
 
 import config
 from util import logger
-from plugin import handler
+from plugin import Command
 from util.data import MessageData
+
+
+echo_chat_id = int(x) if (x := config.env.get('echo_chat_id', '')) else 0
+if config.echo_chat_id == 0:
+  logger.warn('communicate 插件并未生效: 配置项 echo_chat_id 未设置或设置错误')
 
 
 def to_bytes(i):
@@ -69,10 +74,10 @@ class EchoedMessage(MessageData):
     return None
 
 
-@handler(pattern=r'^(?!/).*')
+@Command(pattern=r'^(?!/).*')
 async def _(event):
   message = event.message
-  if config.echo_chat_id == 0:
+  if echo_chat_id == 0:
     return
 
   peer_id = utils.get_peer_id(event.message.peer_id)
@@ -83,7 +88,7 @@ async def _(event):
   if t := getattr(chat, 'last_name', ''):
     name += ' ' + t
 
-  if peer_id != config.echo_chat_id:
+  if peer_id != echo_chat_id:
     buttons = [
       [Button.url(name, url=f'tg://user?id={chat.id}')],
     ]
@@ -92,12 +97,12 @@ async def _(event):
       reply_to = EchoedMessage.get_origin(reply_message).message_id
 
     m = await bot.send_message(
-      config.echo_chat_id,
+      echo_chat_id,
       message,
       buttons=buttons,
       reply_to=reply_to,
     )
-    EchoedMessage.add_echo(peer_id, message.id, config.echo_chat_id, m.id)
+    EchoedMessage.add_echo(peer_id, message.id, echo_chat_id, m.id)
     return
 
   if reply_message:
@@ -107,9 +112,10 @@ async def _(event):
       message,
       reply_to=res.message_id,
     )
-    EchoedMessage.add_echo(config.echo_chat_id, message.id, res.chat_id, m.id)
+    EchoedMessage.add_echo(echo_chat_id, message.id, res.chat_id, m.id)
 
 
+# 转发表情回应
 @bot.on(events.Raw)
 async def _(update):
   if not isinstance(update, types.UpdateBotMessageReaction):
