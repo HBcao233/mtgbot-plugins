@@ -17,8 +17,7 @@ from .data_source import get_bili, parse_msg, get_video
 
 
 _pattern = re.compile(
-  r'(?:^|^(?:/?bili(?:@%s)?) ?|(?:https?://)?bilibili\.com/video/)(av\d{1,11}|BV[0-9a-zA-Z]{8,12})|(?:b23\.tv\\?/((?![0-9]{7,7})[0-9a-zA-Z]{7,7}))|^/bili'
-  % bot.me.nickname
+  r'(?:^|^(?:/?bili) ?|(?:https?://)?bilibili\.com/video/)(av\d{1,11}|BV[0-9a-zA-Z]{8,12})|(?:b23\.tv\\?/((?![0-9]{7,7})[0-9a-zA-Z]{7,7}))|^/bili'
 ).search
 
 
