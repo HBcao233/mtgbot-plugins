@@ -2,6 +2,7 @@ from telethon import events, Button, errors
 import re
 
 from plugin import handler
+import filters
 from .gauss_elimination import gen_matrix, gauss_elimination
 
 
@@ -9,7 +10,11 @@ caption = '来用小方块填满我吧❤️～\n'
 solve_tip = '杂鱼~才这种难度就不行了吗~让小派魔教你吧，每个星星点一遍就可以过关哦'
 
 
-@handler('lighton', info='点灯游戏')
+@handler(
+  'lighton',
+  info='点灯游戏',
+  filter=filters.ONLYTEXT,
+)
 async def _(event, text):
   try:
     row = int(text)

@@ -22,7 +22,7 @@ _pattern = re.compile(
   'fanbox',
   pattern=_pattern,
   info='获取fanbox作品 /fanbox <url/postId> [hide] [mark]',
-  filter=filters.ONLYTEXT,
+  filter=filters.ONLYTEXT & filters.PRIVATE,
 )
 async def _fanbox(event, text):
   if event.message.photo or event.message.video:

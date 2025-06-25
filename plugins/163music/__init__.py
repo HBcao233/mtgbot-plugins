@@ -23,7 +23,7 @@ from .data_source import (
   get_try_url,
   general_search,
   parse_search,
-  getImg
+  getImg,
 )
 import filters
 import util

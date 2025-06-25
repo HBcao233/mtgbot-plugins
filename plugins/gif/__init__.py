@@ -13,7 +13,7 @@ from .data_source import video2gif, tgs2ext, video2ext
 @handler(
   'gif',
   info='视频转gif',
-  filter=filters.PRIVATE,
+  filter=filters.PRIVATE & filters.ONLYTEXT,
 )
 async def _gif(event):
   if not (reply_message := await event.message.get_reply_message()):

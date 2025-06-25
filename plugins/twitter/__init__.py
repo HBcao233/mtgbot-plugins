@@ -19,24 +19,16 @@ from .data_source import gheaders, get_twitter, parse_msg, parseMedias
 import filters
 
 
-cmd_header_pattern = re.compile(r'/?tid(?:@%s)' % bot.me.username)
-_p = (
-  r'(?:^|^(?:/?tid(?:@%s)?) ?|(?:https?://)?[a-z]*?(?:twitter|x)\.com/[a-zA-Z0-9_]+/status/)(\d{13,20})(?:[^0-9].*)?$|^/tid'
-  % bot.me.username
-)
+cmd_header_pattern = re.compile(r'/?tid')
+_p = r'(?:^|^(?:/?tid) ?|(?:https?://)?[a-z]*?(?:twitter|x)\.com/[a-zA-Z0-9_]+/status/)(\d{13,20})(?:[^0-9].*)?$|^/tid'
 _pattern = re.compile(_p).search
-_group_pattern = re.compile(_p.replace(r'(?:^|', r'^(?:', 1)).search
 
 
 @handler(
   'tid',
   pattern=_pattern,
   info='获取推文 /tid <url/tid> [hide] [mark]',
-  filter=(
-    filters.PRIVATE
-    | filters.Filter(lambda event: _group_pattern(event.message.message))
-  )
-  & filters.ONLYTEXT,
+  filter=filters.ONLYTEXT & filters.PRIVATE,
 )
 async def _tid(event, text):
   text = cmd_header_pattern.sub('', text).strip()

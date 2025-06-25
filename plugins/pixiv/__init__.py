@@ -20,17 +20,13 @@ import filters
 from .data_source import PixivClient, parse_msg, get_telegraph
 
 
-cmd_header_pattern = re.compile(r'/?pid(?:@%s)' % bot.me.username)
-_p = (
-  r"""(?:^|(?#
-  cmd)^(?:/?pid(?:@%s)?) ?|(?#
+cmd_header_pattern = r'/?pid'
+_p = r"""(?:^|(?#
+  cmd)^(?:/?pid) ?|(?#
   url)(?:https?://)?(?:www\.)?(?:pixiv\.net/(?:member_illust\.php\?.*illust_id=|artworks/|i/))(?#
 ))(?#
 )(\d{6,12})(?:[^a-zA-Z0-9\n].*)?$|^/pid"""
-  % bot.me.username
-)
 _pattern = re.compile(_p).search
-_group_pattern = re.compile(_p.replace(r'(?:^|', r'(?:')).search
 
 
 class Pixiv:
@@ -39,13 +35,7 @@ class Pixiv:
     'pid',
     pattern=_pattern,
     info='获取p站作品 /pid <url/pid> [hide] [mark]',
-    filter=(
-      filters.ONLYTEXT
-      & (
-        filters.PRIVATE
-        | filters.Filter(lambda event: _group_pattern(event.message.message))
-      )
-    ),
+    filter=filters.ONLYTEXT & filters.PRIVATE,
   )
   async def _pixiv(event, text=''):
     await Pixiv(event).main(text)

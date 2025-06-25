@@ -26,7 +26,7 @@ _pattern = re.compile(
   'bili',
   pattern=_pattern,
   info='av号或bv号获取视频',
-  filter=filters.ONLYTEXT,
+  filter=filters.ONLYTEXT & filters.PRIVATE,
 )
 async def _(event, text):
   match = event.pattern_match

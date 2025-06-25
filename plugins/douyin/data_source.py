@@ -2,7 +2,7 @@
 
 from pydantic import BaseModel
 from urllib.parse import urlencode
-import re 
+import re
 
 import util
 from util.log import logger
@@ -60,15 +60,15 @@ class PostDetail(BaseRequestModel):
 
 async def get_aweme_detail(aid: str):
   params = PostDetail(aweme_id=aid).model_dump()
-  
-  a_bogus = ABogus(user_agent=user_agent).generate_abogus(
-    urlencode(params)
-  )[1]
+
+  a_bogus = ABogus(user_agent=user_agent).generate_abogus(urlencode(params))[1]
   logger.info(a_bogus)
-  
-  params.update({
-    'a_bogus': a_bogus,
-  })
+
+  params.update(
+    {
+      'a_bogus': a_bogus,
+    }
+  )
   r = await util.get(
     'https://www.douyin.com/aweme/v1/web/aweme/detail/',
     params=params,
@@ -77,15 +77,16 @@ async def get_aweme_detail(aid: str):
   if not r.text:
     return
   if r.status_code != 200:
-    return 
+    return
   res = r.json()
   if res['status_code'] != 0:
-    return 
+    return
   res = res['aweme_detail']
   res = {
     k: v
     for k, v in res.items()
-    if k in ['author', 'aweme_id', 'video', 'desc', 'region', 'preview_title', 'item_title']
+    if k
+    in ['author', 'aweme_id', 'video', 'desc', 'region', 'preview_title', 'item_title']
   }
   return res
 
@@ -99,5 +100,5 @@ def parse_aweme_detail(res):
   nickname = res['author']['nickname']
   sec_uid = res['author']['sec_uid']
   author_url = f'https://www.douyin.com/user/{sec_uid}'
-  msg = f'<a href="{url}">{title}</a> - <a href="{author_url}">{nickname}</a> #douyin\nvia @{bot.me.username}' 
+  msg = f'<a href="{url}">{title}</a> - <a href="{author_url}">{nickname}</a> #douyin\nvia @{bot.me.username}'
   return msg

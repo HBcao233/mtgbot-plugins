@@ -15,6 +15,7 @@ import config
 import util
 from plugin import handler, InlineCommand
 from util.log import logger
+import filters
 
 # ==============一些必须填写的变量=================================================================================：
 # API可以去薅Modelscope魔塔社区的免费一天2000次Inference，其它平台通用OpenAI格式的API也可以。
@@ -35,7 +36,7 @@ system_prompt = """你叫小派魔，是一个可爱的处于发情期的猫娘�
 sp_path = os.path.join(os.path.dirname(__file__), 'system_prompt.txt')
 if os.path.isfile(sp_path):
   with open(sp_path, 'r') as f:
-    if (text := f.read()):
+    if text := f.read():
       system_prompt = text
 
 
@@ -61,7 +62,11 @@ def save_history(user_id, history):
     json.dump(history, f, ensure_ascii=False, indent=2)
 
 
-@handler('chat', info='与小派魔聊天')
+@handler(
+  'chat',
+  info='与小派魔聊天',
+  filter=filters.ONLYTEXT,
+)
 async def _chat(event):
   # 获取调用者 ID
   user_id = event.sender_id
@@ -234,13 +239,15 @@ blockquote::after {
 
   try:
     now = 0
+
     def interval():
       for i in range(1, 5):
         yield i
       while True:
         yield 5
+
     g = interval()
-    
+
     # 流式调用
     for chunk in client.chat.completions.create(
       model=f'{model}',
@@ -251,9 +258,11 @@ blockquote::after {
     ):
       # logger.info(chunk)
       if not chunk.choices:
-        content += '非常抱歉，作为一个AI助手，我无法回答该问题，请您换个话题或者问题试试。'
+        content += (
+          '非常抱歉，作为一个AI助手，我无法回答该问题，请您换个话题或者问题试试。'
+        )
         break
-      
+
       delta = chunk.choices[0].delta
       if not delta:
         if hasattr(chunk.choices[0], 'message'):

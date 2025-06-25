@@ -21,7 +21,7 @@ _pattern = re.compile(
   'kid',
   pattern=_pattern,
   info='kemono爬取 /kid <url>',
-  filter=filters.ONLYTEXT,
+  filter=filters.ONLYTEXT & filters.PRIVATE,
 )
 async def _kid(event, text):
   match = event.pattern_match

@@ -65,7 +65,9 @@ async def asrsea(data):
 
 async def curl(url, params):
   params.update({'csrf_token': csrf_token})
-  r = await util.post(url, headers=headers, params={ 'csrf_token': csrf_token }, data=await asrsea(params))
+  r = await util.post(
+    url, headers=headers, params={'csrf_token': csrf_token}, data=await asrsea(params)
+  )
   if r.status_code != 200:
     return False
   res = r.json()
@@ -104,7 +106,9 @@ def parse_song_detail(res):
       for i in res['ar']
     ]
   )
-  msg = f'<a href="{url}">{name}</a>{alia} - {singers} #163music\nvia @%s' % bot.me.username
+  msg = (
+    f'<a href="{url}">{name}</a>{alia} - {singers} #163music\nvia @%s' % bot.me.username
+  )
   return msg
 
 
@@ -114,7 +118,7 @@ async def get_song_url(mid):
     {
       'ids': f'[{mid}]',
       'level': 'exhigh',
-      'encodeType': 'mp3', # aac ; mp3
+      'encodeType': 'mp3',  # aac ; mp3
     },
   )
   if not res:
@@ -126,7 +130,7 @@ async def get_song_url(mid):
 async def get_try_url(mid):
   # TODO:
   return
-  
+
 
 async def general_search(keyword):
   res = await curl(
@@ -156,7 +160,7 @@ def parse_search(res):
   from telethon import Button
 
   icons = [f'{i}\ufe0f\u20e3' for i in range(1, 10)] + ['\U0001f51f']
-  
+
   arr = [
     f'{icons[i]} <a href="https://t.me/{bot.me.username}?start=163music_{res[i]["id"]}">{res[i]["name"]}</a> - '
     + '、'.join([j['name'] for j in res[i]['ar']])
