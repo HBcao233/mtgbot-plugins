@@ -77,14 +77,18 @@ async def _(event, text):
     if (file_id := data.get(key, None)) and not options.nocache:
       media = util.media.file_id_to_media(file_id, options.mark)
     else:
-      file = await get_video(bvid, aid, cid)
+      await mid.edit('下载中...')
+      bar.set_prefix('下载中...')
+      file = await get_video(bvid, aid, cid, bar)
       if file is None:
         return await mid.edit('获取失败, 请重试')
+      await mid.edit('上传中...')
+      bar.set_prefix('上传中...')
       media = await util.media.file_to_media(
-        file, options.mark, progress_callback=bar.update
+        file, options.mark, 
+        progress_callback=bar.update
       )
 
-    await mid.delete()
     res = await bot.send_file(
       event.chat_id,
       media,
@@ -92,6 +96,7 @@ async def _(event, text):
       caption=msg,
       parse_mode='HTML',
     )
+    await mid.delete()
   with data:
     data[key] = res
 

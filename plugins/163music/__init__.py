@@ -98,6 +98,7 @@ async def _song(event, mid=''):
   '163music_search',
   info='网易云音乐搜索',
   filter=filters.ONLYTEXT & filters.PRIVATE,
+  scope=Scope.private(),
 )
 async def _search(event):
   keyword = ''

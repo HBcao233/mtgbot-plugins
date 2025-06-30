@@ -1,5 +1,5 @@
 import asyncio
-from functools import cmp_to_key
+from functools import cmp_to_key, partial
 
 import util
 from util.log import logger
@@ -62,13 +62,14 @@ def parse_msg(res, p=1):
   uid = res['owner']['mid']
   nickname = res['owner']['name']
   msg = (
-    f'[<code>{bvid}</code>] <a href="https://www.bilibili.com/video/{bvid}{p_url}">{title}{p_tip}</a> | '
+    f'<a href="https://www.bilibili.com/video/{bvid}{p_url}">{title}{p_tip}</a> | '
     f'<a href="https://space.bilibili.com/{uid}">{nickname}</a> #Bilibili'
+    f'\nvia @{bot.me.username}'
   )
   return bvid, aid, cid, title, msg
 
 
-async def get_video(bvid, aid, cid, progress_callback=None):
+async def get_video(bvid, aid, cid, bar=None):
   async with util.curl.Client(headers=gheaders) as client:
     video_url = None
     audio_url = None
@@ -82,6 +83,7 @@ async def get_video(bvid, aid, cid, progress_callback=None):
         headers={'referer': f'https://www.bilibili.com/video/{bvid}'},
         saveas=f'{bvid}_{cid}',
         ext='mp4',
+        progress_callback=bar.update if bar else None,
       )
 
     videos = sorted(videos, key=choose_video)
@@ -94,10 +96,12 @@ async def get_video(bvid, aid, cid, progress_callback=None):
 
     result = await asyncio.gather(
       client.getImg(
-        video_url, headers={'referer': f'https://www.bilibili.com/video/{bvid}'}
+        video_url, headers={'referer': f'https://www.bilibili.com/video/{bvid}'},
+        progress_callback=partial(bar.update, line=1) if bar else None,
       ),
       client.getImg(
-        audio_url, headers={'referer': f'https://www.bilibili.com/video/{bvid}'}
+        audio_url, headers={'referer': f'https://www.bilibili.com/video/{bvid}'},
+        progress_callback=partial(bar.update, line=2) if bar else None,
       ),
     )
 
@@ -108,7 +112,7 @@ async def get_video(bvid, aid, cid, progress_callback=None):
   command.extend(['-c:v', 'copy', '-c:a', 'copy', '-y', path])
   logger.info(f'{command = }')
 
-  returncode, stdout = await util.media.ffmpeg(command, progress_callback)
+  returncode, stdout = await util.media.ffmpeg(command, progress_callback=bar.update)
   if returncode != 0:
     logger.error(stdout)
     return None

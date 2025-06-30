@@ -18,7 +18,7 @@ _pattern = re.compile(
 ).match
 
 
-@handler(
+@Command(
   'nid',
   pattern=_pattern,
   info='n站爬取 /nid <url> [hide] [mark]',

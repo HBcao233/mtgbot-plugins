@@ -99,6 +99,7 @@ async def _song(event, mid=''):
   'qqmusic_search',
   info='qq音乐搜索',
   filter=filters.ONLYTEXT & filters.PRIVATE,
+  scope=Scope.private(),
 )
 async def _search(event):
   keyword = ''

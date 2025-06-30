@@ -67,7 +67,10 @@ class Pixiv:
     logger.info(f'pid: {self.pid}, options: {self.options}')
     self.mid = await self.event.reply('请等待...')
 
-    async with PixivClient(self.pid) as client:
+    async with PixivClient(
+      self.pid,
+      timeout=60,
+    ) as client:
       self.res = await client.get_pixiv()
       if isinstance(self.res, str):
         return await self.mid.edit(self.res)
@@ -166,10 +169,12 @@ class Pixiv:
     发送图片
     """
     data = util.Documents() if self.options.origin else util.Photos()
+    prefix = f'正在获取 p1 ~ {self.count}'
+    await self.mid.edit(prefix)
     self.bar = Progress(
       self.mid,
       total=self.count,
-      prefix=f'正在获取 p1 ~ {self.count}',
+      prefix=prefix,
     )
 
     try:
@@ -206,17 +211,20 @@ class Pixiv:
     """
     获取图片
     """
+    key = f'{self.pid}_p{i}' + ('' if self.options.origin else '_regular')
+    if file_id := data[key]:
+      return util.media.file_id_to_media(file_id, self.options.mark)
+    
     imgUrl = (
       self.res['urls']['original']
       if self.options.origin
       else self.res['urls']['regular']
     )
     url = imgUrl.replace('_p0', f'_p{i}')
-    key = f'{self.pid}_p{i}' + ('' if self.options.origin else '_regular')
-    if file_id := data[key]:
-      return util.media.file_id_to_media(file_id, self.options.mark)
+    url = url.replace('i.pximg.net', 'i.pixiv.cat')
 
     try:
+      logger.info(f'GET {util.curl.logless(url)}')
       img = await client.getImg(url, saveas=key, ext=True)
     except httpx.ConnectError:
       raise Pixiv.GetImageError(f'p{i} 图片获取失败')

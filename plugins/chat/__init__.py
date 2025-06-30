@@ -241,10 +241,12 @@ blockquote::after {
     now = 0
 
     def interval():
-      for i in range(1, 5):
-        yield i
-      while True:
-        yield 5
+      global count
+      if 0 <= count < 5:
+        yield count + 1
+      else:
+        while True:
+          yield 5
 
     g = interval()
 

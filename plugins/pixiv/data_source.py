@@ -38,7 +38,9 @@ class PixivClient(util.curl.Client):
 
   async def get_pixiv(self):
     try:
-      r = await self.get(f'https://www.pixiv.net/ajax/illust/{self.pid}')
+      url = f'https://www.pixiv.net/ajax/illust/{self.pid}'
+      logger.info(f'GET {url}')
+      r = await self.get(url)
     except Exception:
       return '连接超时'
     res = r.json()
@@ -164,8 +166,8 @@ def parse_msg(res, hide=False):
       comment = ':\n<blockquote expandable>' + comment + '</blockquote>'
 
   msg = (
-    f'{prop}[<code>{pid}</code>] <a href="https://www.pixiv.net/artworks/{pid}/">{title}</a>'
-    f' | <a href="https://www.pixiv.net/users/{uid}/">{username}</a> #pixiv'
+    f'{prop}<a href="https://www.pixiv.net/artworks/{pid}/">{title}</a>'
+    f' | <a href="https://www.pixiv.net/users/{uid}/">{username}</a> #pixiv [<code>{pid}</code>]'
     + (
       ''
       if hide
