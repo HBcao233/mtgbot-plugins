@@ -9,7 +9,7 @@ pycryptodome
 """.env.example
 # cookie 中的 csrf_token
 163music_csrf_token =
-163music_cookie = ""
+163music_u = ""
 """
 
 import re
