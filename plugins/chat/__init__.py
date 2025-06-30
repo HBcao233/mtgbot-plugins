@@ -241,11 +241,11 @@ blockquote::after {
     now = 0
 
     def interval():
-      global count
-      if 0 <= count < 5:
-        yield count + 1
-      else:
-        while True:
+      nonlocal count
+      while True:
+        if 0 <= count < 5:
+          yield count + 1
+        else:
           yield 5
 
     g = interval()
