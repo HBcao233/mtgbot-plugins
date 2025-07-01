@@ -9,6 +9,11 @@ yt-dlp
 """.env
 # cookie 中的 __Secure-3PSID
 youtube_token = 
+# 可选, 获取 r-18 视频时需要, headers 中的 Authorization, 以 SAPISIDHASH 开头
+youtube_auth = 
+# 可选, 获取 r-18 视频时需要, cookie 中的 __Secure-3PSIDTS 和 __Secure-3PAPISID
+youtube_3PSIDTS = 
+youtube_3PAPISID = 
 """
 
 import re
@@ -21,11 +26,11 @@ import filters
 from util.log import logger
 from util.progress import Progress
 from plugin import Command, Scope
-from .data_source import get_info, parse_info
+from .data_source import get_info, parse_info, cookies_path
 
 
 _pattern = re.compile(
-  r'(?:(?:(?:https?://)?(?:.\.)*youtube\.com/watch\?v=)([0-9a-zA-Z]{3,12})|^/youtube(?!_))'
+  r'(?:(?:(?:https?://)?(?:.\.)*(?:youtube\.com/(?:watch\?v=|shorts/)|youtu\.be/))([0-9a-zA-Z]{3,12})|^/youtube(?!_))'
 ).search
 
 
@@ -72,6 +77,8 @@ async def _youtube(event, video_id=''):
             'mp4',
             '-o',
             img,
+            '--cookies',
+            cookies_path,
             f'https://www.youtube.com/watch?v={video_id}',
           ],
           stdout=PIPE,
@@ -79,7 +86,8 @@ async def _youtube(event, video_id=''):
         )
         await proc.wait()
         if proc.returncode != 0:
-          stdout = proc.stdout.read().decode().strip()
+          stdout = await proc.stdout.read()
+          stdout = stdout.decode().strip()
           logger.info(stdout)
           await mid.edit('下载失败')
           return

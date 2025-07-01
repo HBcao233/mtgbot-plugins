@@ -64,7 +64,6 @@ def parse_msg(res, p=1):
   msg = (
     f'<a href="https://www.bilibili.com/video/{bvid}{p_url}">{title}{p_tip}</a> | '
     f'<a href="https://space.bilibili.com/{uid}">{nickname}</a> #Bilibili'
-    f'\nvia @{bot.me.username}'
   )
   return bvid, aid, cid, title, msg
 
