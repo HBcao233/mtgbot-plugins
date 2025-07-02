@@ -163,7 +163,7 @@ class DelayMedia:
       sorted(self.messages, key=lambda m: m.id)
 
     try:
-      buttons = self.get_buttons()
+      buttons = self.get_buttons(event)
       await bot.send_message(
         event.chat_id,
         f'收到 {len(self.messages)} 个媒体',
@@ -173,7 +173,7 @@ class DelayMedia:
     finally:
       self.events = []
 
-  def get_buttons(self):
+  def get_buttons(self, event):
     start_mid = self.messages[0].id.to_bytes(4, 'big')
     end_mid = self.messages[-1].id.to_bytes(4, 'big')
     add_bytes = start_mid + b'_' + end_mid

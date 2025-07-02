@@ -21,12 +21,13 @@ except ModuleNotFoundError:
 _get_buttons = mark.DelayMedia.get_buttons
 
 
-def get_buttons(self):
-  buttons = _get_buttons(self)
-  start_mid = self.messages[0].id.to_bytes(4, 'big')
-  end_mid = self.messages[-1].id.to_bytes(4, 'big')
-  add_bytes = start_mid + b'_' + end_mid
-  buttons.append(Button.inline('合并图片', data=b'amerge_' + add_bytes))
+def get_buttons(self, event):
+  buttons = _get_buttons(self, event)
+  if all(i.photo for i in event.messages):
+    start_mid = self.messages[0].id.to_bytes(4, 'big')
+    end_mid = self.messages[-1].id.to_bytes(4, 'big')
+    add_bytes = start_mid + b'_' + end_mid
+    buttons.append(Button.inline('合并图片', data=b'amerge_' + add_bytes))
   return buttons
 
 
