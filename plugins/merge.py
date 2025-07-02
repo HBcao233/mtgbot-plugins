@@ -9,6 +9,7 @@ import asyncio
 import re
 
 import util
+from util.log import logger
 from util.data import MessageData
 from plugin import import_plugin
 
@@ -196,20 +197,18 @@ class Tmerge:
   @staticmethod
   @bot.on(events.CallbackQuery(pattern=pattern))
   async def button(event):
-    async with Tmerge(event) as t:
+    try:
+      t = Tmerge(event)
       await t.main()
+    except Exception as e:
+      logger.warn(f'{type(e).__name__}: {e}', exc_info=1)
+      await event.answer('错误', alert=True)
+    else:
+      await event.answer()
 
   def __init__(self, event):
     self.event = event
     self.peer = event.query.peer
-
-  async def __aenter__(self):
-    return self
-
-  async def __aexit__(self, type, value, trace):
-    if type is None:
-      return await self.event.answer()
-    return await self.event.answer('错误', alert=True)
 
   async def main(self):
     if not MergeData.has_merge(self.peer):
@@ -228,7 +227,11 @@ class Tmerge:
     with util.Data('urls') as data:
       tasks = [self.parse(m, data) for m in self.messages]
       result = await asyncio.gather(*tasks)
-
+      
+    if len(result) == 0:
+      await self.mid.edit('上传失败')
+      return await self.event.answer('上传失败', alert=True)
+      
     content = [
       {
         'tag': 'img',
@@ -236,7 +239,16 @@ class Tmerge:
       }
       for url in result
     ]
+    # content += ['.']
+    logger.info(content)
     page = await util.telegraph.createPage(self.title, content)
+    if isinstance(page, dict):
+      msg = f'创建失败: {page["message"]}'
+      try:
+        await self.mid.edit(msg)
+      except errors.MessageIdInvalidError:
+        pass
+      return await self.event.answer(msg, alert=True)
     await bot.send_file(
       self.peer,
       caption=f'已创建 telegraph: {page}',
