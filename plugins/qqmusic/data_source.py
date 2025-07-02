@@ -19,6 +19,8 @@ credential = qqmusic_api.Credential(
 
 async def get_song_info(mid):
   res = await qqmusic_api.song.query_song(value=[mid], credential=credential)
+  if len(res) == 0:
+    return '获取失败'
   return res[0]
 
 

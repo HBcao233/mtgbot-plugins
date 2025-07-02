@@ -33,6 +33,9 @@ from .data_source import (
 _pattern = re.compile(
   r'(?:(?:(?:https?://)?(?:y\.)?music\.163\.com/[#m]/song\?id=)([0-9]{3,12})|(?:163cn\.tv/([0-9a-zA-Z]{7,7}))|^/163music(?!_))'
 ).search
+_pattern1 = re.compile(
+  r'(?:(?:(?:https?://)?(?:y\.)?music\.163\.com/[#m]/song\?id=)?([0-9]{3,12})|(?:163cn\.tv/([0-9a-zA-Z]{7,7}))|^/163music(?!_))'
+).search
 
 
 @Command(
@@ -45,6 +48,10 @@ _pattern = re.compile(
 async def _song(event, mid=''):
   if not mid:
     match = event.pattern_match
+    if event.raw_text.startswith('/'):
+      text = event.raw_text[8:].strip()
+      match = _pattern1(text)
+    
     if (mid := match.group(1)) is None and match.group(2) is None:
       return await event.reply(
         '用法: /163music <url/id>',
@@ -61,6 +68,8 @@ async def _song(event, mid=''):
       )
 
   res = await get_song_detail(mid)
+  if isinstance(res, str):
+    return await event.reply(res)
   msg = parse_song_detail(res)
 
   key = f'163music_{mid}'

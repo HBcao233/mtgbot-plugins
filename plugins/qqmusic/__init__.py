@@ -34,6 +34,9 @@ import util
 _pattern = re.compile(
   r'(?:(?:(?:https?://)?i\.y\.qq\.com/(?:n/ryqq/songDetail/|(?:.*?songmid=)))([0-9a-zA-Z]{12,16})|(?:c6\.y\.qq\.com/base/fcgi-bin/u\?__=([0-9a-zA-Z]{7,14}))|^/qqmusic(?!_))'
 ).search
+_pattern1 = re.compile(
+  r'(?:(?:(?:https?://)?i\.y\.qq\.com/(?:n/ryqq/songDetail/|(?:.*?songmid=)))?([0-9a-zA-Z]{12,16})|(?:c6\.y\.qq\.com/base/fcgi-bin/u\?__=([0-9a-zA-Z]{7,14}))|^/qqmusic(?!_))'
+).search
 
 
 @Command(
@@ -45,6 +48,11 @@ _pattern = re.compile(
 )
 async def _song(event, mid=''):
   if not mid:
+    match = event.pattern_match
+    if event.raw_text.startswith('/'):
+      text = event.raw_text[7:].strip()
+      match = _pattern1(text)
+
     match = event.pattern_match
     if (mid := match.group(1)) is None and match.group(2) is None:
       return await event.reply(
@@ -61,6 +69,8 @@ async def _song(event, mid=''):
       )
 
   res = await get_song_info(mid)
+  if isinstance(res, str):
+    return await event.reply(res)
   msg = parse_song_info(res)
 
   key = f'qqmusic_{mid}'

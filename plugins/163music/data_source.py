@@ -86,10 +86,10 @@ async def get_song_detail(mid):
     {'id': mid, 'c': json.dumps([{'id': mid}])},
   )
   if not res:
-    return False
+    return '获取失败'
   res = res['songs']
   if len(res) == 0:
-    return False
+    return '获取失败'
   return res[0]
 
 
