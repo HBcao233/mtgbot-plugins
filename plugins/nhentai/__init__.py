@@ -60,8 +60,8 @@ async def nid(event, text):
   key = f'nhentaig{gid}-{now:%m-%d}'
   if not (url := util.Data('urls')[key]) or options.nocache:
     url = await get_telegraph(gid, title, media_id, exts, options.nocache, mid)
-    if not url:
-      return await mid.edit('获取失败')
+    if isinstance(url, dict):
+      return await mid.edit(f'生成 telegraph 失败: {url["message"]}')
     with util.Data('urls') as data:
       data[key] = url
 
