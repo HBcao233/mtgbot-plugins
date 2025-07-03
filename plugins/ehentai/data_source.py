@@ -10,12 +10,12 @@ import config
 from util.log import logger
 from util.curl import logless
 from util.telegraph import createPage, getPageList
-from plugin import import_plugin 
+from plugin import import_plugin
 
 try:
   hosting = import_plugin('hosting')
 except ModuleNotFoundError:
-  hosting = None 
+  hosting = None
 
 
 env = config.env
@@ -191,6 +191,7 @@ class Res:
       'children': [self.text],
     }
 
+
 class GT:
   def __init__(self, arr, title, num, nocache, mid):
     self.eh = arr[0]
@@ -201,11 +202,11 @@ class GT:
     self.total = min(self.num, 100)
     self.mid = mid
     self.bar = util.progress.Progress(mid, 100, '获取图片列表', False)
-    
+
   async def main(self):
     async with util.curl.Client(
       headers={
-        **eheaders, 
+        **eheaders,
         'referer': self.eurl,
       },
       timeout=20,
@@ -216,7 +217,7 @@ class GT:
       logger.info(self.urls)
       result = await self.download_imgs(client)
     return result
-      
+
   async def get_urls(self, client):
     url = self.eurl
     logger.info(f'GET {logless(url)}')
@@ -227,14 +228,14 @@ class GT:
       return 'IP被禁\n' + r.text
     if 'Not Found' in r.text:
       return '页面不存在'
-      
+
     soup = BeautifulSoup(r.text, 'html.parser')
-    
+
     self.urls = []
     for i in soup.select('#gdt a'):
       self.urls.append(i.attrs['href'])
     await self.bar.update(len(self.urls), self.total)
-    
+
     p = 1
     while len(self.urls) < self.total:
       try:
@@ -250,7 +251,7 @@ class GT:
         logger.warning('未能成功获取所有p', exc_info=1)
         break
       p += 1
-      
+
   async def download_imgs(self, client):
     await self.mid.edit('下载中...')
     self.bar.set_prefix('下载中...')
@@ -270,12 +271,12 @@ class GT:
     with util.Data('urls') as data:
       tasks = [self.download(i, client, data) for i in range(len(self.urls))]
       return await asyncio.gather(*tasks)
-    
+
   async def download(self, i, client, data):
     res = await self._download(i, client, data)
     await self.bar.add(1)
     return res
-    
+
   async def _download(self, i, client, data):
     key = f'es{self.gid}_{i}'
     if url := data.get(key):
@@ -299,7 +300,7 @@ class GT:
     else:
       data[key] = url
     return Res(url)
-    
+
   async def get_imgurl(self, i, client):
     if i == 0:
       return Res(self.first_url)
@@ -337,7 +338,7 @@ async def get_telegraph(arr, title, num, nocache, mid):
     for i in await getPageList():
       if i['title'] == title:
         return i['url']
-        
+
   gt = GT(arr, title, num, nocache, mid)
   eurl = gt.eurl
   result = await gt.main()

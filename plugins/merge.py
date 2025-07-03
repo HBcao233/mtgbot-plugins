@@ -227,11 +227,11 @@ class Tmerge:
     with util.Data('urls') as data:
       tasks = [self.parse(m, data) for m in self.messages]
       result = await asyncio.gather(*tasks)
-      
+
     if len(result) == 0:
       await self.mid.edit('上传失败')
       return await self.event.answer('上传失败', alert=True)
-      
+
     content = [
       {
         'tag': 'img',

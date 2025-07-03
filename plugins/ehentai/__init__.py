@@ -91,7 +91,7 @@ async def send_gallery(event, arr, options):
   if not (url := util.Data('urls')[key]) or options.nocache:
     url = await get_telegraph(arr, title, num, options.nocache, mid)
     if isinstance(url, dict):
-      return await mid.edit(f"生成 telegraph 失败: {url['message']}")
+      return await mid.edit(f'生成 telegraph 失败: {url["message"]}')
     with util.Data('urls') as data:
       data[key] = url
 

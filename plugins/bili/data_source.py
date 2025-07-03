@@ -95,11 +95,13 @@ async def get_video(bvid, aid, cid, bar=None):
 
     result = await asyncio.gather(
       client.getImg(
-        video_url, headers={'referer': f'https://www.bilibili.com/video/{bvid}'},
+        video_url,
+        headers={'referer': f'https://www.bilibili.com/video/{bvid}'},
         progress_callback=partial(bar.update, line=1) if bar else None,
       ),
       client.getImg(
-        audio_url, headers={'referer': f'https://www.bilibili.com/video/{bvid}'},
+        audio_url,
+        headers={'referer': f'https://www.bilibili.com/video/{bvid}'},
         progress_callback=partial(bar.update, line=2) if bar else None,
       ),
     )

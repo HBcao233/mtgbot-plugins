@@ -85,8 +85,7 @@ async def _(event, text):
       await mid.edit('上传中...')
       bar.set_prefix('上传中...')
       media = await util.media.file_to_media(
-        file, options.mark, 
-        progress_callback=bar.update
+        file, options.mark, progress_callback=bar.update
       )
 
     res = await bot.send_file(
@@ -98,7 +97,7 @@ async def _(event, text):
       buttons=Button.inline(
         '移除遮罩' if options.mark else '添加遮罩',
         b'mark',
-      )
+      ),
     )
     await mid.delete()
   with data:

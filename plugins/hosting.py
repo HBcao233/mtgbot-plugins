@@ -1,8 +1,8 @@
 from urllib.parse import urlparse
 from util.log import logger
 import os
-import re 
-import time 
+import re
+import time
 import random
 import config
 
@@ -33,7 +33,7 @@ def upload_local(path, rename=None):
   with open(path, 'rb') as f1:
     with open(target_path, 'wb') as f2:
       f2.write(f1.read())
-  
+
   return f'{hosting_host}/{name}'
 
 
@@ -56,16 +56,14 @@ async def upload_postimage(path, rename=None):
       'numfiles': 1,
       'upload_session': now,
     },
-    files={
-      'file': open('1.jpg', 'rb')
-    },
+    files={'file': open('1.jpg', 'rb')},
   )
   if r.status_code != 200:
     return {'code': 1, 'message': '请求失败'}
   res = r.json()
   if res['status_code'] != 200:
     return {'code': 1, 'message': '上传失败'}
-    
+
   url = res['url']
   r = await util.get(url)
   match = re.search(r'<input id="code_direct".*?value="(.*?)"', r.text)

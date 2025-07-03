@@ -5,6 +5,7 @@
 gmssl
 pydantic
 """
+
 from telethon import Button
 import re
 
@@ -45,10 +46,10 @@ async def _douyin(event):
     await event.reply(
       f'https://www.douyin.com/video/{aid}',
     )
-  
+
   logger.info(f'aid: {aid}')
   options = util.string.Options(event.raw_text, nocache=(), mark=('spoiler', '遮罩'))
-  
+
   mid = await event.reply('请等待...')
   res = await get_aweme_detail(aid)
   if not res:
@@ -66,25 +67,20 @@ async def _douyin(event):
     else:
       await mid.edit('下载中...')
       bar.set_prefix('下载中...')
-      img = await util.getImg(
-        url, 
-        saveas=key, 
-        ext='mp4',
-        progress_callback=bar.update
-      )
+      img = await util.getImg(url, saveas=key, ext='mp4', progress_callback=bar.update)
       await mid.edit('上传中...')
       bar.set_prefix('上传中...')
       media = await util.media.file_to_media(
-        img, options.mark, 
-        progress_callback=bar.update
+        img, options.mark, progress_callback=bar.update
       )
-  
+
     m = await bot.send_file(
       event.peer_id,
       file=media,
       caption=msg,
       parse_mode='html',
-      buttons=Button.inline(      '移除遮罩' if options.mark else '添加遮罩',
+      buttons=Button.inline(
+        '移除遮罩' if options.mark else '添加遮罩',
         b'mark',
       ),
     )

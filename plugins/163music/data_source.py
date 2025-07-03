@@ -128,7 +128,7 @@ async def get_song_url(mid):
     },
   )
   if not res:
-    return 
+    return
   res = res['data'][0]
   return res['url'], res['type']
 
@@ -136,30 +136,28 @@ async def get_song_url(mid):
 async def get_flac_url(mid):
   r = await util.post(
     'https://api.toubiec.cn/api/get-token.php',
-    headers={
-      'referer': 'https://api.toubiec.cn/wyapi.html'
-    }
+    headers={'referer': 'https://api.toubiec.cn/wyapi.html'},
   )
   if r.status_code != 200:
-    return 
+    return
   res = r.json()
   if 'token' not in res:
     return
   auth = res['token']
   ctx = execjs.compile(js_code)
-  token = ctx.call("md5", auth)
+  token = ctx.call('md5', auth)
   r = await util.post(
     'https://api.toubiec.cn/api/music_v1.php',
     headers={
       'referer': 'https://api.toubiec.cn/wyapi.html',
       'Authorization': f'Bearer {auth}',
     },
-    data=f'{{"url":"https://music.163.com/song?id={mid}","level":"lossless","type":"song","token":"{token}"}}'
+    data=f'{{"url":"https://music.163.com/song?id={mid}","level":"lossless","type":"song","token":"{token}"}}',
   )
   res = r.json()
   if res['status'] != 200 or 'url_info' not in res:
     logger.info(res)
-    return 
+    return
   return res['url_info']['url'], res['url_info']['type']
 
 

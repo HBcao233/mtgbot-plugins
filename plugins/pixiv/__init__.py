@@ -214,7 +214,7 @@ class Pixiv:
     key = f'{self.pid}_p{i}' + ('' if self.options.origin else '_regular')
     if file_id := data[key]:
       return util.media.file_id_to_media(file_id, self.options.mark)
-    
+
     imgUrl = (
       self.res['urls']['original']
       if self.options.origin

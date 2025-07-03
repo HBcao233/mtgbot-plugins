@@ -52,7 +52,7 @@ async def _song(event, sid=''):
     if event.raw_text.startswith('/'):
       text = event.raw_text[8:].strip()
       match = _pattern1(text)
-    
+
     if (sid := match.group(1)) is None and match.group(2) is None:
       return await event.reply(
         '用法: /163music <url/id>',
@@ -67,7 +67,7 @@ async def _song(event, sid=''):
       await event.reply(
         f'https://music.163.com/#/song?id={sid}',
       )
-  
+
   mid = await event.reply('请等待...')
   res = await get_song_detail(sid)
   if isinstance(res, str):
@@ -90,12 +90,12 @@ async def _song(event, sid=''):
         )
       url, ext = res
       img = await getImg(
-        url, 
-        saveas=name, 
+        url,
+        saveas=name,
         ext=ext,
         progress_callback=bar.update,
       )
-      
+
     await mid.edit('上传中...')
     bar.set_prefix('上传中...')
     m = await bot.send_file(
