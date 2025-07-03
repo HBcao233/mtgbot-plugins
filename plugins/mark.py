@@ -57,7 +57,7 @@ async def _unmark(event):
 
 
 mark_button_pattern = re.compile(
-  rb'mark_([\x00-\xff]{4,4})(?:~([\x00-\xff]{6,6}))?$'
+  rb'mark(?:_([\x00-\xff]{4,4}))?(?:~([\x00-\xff]{6,6}))?$'
 ).match
 
 
@@ -68,9 +68,12 @@ async def mark_button(event):
   编辑消息遮罩按钮回调
   """
   peer = event.query.peer
+  data = event.query.data
 
   match = event.pattern_match
-  message_id = int.from_bytes(match.group(1), 'big')
+  message_id = event.query.msg_id
+  if t := match.group(1):
+    message_id = int.from_bytes(t, 'big')
   sender_id = None
   if t := match.group(2):
     sender_id = int.from_bytes(t, 'big')
@@ -101,16 +104,24 @@ async def mark_button(event):
       pass
 
   # 处理完毕修改按钮
-  message = await event.get_message()
-  buttons = message.buttons
   text = '移除遮罩' if mark else '添加遮罩'
-  index = 0
-  for i, ai in enumerate(buttons[0]):
-    if mark_button_pattern(ai.data):
-      index = i
-      data = ai.data
-      break
-  buttons[0][index] = Button.inline(text, data)
+  btn = Button.inline(text, data)
+  message = await bot.get_messages(peer, ids=[message_id])
+  buttons = None
+  if len(message) > 0:
+    buttons = message[0].buttons
+  index_i = 0
+  index_j = 0
+  if buttons:
+    for i, ai in enumerate(buttons):
+      for j, aj in enumerate(ai):
+        if mark_button_pattern(aj.data):
+          index_i = i
+          index_j = j
+          break
+    buttons[index_i][index_j] = btn
+  else:
+    buttons = btn
 
   try:
     await event.edit(buttons=buttons)
