@@ -8,6 +8,12 @@ from asyncio.subprocess import PIPE
 import util
 import config
 from util.log import logger
+from plugin import import_plugin
+
+try:
+  hosting = import_plugin('hosting')
+except ModuleNotFoundError:
+  hosting = None
 
 
 PHPSESSID = config.env.get('pixiv_PHPSESSID', '')
@@ -202,7 +208,15 @@ async def get_telegraph(res, tags, client, mid):
   if not (url := data[key]):
     imgUrl = res['urls']['regular']
     imgUrl_re = imgUrl.replace('i.pximg.net', 'i.pixiv.re')
-    result = [Res(imgUrl_re.replace('_p0', f'_p{i}')) for i in range(count)]
+    async with PixivClient(pid) as client:
+      img = client.getImg(
+        imgUrl,
+        saveas=f'{pid}_p0',
+        ext=True,
+      )
+      first_url = await hosting.get_url(img)
+    result = [first_url]
+    result += [Res(imgUrl_re.replace('_p0', f'_p{i}')) for i in range(1, count)]
     result.append(
       Res(None, f'原链接: https://www.pixiv.net/artworks/{pid}'),
     )
