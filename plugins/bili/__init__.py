@@ -74,7 +74,7 @@ async def _(event, text):
     key += '_p' + str(p)
   bar = util.progress.Progress(mid, '发送中')
   async with bot.action(event.chat_id, 'video'):
-    if (file_id := data.get(key, None)) and not options.nocache:
+    if (file_id := data.get(key)) and not options.nocache:
       media = util.media.file_id_to_media(file_id, options.mark)
     else:
       await mid.edit('下载中...')
@@ -95,16 +95,11 @@ async def _(event, text):
       reply_to=event.message,
       caption=msg,
       parse_mode='HTML',
+      buttons=Button.inline(
+        '移除遮罩' if options.mark else '添加遮罩',
+        b'mark',
+      )
     )
     await mid.delete()
   with data:
     data[key] = res
-
-  message_id_bytes = res.id.to_bytes(4, 'big')
-  sender_bytes = b'~' + event.sender_id.to_bytes(6, 'big', signed=True)
-  await res.edit(
-    buttons=Button.inline(
-      '移除遮罩' if options.mark else '添加遮罩',
-      b'mark_' + message_id_bytes + sender_bytes,
-    )
-  )
