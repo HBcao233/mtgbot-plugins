@@ -5,7 +5,7 @@
 gmssl
 pydantic
 """
-
+from telethon import Button
 import re
 
 import util
@@ -19,7 +19,7 @@ from .data_source import (
 
 
 _pattern = re.compile(
-  r'(?:(?:https?://)?(?:www\.)(?:ies)?douyin\.com/(?:share/)?(?:video/|user/.*?modal_id=)([0-9]{12,20})|(?:v\.douyin\.com/([0-9a-zA-Z_]{5,14}))|^/douyin(?!_))'
+  r'(?:(?:https?://)?(?:www\.)(?:ies)?douyin\.com/(?:video/|.*?modal_id=)?([0-9]{12,20})|(?:v\.douyin\.com/([0-9a-zA-Z_]{5,14}))|^/douyin(?!_))'
 ).search
 
 
@@ -45,8 +45,11 @@ async def _douyin(event):
     await event.reply(
       f'https://www.douyin.com/video/{aid}',
     )
-
-  # logger.info(aid)
+  
+  logger.info(f'aid: {aid}')
+  options = util.string.Options(event.raw_text, nocache=(), mark=('spoiler', '遮罩'))
+  
+  mid = await event.reply('请等待...')
   res = await get_aweme_detail(aid)
   if not res:
     return await event.reply('获取失败')
@@ -56,16 +59,35 @@ async def _douyin(event):
   logger.info(url)
   key = f'douyin_{aid}'
   data = util.Videos()
-  if not (img := data.get(key, '')):
-    async with bot.action(event.peer_id, 'record-video'):
-      img = await util.getImg(url, saveas=key, ext='mp4')
-
+  bar = util.progress.Progress(mid)
   async with bot.action(event.peer_id, 'video'):
+    if (file_id := data.get(key)) and not options.nocache:
+      media = util.media.file_id_to_media(file_id, options.mark)
+    else:
+      await mid.edit('下载中...')
+      bar.set_prefix('下载中...')
+      img = await util.getImg(
+        url, 
+        saveas=key, 
+        ext='mp4',
+        progress_callback=bar.update
+      )
+      await mid.edit('上传中...')
+      bar.set_prefix('上传中...')
+      media = await util.media.file_to_media(
+        img, options.mark, 
+        progress_callback=bar.update
+      )
+  
     m = await bot.send_file(
       event.peer_id,
-      file=img,
+      file=media,
       caption=msg,
       parse_mode='html',
+      buttons=Button.inline(      '移除遮罩' if options.mark else '添加遮罩',
+        b'mark',
+      ),
     )
+    await mid.delete()
   with data:
     data[key] = m
