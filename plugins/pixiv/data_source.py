@@ -183,23 +183,24 @@ def parse_msg(res, hide=False):
   return msg, tags
 
 
-async def get_telegraph(res, tags, client, mid):
-  class Res:
-    def __init__(self, url=None, text=None):
-      self.url = url
-      self.text = text
-
-    def parse(self):
-      if self.url:
-        return {
-          'tag': 'img',
-          'attrs': {'src': self.url},
-        }
+class Res:
+  def __init__(self, url=None, text=None):
+    self.url = url
+    self.text = text
+  
+  def parse(self):
+    if self.url:
       return {
-        'tag': 'p',
-        'children': [self.text],
+        'tag': 'img',
+        'attrs': {'src': self.url},
       }
+    return {
+      'tag': 'p',
+      'children': [self.text],
+    }
 
+
+async def get_telegraph(res, tags, client, mid):
   data = util.Data('urls')
   now = datetime.now()
   pid = res['illustId']
@@ -209,13 +210,16 @@ async def get_telegraph(res, tags, client, mid):
     imgUrl = res['urls']['regular']
     imgUrl_re = imgUrl.replace('i.pximg.net', 'i.pixiv.re')
     async with PixivClient(pid) as client:
-      img = client.getImg(
+      name = f'{pid}_p0_regular'
+      img = await client.getImg(
         imgUrl,
-        saveas=f'{pid}_p0',
+        saveas=name,
         ext=True,
       )
       first_url = await hosting.get_url(img)
-    result = [first_url]
+      with data:
+        data[name] = first_url
+    result = [Res(first_url)]
     result += [Res(imgUrl_re.replace('_p0', f'_p{i}')) for i in range(1, count)]
     result.append(
       Res(None, f'原链接: https://www.pixiv.net/artworks/{pid}'),
