@@ -7,8 +7,15 @@ import httpx
 
 import util
 import config
-from util import logger
+from util.log import logger
+from util.curl import logless
 from util.telegraph import createPage, getPageList
+from plugin import import_plugin 
+
+try:
+  hosting = import_plugin('hosting')
+except ModuleNotFoundError:
+  hosting = None 
 
 
 env = config.env
@@ -16,9 +23,11 @@ ipb_member_id = env.get('ex_ipb_member_id', '')
 ipb_pass_hash = env.get('ex_ipb_pass_hash', '')
 igneous = env.get('ex_igneous', '')
 eheaders = {
-  'cookie': f'ipb_member_id={ipb_member_id};ipb_pass_hash={ipb_pass_hash};igneous={igneous};nw=1',
+  'cookie': f'ipb_member_id={ipb_member_id}; ipb_pass_hash={ipb_pass_hash}; igneous={igneous}; nw=1',
 }
 api_url = 'https://s.exhentai.org/api.php'
+if any(i == '' for i in (ipb_member_id, ipb_pass_hash, igneous)):
+  logger.warn(f'ex env 配置错误, 将无法解析 exhentai')
 
 
 class PluginException(Exception):
@@ -166,52 +175,152 @@ async def gallery_info(gid, token):
   return title, num, magnets, tags + '\n'
 
 
-async def get_telegraph(arr, title, num, nocache, mid):
-  if not nocache:
-    for i in await getPageList():
-      if i['title'] == title:
-        return i['url']
-  gid = arr[2]
-  eurl = f'https://{arr[0]}hentai.org/g/{gid}/{arr[3]}'
-  num = int(num)
-  bar = util.progress.Progress(mid, 100, '获取图片列表', False)
+class Res:
+  def __init__(self, url=None, text=None):
+    self.url = url
+    self.text = text
 
-  class Res:
-    def __init__(self, url=None, text=None):
-      self.url = url
-      self.text = text
-
-    def parse(self):
-      if self.url:
-        return {
-          'tag': 'img',
-          'attrs': {'src': self.url},
-        }
+  def parse(self):
+    if self.url:
       return {
-        'tag': 'p',
-        'children': [self.text],
+        'tag': 'img',
+        'attrs': {'src': self.url},
       }
+    return {
+      'tag': 'p',
+      'children': [self.text],
+    }
 
-  async def get_imgurl(i):
-    nonlocal gid, imgkeys, showkey, client
+class GT:
+  def __init__(self, arr, title, num, nocache, mid):
+    self.eh = arr[0]
+    self.gid = arr[2]
+    self.gtoken = arr[3]
+    self.eurl = f'https://{self.eh}hentai.org/g/{self.gid}/{self.gtoken}'
+    self.num = int(num)
+    self.total = min(self.num, 100)
+    self.mid = mid
+    self.bar = util.progress.Progress(mid, 100, '获取图片列表', False)
+    
+  async def main(self):
+    async with util.curl.Client(
+      headers={
+        **eheaders, 
+        'referer': self.eurl,
+      },
+      timeout=20,
+    ) as client:
+      res = await self.get_urls(client)
+      if isinstance(res, str):
+        return res
+      logger.info(self.urls)
+      result = await self.download_imgs(client)
+    return result
+      
+  async def get_urls(self, client):
+    url = self.eurl
+    logger.info(f'GET {logless(url)}')
+    r = await client.get(url, params={'p': 0})
+    if r.text == '':
+      return '请求失败'
+    if 'IP address has been' in r.text:
+      return 'IP被禁\n' + r.text
+    if 'Not Found' in r.text:
+      return '页面不存在'
+      
+    soup = BeautifulSoup(r.text, 'html.parser')
+    
+    self.urls = []
+    for i in soup.select('#gdt a'):
+      self.urls.append(i.attrs['href'])
+    await self.bar.update(len(self.urls), self.total)
+    
+    p = 1
+    while len(self.urls) < self.total:
+      try:
+        logger.info(f'GET {logless(url)}?p={p}')
+        r = await client.get(self.eurl, params={'p': p})
+        if r.text == '':
+          break
+        soup = BeautifulSoup(r.text, 'html.parser')
+        for i in soup.select('#gdt a'):
+          self.urls.append(i.attrs['href'])
+        await self.bar.update(len(self.urls), self.total)
+      except Exception:
+        logger.warning('未能成功获取所有p', exc_info=1)
+        break
+      p += 1
+      
+  async def download_imgs(self, client):
+    await self.mid.edit('下载中...')
+    self.bar.set_prefix('下载中...')
+    self.bar.set_total(len(self.urls))
+    # bar.percent = True
+    self.bar.p = 0
+
+    _pattern = re.compile(
+      r'^(?:https?://)?(?:e[x-])hentai\.org/s/([0-9a-z]+)/([0-9a-z-]+)'
+    ).match
+    self.imgkeys = [_pattern(i).group(1) for i in self.urls]
+    r = await client.get(self.urls[0])
+    self.showkey = re.search(r'var showkey ?= ?"(.*?)";', r.text).group(1)
+    soup = BeautifulSoup(r.text, 'html.parser')
+    self.first_url = soup.select('#i3 img')[0].attrs['src']
+
+    with util.Data('urls') as data:
+      tasks = [self.download(i, client, data) for i in range(len(self.urls))]
+      return await asyncio.gather(*tasks)
+    
+  async def download(self, i, client, data):
+    res = await self._download(i, client, data)
+    await self.bar.add(1)
+    return res
+    
+  async def _download(self, i, client, data):
+    key = f'es{self.gid}_{i}'
+    if url := data.get(key):
+      return Res(url)
+
+    res = await self.get_imgurl(i, client)
+    if res.url is None:
+      return res
+    url = res.url
+    try:
+      logger.info(f'GET {logless(url)}')
+      img = await client.getImg(
+        url,
+        saveas=key,
+        ext=True,
+      )
+      url = await hosting.get_url(img)
+    except Exception:
+      logger.warning(f'p{i + 1} 上传失败', exc_info=1)
+      return Res(url)
+    else:
+      data[key] = url
+    return Res(url)
+    
+  async def get_imgurl(self, i, client):
     if i == 0:
-      return Res(first_url)
+      return Res(self.first_url)
 
     data = json.dumps(
       {
         'method': 'showpage',
-        'gid': gid,
+        'gid': self.gid,
         'page': i + 1,
-        'imgkey': imgkeys[i],
-        'showkey': showkey,
+        'imgkey': self.imgkeys[i],
+        'showkey': self.showkey,
       }
     )
     try:
-      r = await client.post(api_url, data=data, headers=eheaders)
+      logger.info(f'GET {logless(api_url)}')
+      r = await client.post(api_url, data=data)
     except httpx.ConnectError:
       logger.warning(f'p{i + 1} 获取第一次尝试失败，正在重试')
       try:
-        r = await client.post(api_url, data=data, headers=eheaders)
+        logger.info(f'retry GET {logless(api_url)}')
+        r = await client.post(api_url, data=data)
       except httpx.ConnectError:
         w = f'p{i + 1} 获取失败'
         logger.warning(w)
@@ -222,72 +331,18 @@ async def get_telegraph(arr, title, num, nocache, mid):
     # next_i, next_imgkey = match.group(1), match.group(2)
     return Res(match.group(3))
 
-  async def _parse(i):
-    nonlocal gid, bar, urls, data, client
-    key = f'es{gid}-{i}'
-    if url := data.get(key):
-      return Res(url)
 
-    res = await get_imgurl(i)
-    if res.url is None:
-      return res
-    url = res.url
-    try:
-      r = await client.get(url)
-      r.raise_for_status()
-      url = await util.curl.postimg_upload(r.content, client)
-    except Exception:
-      logger.warning(f'p{i + 1} 上传失败', exc_info=1)
-      return Res(url)
-    else:
-      data[key] = url
-    return Res(url)
-
-  async def parse(i):
-    res = await _parse(i)
-    await bar.add(1)
-    return res
-
-  async with util.curl.Client(headers=dict(eheaders, referer=eurl)) as client:
-    r = await client.get(eurl, params={'p': 0})
-    soup = BeautifulSoup(r.text, 'html.parser')
-
-    urls = []
-    for i in soup.select('#gdt a'):
-      urls.append(i.attrs['href'])
-    await bar.update(len(urls), min(num, 100))
-
-    p = 1
-    while len(urls) < min(num, 100):
-      try:
-        r = await client.get(eurl, params={'p': p})
-        arr = BeautifulSoup(r.text, 'html.parser').select('#gdt a')
-        for i in arr:
-          urls.append(i.attrs['href'])
-        await bar.update(len(urls), min(num, 100))
-      except Exception:
-        logger.warning('未能成功获取所有p', exc_info=1)
-        break
-      p += 1
-
-    bar.set_prefix('下载中...')
-    bar.set_total(len(urls))
-    # bar.percent = True
-    bar.p = 0
-
-    _pattern = re.compile(
-      r'^(?:https?://)?(?:e[x-])hentai\.org/s/([0-9a-z]+)/([0-9a-z-]+)'
-    ).match
-    imgkeys = [_pattern(i).group(1) for i in urls]
-    r = await client.get(urls[0], params={'p': p})
-    showkey = re.search(r'var showkey ?= ?"(.*?)";', r.text).group(1)
-    soup = BeautifulSoup(r.text, 'html.parser')
-    first_url = soup.select('#i3 img')[0].attrs['src']
-
-    data = util.Data('urls')
-    tasks = [parse(i) for i in range(len(urls))]
-    result = await asyncio.gather(*tasks)
-    data.save()
+async def get_telegraph(arr, title, num, nocache, mid):
+  if not nocache:
+    for i in await getPageList():
+      if i['title'] == title:
+        return i['url']
+        
+  gt = GT(arr, title, num, nocache, mid)
+  eurl = gt.eurl
+  result = await gt.main()
+  if isinstance(result, str):
+    return {'code': 1, 'message': result}
 
   success_num = len(result)
   result.extend(
