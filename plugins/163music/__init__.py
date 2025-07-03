@@ -4,6 +4,7 @@
 # @Info    : 网易云音乐解析
 """requirement
 pycryptodome
+pyexecjs
 """
 
 """.env.example
@@ -15,15 +16,15 @@ pycryptodome
 import re
 from telethon import Button
 
-from plugin import Command, Scope
 import filters
 import util
+from plugin import Command, Scope
 from util.log import logger
+from util.progress import Progress
 from .data_source import (
   get_song_detail,
   parse_song_detail,
-  get_song_url,
-  get_try_url,
+  get_url,
   general_search,
   parse_search,
   getImg,
@@ -31,10 +32,10 @@ from .data_source import (
 
 
 _pattern = re.compile(
-  r'(?:(?:(?:https?://)?(?:y\.)?music\.163\.com/[#m]/song\?id=)([0-9]{3,12})|(?:163cn\.tv/([0-9a-zA-Z]{7,7}))|^/163music(?!_))'
+  r'(?:(?:(?:https?://)?(?:y\.)?music\.163\.com/(?:[#m|]/)?song\?id=)([0-9]{3,12})|(?:163cn\.tv/([0-9a-zA-Z]{7,7}))|^/163music(?!_))'
 ).search
 _pattern1 = re.compile(
-  r'(?:(?:(?:https?://)?(?:y\.)?music\.163\.com/[#m]/song\?id=)?([0-9]{3,12})|(?:163cn\.tv/([0-9a-zA-Z]{7,7}))|^/163music(?!_))'
+  r'(?:(?:(?:https?://)?(?:y\.)?music\.163\.com/(?:[#m|]/)?song\?id=)?([0-9]{3,12})|(?:163cn\.tv/([0-9a-zA-Z]{7,7}))|^/163music(?!_))'
 ).search
 
 
@@ -45,14 +46,14 @@ _pattern1 = re.compile(
   filter=filters.ONLYTEXT & filters.PRIVATE,
   scope=Scope.private(),
 )
-async def _song(event, mid=''):
-  if not mid:
+async def _song(event, sid=''):
+  if not sid:
     match = event.pattern_match
     if event.raw_text.startswith('/'):
       text = event.raw_text[8:].strip()
       match = _pattern1(text)
     
-    if (mid := match.group(1)) is None and match.group(2) is None:
+    if (sid := match.group(1)) is None and match.group(2) is None:
       return await event.reply(
         '用法: /163music <url/id>',
       )
@@ -62,42 +63,47 @@ async def _song(event, mid=''):
       # logger.info(r.url)
       text = str(r.url)
       match = _pattern(text)
-      mid = match.group(1)
+      sid = match.group(1)
       await event.reply(
-        f'https://music.163.com/#/song?id={mid}',
+        f'https://music.163.com/#/song?id={sid}',
       )
-
-  res = await get_song_detail(mid)
+  
+  mid = await event.reply('请等待...')
+  res = await get_song_detail(sid)
   if isinstance(res, str):
     return await event.reply(res)
   msg = parse_song_detail(res)
 
-  key = f'163music_{mid}'
+  key = f'163music_{sid}'
   singers = '、'.join([i['name'] for i in res['ar']])
   name = f'{res["name"]} - {singers}'
-  if not (img := util.data.Audios()[key]):
-    url, ext = await get_song_url(mid)
-    img = None
-    if not url:
-      url = await get_try_url(res)
-      key += '_try'
-      name = '(试听) ' + name
-      if key in util.data.Audios():
-        img = util.data.Audios()[key]
-    if not url:
-      return await event.reply(
-        msg,
-        parse_mode='html',
-      )
-
-    if not img:
-      img = await getImg(url, saveas=name, ext=ext)
+  bar = Progress(mid)
   async with bot.action(event.peer_id, 'audio'):
+    if not (img := util.data.Audios()[key]):
+      await mid.edit('下载中...')
+      bar.set_prefix('下载中...')
+      res = await get_url(sid)
+      if res is None:
+        return await event.reply(
+          msg,
+          parse_mode='html',
+        )
+      url, ext = res
+      img = await getImg(
+        url, 
+        saveas=name, 
+        ext=ext,
+        progress_callback=bar.update,
+      )
+      
+    await mid.edit('上传中...')
+    bar.set_prefix('上传中...')
     m = await bot.send_file(
       event.peer_id,
       file=img,
       caption=msg,
       parse_mode='html',
+      progress_callback=bar.update,
     )
   with util.data.Audios() as data:
     data[key] = m

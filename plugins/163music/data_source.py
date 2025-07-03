@@ -3,6 +3,8 @@ import base64
 import codecs
 import random
 import asyncio
+import execjs
+import os
 
 # pip install pycryptodome
 from Crypto.Cipher import AES
@@ -19,6 +21,10 @@ music_u = config.env.get('163music_u', '')
 headers = {
   'cookie': f'os=pc; appver=8.9.70; MUSIC_U={music_u}',
 }
+path = os.path.dirname(__file__)
+js_path = os.path.join(path, 'encode.js')
+with open(js_path, 'r') as f:
+  js_code = f.read()
 
 
 async def asrsea(data):
@@ -122,14 +128,46 @@ async def get_song_url(mid):
     },
   )
   if not res:
-    return False
+    return 
   res = res['data'][0]
   return res['url'], res['type']
 
 
-async def get_try_url(mid):
-  # TODO:
-  return
+async def get_flac_url(mid):
+  r = await util.post(
+    'https://api.toubiec.cn/api/get-token.php',
+    headers={
+      'referer': 'https://api.toubiec.cn/wyapi.html'
+    }
+  )
+  if r.status_code != 200:
+    return 
+  res = r.json()
+  if 'token' not in res:
+    return
+  auth = res['token']
+  ctx = execjs.compile(js_code)
+  token = ctx.call("md5", auth)
+  r = await util.post(
+    'https://api.toubiec.cn/api/music_v1.php',
+    headers={
+      'referer': 'https://api.toubiec.cn/wyapi.html',
+      'Authorization': f'Bearer {auth}',
+    },
+    data=f'{{"url":"https://music.163.com/song?id={mid}","level":"lossless","type":"song","token":"{token}"}}'
+  )
+  res = r.json()
+  if res['status'] != 200 or 'url_info' not in res:
+    logger.info(res)
+    return 
+  return res['url_info']['url'], res['url_info']['type']
+
+
+async def get_url(mid):
+  res = await get_flac_url(mid)
+  if res is not None:
+    return res
+  return await get_song_url(mid)
 
 
 async def general_search(keyword):
