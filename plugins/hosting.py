@@ -19,10 +19,10 @@ else:
 # logger.info(hosting_host)
 
 
-def get_url(path: str, rename: str = None) -> str:
+async def get_url(path: str, rename: str = None) -> str:
   if hosting_host:
     return upload_local(path, rename)
-  return upload_postimage(path, rename)
+  return await upload_postimage(path, rename)
 
 
 def upload_local(path, rename=None):
@@ -37,12 +37,12 @@ def upload_local(path, rename=None):
   return f'{hosting_host}/{name}'
 
 
-def upload_postimage(path, rename=None):
+async def upload_postimage(path, rename=None):
   now = str(int((time.time()) * 1000))
   now += '.'
   for i in range(16):
     now += str(random.randint(0, 9))
-  r = httpx.post(
+  r = await util.post(
     'https://postimages.org/json/rr',
     headers={
       'origin': 'https://postimages.org',
@@ -67,6 +67,6 @@ def upload_postimage(path, rename=None):
     return {'code': 1, 'message': '上传失败'}
     
   url = res['url']
-  r = httpx.get(url)
+  r = await util.get(url)
   match = re.search(r'<input id="code_direct".*?value="(.*?)"', r.text)
   return match and match.group(1)

@@ -289,7 +289,7 @@ class Tmerge:
       return url
     img = util.getCache(key + '.jpg')
     await m.download_media(file=img)
-    url = hosting.get_url(img)
+    url = await hosting.get_url(img)
     data[key] = url
     return url
 
