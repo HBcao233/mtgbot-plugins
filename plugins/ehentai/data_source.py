@@ -215,7 +215,10 @@ class GT:
       if isinstance(res, str):
         return res
       logger.info(self.urls)
-      result = await self.download_imgs(client)
+      try:
+        result = await self.download_imgs(client)
+      except PluginException as e:
+        return str(e)
     return result
 
   async def get_urls(self, client):
@@ -293,7 +296,11 @@ class GT:
         saveas=key,
         ext=True,
       )
-      url = await hosting.get_url(img)
+      try:
+        url = await hosting.get_url(img)
+      except Exception:
+        logger.warning(f'hosting.get_url 调用失败', exc_info=1)
+        raise PluginException('上传失败')
     except Exception:
       logger.warning(f'p{i + 1} 上传失败', exc_info=1)
       return Res(url)
@@ -315,9 +322,9 @@ class GT:
       }
     )
     try:
-      logger.info(f'GET {logless(api_url)}')
+      # logger.info(f'GET {logless(api_url)}')
       r = await client.post(api_url, data=data)
-    except httpx.ConnectError:
+    except (httpx.ConnectError, httpx.ConnectTimeout):
       logger.warning(f'p{i + 1} 获取第一次尝试失败，正在重试')
       try:
         logger.info(f'retry GET {logless(api_url)}')

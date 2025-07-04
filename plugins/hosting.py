@@ -5,17 +5,19 @@ import re
 import time
 import random
 import config
+import util
 
 
 hosting_host = config.env.get('hosting_host', '')
 hosting_root = os.path.join(config.botRoot, 'hosting')
-u = urlparse(hosting_host)
-if u.scheme == '' and u.netloc == '':
-  hosting_host = 'http://' + u.path.split('/')[0]
-else:
-  hosting_host = u.netloc
-  if u.scheme:
-    hosting_host = f'{u.scheme}://{u.netloc}'
+if hosting_host:
+  u = urlparse(hosting_host)
+  if u.scheme == '' and u.netloc == '':
+    hosting_host = 'http://' + u.path.split('/')[0]
+  else:
+    hosting_host = u.netloc
+    if u.scheme:
+      hosting_host = f'{u.scheme}://{u.netloc}'
 # logger.info(hosting_host)
 
 
@@ -38,6 +40,9 @@ def upload_local(path, rename=None):
 
 
 async def upload_postimage(path, rename=None):
+  file = open(path, 'rb')
+  if rename is not None:
+    file = (rename, file, '')
   now = str(int((time.time()) * 1000))
   now += '.'
   for i in range(16):
@@ -56,7 +61,7 @@ async def upload_postimage(path, rename=None):
       'numfiles': 1,
       'upload_session': now,
     },
-    files={'file': open('1.jpg', 'rb')},
+    files={'file': file},
   )
   if r.status_code != 200:
     return {'code': 1, 'message': '请求失败'}
@@ -65,6 +70,7 @@ async def upload_postimage(path, rename=None):
     return {'code': 1, 'message': '上传失败'}
 
   url = res['url']
-  r = await util.get(url)
+  async with util.curl.Client() as client:
+    r = await client.get(url)
   match = re.search(r'<input id="code_direct".*?value="(.*?)"', r.text)
   return match and match.group(1)
