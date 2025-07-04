@@ -95,21 +95,11 @@ async def mark_button(event):
   if message.grouped_id:
     ids = util.data.MessageData.get_group(message.grouped_id)
     messages = await bot.get_messages(peer, ids=ids)
-
-  for m in messages:
-    file = override_message_spoiler(m, mark)
-    try:
-      await bot.edit_message(peer, m, file=file)
-    except errors.MessageNotModifiedError:
-      pass
-
-  # 处理完毕修改按钮
+  
+  # 修改按钮
   text = '移除遮罩' if mark else '添加遮罩'
   btn = Button.inline(text, data)
-  message = await bot.get_messages(peer, ids=[message_id])
-  buttons = None
-  if len(message) > 0:
-    buttons = message[0].buttons
+  buttons = message.buttons
   index_i = 0
   index_j = 0
   if buttons:
@@ -122,11 +112,17 @@ async def mark_button(event):
     buttons[index_i][index_j] = btn
   else:
     buttons = btn
+  
+  for i, m in enumerate(messages):
+    file = override_message_spoiler(m, mark)
+    try:
+      if i != 0:
+        await bot.edit_message(peer, m, file=file)
+      else:
+        await bot.edit_message(peer, m, file=file, buttons=buttons)
+    except errors.MessageNotModifiedError:
+      pass
 
-  try:
-    await event.edit(buttons=buttons)
-  except errors.MessageNotModifiedError:
-    pass
   await event.answer()
 
 
