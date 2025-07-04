@@ -260,8 +260,10 @@ blockquote::after {
     ):
       # logger.info(chunk)
       if not chunk.choices:
+        if content != '' and not content.endswith('\n'):
+          content += '\n'
         content += (
-          '非常抱歉，作为一个AI助手，我无法回答该问题，请您换个话题或者问题试试。'
+          '非常抱歉，作为一个AI助手，我无法回答该问题，请使用 /clear 清除聊天记录后重试'
         )
         break
 
