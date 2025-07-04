@@ -12,7 +12,7 @@ from util.data import MessageData
 
 
 echo_chat_id = int(x) if (x := config.env.get('echo_chat_id', '')) else 0
-if config.echo_chat_id == 0:
+if echo_chat_id == 0:
   logger.warn('communicate 插件并未生效: 配置项 echo_chat_id 未设置或设置错误')
 
 

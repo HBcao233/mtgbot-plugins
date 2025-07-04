@@ -81,7 +81,7 @@ async def _chat(event):
   # 如果没输入内容，提示并退出
   if not user_message:
     await event.respond(
-      '❗️ 请输入要对派魔说的话，例如 `/chat 你是谁`。插件作者：@nyan2022。后端由Deepseek R1模型支持'
+      '❗️ 请输入要对小派魔说的话，例如 `/chat 你是谁`。插件作者：@nyan2022。后端由Deepseek R1模型支持'
     )
     return
   raw_text = user_message if user_message else ''
@@ -315,8 +315,11 @@ blockquote::after {
     logger.exception('Chat API 调用失败')
     try:
       m = (await bot.get_messages(event.peer_id, ids=[resp.id]))[0]
+      msg = f'{type(e).__name__}：{e}'
+      if e.code == 'data_inspection_failed':
+        msg = '内容审查错误: 请使用 /clear 清除聊天记录后重试'
       await resp.edit(
-        m.text + f'\n\n⚠️ > 与 Chat API 通信出现错误 {type(e).__name__}：{e}'
+        m.text + f'\n\n⚠️ > 与 Chat API 通信出现错误 - {msg}'
       )
     except (errors.MessageEmptyError, errors.MessageNotModifiedError):
       pass
