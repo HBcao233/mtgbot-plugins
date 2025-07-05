@@ -153,11 +153,21 @@ async def _video_convert(event, ext='mp4'):
     data[key] = res
 
 
-@Command('mp4', info='动图转mp4')
+@Command(
+  'mp4',
+  info='动图转mp4',
+  filter=filters.PRIVATE & filters.ONLYTEXT,
+  scope=Scope.private(),
+)
 async def _mp4(event):
   await _video_convert(event, 'mp4')
 
 
-@Command('webm', info='视频转webm')
+@Command(
+  'webm',
+  info='视频转webm',
+  filter=filters.PRIVATE & filters.ONLYTEXT,
+  scope=Scope.private(),
+)
 async def _webm(event):
   await _video_convert(event, 'webm')
