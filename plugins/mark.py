@@ -7,8 +7,9 @@ import re
 import asyncio
 
 import util
+import filters
 from util.log import logger
-from plugin import handler
+from plugin import Command, Scope
 
 
 def override_message_spoiler(message, spoiler: bool):
@@ -17,7 +18,13 @@ def override_message_spoiler(message, spoiler: bool):
   return media
 
 
-@handler('mark', info='给回复媒体添加遮罩', pattern=re.compile('^/(mark|spoiler)'))
+@Command(
+  'mark',
+  info='给回复媒体添加遮罩',
+  pattern=re.compile('^/(mark|spoiler)'),
+  filter=filters.PRIVATE & filters.ONLYTEXT,
+  scope=Scope.private(),
+)
 async def _mark(event, spoiler=True):
   if not (reply_message := await event.message.get_reply_message()):
     return await event.reply('请用命令回复一条消息')
@@ -47,10 +54,12 @@ async def _mark(event, spoiler=True):
   raise events.StopPropagation
 
 
-@handler(
+@Command(
   'unmark',
   info='去掉回复媒体的遮罩',
   pattern=re.compile(r'^/(unmark|unspoiler)'),
+  filter=filters.PRIVATE & filters.ONLYTEXT,
+  scope=Scope.private(),
 )
 async def _unmark(event):
   return await _mark(event, False)
@@ -95,7 +104,7 @@ async def mark_button(event):
   if message.grouped_id:
     ids = util.data.MessageData.get_group(message.grouped_id)
     messages = await bot.get_messages(peer, ids=ids)
-  
+
   # 修改按钮
   text = '移除遮罩' if mark else '添加遮罩'
   btn = Button.inline(text, data)
@@ -112,7 +121,7 @@ async def mark_button(event):
     buttons[index_i][index_j] = btn
   else:
     buttons = btn
-  
+
   for i, m in enumerate(messages):
     file = override_message_spoiler(m, mark)
     try:
