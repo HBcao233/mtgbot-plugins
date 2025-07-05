@@ -320,13 +320,11 @@ blockquote::after {
       msg = f'{type(e).__name__}：{e}'
       if e.code == 'data_inspection_failed':
         msg = '内容审查错误: 请使用 /clear 清除聊天记录后重试'
-      await resp.edit(
-        m.text + f'\n\n⚠️ > 与 Chat API 通信出现错误 - {msg}'
-      )
+      await resp.edit(m.text + f'\n\n⚠️ > 与 Chat API 通信出现错误 - {msg}')
     except (errors.MessageEmptyError, errors.MessageNotModifiedError):
       pass
     # logger.info(f'content: {content}')
-  
+
   cacheDir = util.getCache('')
   l = []
   for i in os.listdir(cacheDir):
@@ -336,7 +334,7 @@ blockquote::after {
       l.append(i)
   if len(l) > 0:
     logger.info(f'清理 html 文件: {", ".join(l)}')
-  
+
   # 停止进一步处理
   raise events.StopPropagation
 
