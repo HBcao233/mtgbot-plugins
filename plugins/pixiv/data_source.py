@@ -187,7 +187,7 @@ class Res:
   def __init__(self, url=None, text=None):
     self.url = url
     self.text = text
-  
+
   def parse(self):
     if self.url:
       return {
