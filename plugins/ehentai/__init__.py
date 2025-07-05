@@ -17,9 +17,9 @@ import re
 from datetime import datetime
 
 import util
+import filters
 from util.log import logger
 from plugin import Command, Scope
-import filters
 from .data_source import (
   get,
   getImg,
