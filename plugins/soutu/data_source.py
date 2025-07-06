@@ -1,22 +1,33 @@
 from functools import cmp_to_key
 from urllib.parse import urlparse
+from bs4 import BeautifulSoup, element
 import os
 import ujson as json
+import httpx
 
 import util
 import config
 from util.log import logger
 
-
-saucenao_api_key = config.env.get('saucenao_api_key', '')
+env = config.env
+saucenao_api_key = env.get('saucenao_api_key', '')
 if saucenao_api_key == '':
   logger.warn('saucenao_api_key 未配置, saucenao 搜索将不可用')
 
+ipb_member_id = env.get('ex_ipb_member_id', '')
+ipb_pass_hash = env.get('ex_ipb_pass_hash', '')
+igneous = env.get('ex_igneous', '')
+eheaders = {
+  'cookie': f'ipb_member_id={ipb_member_id}; ipb_pass_hash={ipb_pass_hash}; igneous={igneous}',
+}
+if any(i == '' for i in (ipb_member_id, ipb_pass_hash, igneous)):
+  logger.warn("env 'ex_ipb_member_id', 'ipb_pass_hash', 'igneous' 配置错误, exsearch 可能不可用")
 
-async def to_img(path):
+
+async def to_img(path, ext='jpg'):
   _name = os.path.basename(path)
   name = os.path.splitext(_name)[0]
-  img = util.getCache(f'{name}_img.jpg')
+  img = util.getCache(f'{name}_img.{ext}')
   command = [
     'ffmpeg',
     '-i',
@@ -248,3 +259,54 @@ def parse_saucenao(res):
       f'3s内剩余搜索次数: {short_remaining}\n24h内剩余搜索次数: {long_remaining}\n'
     )
   return msgs
+
+  
+async def esearch(path):
+  eh = 'ex'
+  if any(i == '' for i in (ipb_member_id, ipb_pass_hash, igneous)):
+    logger.warn("env 'ex_ipb_member_id', 'ipb_pass_hash', 'igneous' 配置错误, exsearch 将使用 e-hentai.org 站点")
+    eh = 'e-'
+  r = httpx.post(
+    f'https://upld.{eh}hentai.org/upld/image_lookup.php',
+    headers=eheaders,
+    files={
+      'sfile': open(path, 'rb')
+    },
+    data={
+      'fs_similar': 'on',
+      'fs_covers': '',
+    }
+  )
+  if r.status_code != 302:
+    logger.info(f'{path} {r.status_code} {r.text}')
+    if 'Please wait a bit longer between each file search.' in r.text:
+      return '请求过快'
+    return '请求失败'
+  url = r.headers['location'] + '&fs_similar=on'
+  r = await util.get(url, headers=eheaders)
+  if 'No hits found' in r.text:
+    return '无结果'
+    
+  res = []
+  soup = BeautifulSoup(text, 'html.parser')
+  arr = soup.select('.glte')[0].children
+  for i in arr:
+    if not isinstance(i, element.Tag):
+      continue
+    a = i.find('td').find('a')
+    url = a.attrs['href']
+    img = a.find('img')
+    title = img.attrs['title']
+    image = img.attrs['src']
+    res.append({
+      'url': url,
+      'title': title,
+      'image': image,
+    })
+    
+  res = [
+    f'结果{i + 1}: <a href="{i["url"]}">预览图</a>'
+    f'链接: <a href="{i["url"]}">{i["title"]}</a>'
+    for i, ai in enumerate(res)
+  ]
+  return res

@@ -14,7 +14,7 @@ import util
 import filters
 from util.log import logger
 from plugin import Command, import_plugin
-from .data_source import to_img, saucenao_search
+from .data_source import to_img, saucenao_search, esearch
 
 try:
   hosting = import_plugin('hosting')
@@ -85,7 +85,7 @@ async def _soutu(event):
   )
 
 
-async def get_image(message):
+async def get_image(message, _ext='jpg'):
   file = message.file
   ext = file.ext
   mime_type = file.mime_type
@@ -96,11 +96,11 @@ async def get_image(message):
     _id = message.photo.id
   elif message.document:
     _id = message.document.id
-  name = f'{_id}.{ext}'
+  name = f'{_id}{ext}'
   img = util.getCache(name)
   await message.download_media(file=img)
   if 'video' in mime_type or ext == 'gif':
-    img = await to_img(img)
+    img = await to_img(img, _ext)
 
   return img
 
@@ -108,6 +108,8 @@ async def get_image(message):
 @bot.on(events.NewMessage)
 async def _(event):
   if not event.is_private:
+    return
+  if event.message.grouped_id:
     return
   if not (event.message.photo or event.message.video):
     return
@@ -132,6 +134,29 @@ async def _saucenao(event):
   res = await saucenao_search(img)
   if isinstance(res, str):
     msg = '错误: ' + res
+  else:
+    msg = '\n\n'.join(res)
+  await event.reply(msg, parse_mode='html')
+
+
+@Command(
+  'esearch',
+  info='e站搜图',
+)
+async def _esearch(event):
+  message = None
+  if event.message.file:
+    message = event.message
+  if (
+    not (message or (message := await event.message.get_reply_message()))
+    or not message.file
+  ):
+    return await event.reply('请用命令回复一张图片')
+
+  img = await get_image(message, 'webp')
+  res = await esearch(img)
+  if isinstance(res, str):
+    msg = res
   else:
     msg = '\n\n'.join(res)
   await event.reply(msg, parse_mode='html')
