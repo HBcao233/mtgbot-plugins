@@ -1,3 +1,4 @@
+import os 
 import util
 
 
@@ -32,3 +33,23 @@ async def parse_page(title, files, nocache=False):
     )
 
   return await util.telegraph.createPage(title, content)
+
+
+async def gif2mp4(path):
+  dirname, name = os.path.split(path)
+  name = os.path.splitext(name)[0]
+  output = os.path.join(dirname, f'{name}.mp4')
+  command = [
+    'ffmpeg',
+    '-i',
+    path,
+    '-pix_fmt',
+    'yuv420p',
+    output,
+    '-y',
+  ]
+  returncode, stdout = await util.media.ffmpeg(command)
+  if returncode != 0:
+    logger.error(stdout)
+    return False
+  return output

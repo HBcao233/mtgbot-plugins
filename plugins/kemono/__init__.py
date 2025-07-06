@@ -8,7 +8,7 @@ from util.log import logger
 from util.progress import Progress
 from plugin import Command, Scope
 import filters
-from .data_source import parse_page, get_info
+from .data_source import parse_page, get_info, gif2mp4
 
 
 _pattern = re.compile(
@@ -55,7 +55,17 @@ async def _kid(event, text):
     for i in info['previews']
   }
   for i in info['post']['attachments']:
-    if i['name'] in _files:
+    if 'name' not in i:
+      u = i['path']
+      if 'http' not in u:
+        u = 'https://kemono.su' + u
+      n = os.path.basename(u)
+      n = os.path.splitext(n)[0]
+      _files[n] = {
+        'name': n,
+        'url': u,
+      }
+    elif i['name'] in _files:
       _files[i['name']]['url'] = 'https://kemono.su/data' + i['path']
   files = [i for i in _files.values()]
   _attachments = [
@@ -108,17 +118,30 @@ async def _kid(event, text):
     key = f'kemono_{source}_{pid}_p{i}'
     if file_id := data[key]:
       return util.media.file_id_to_media(file_id, options.mark)
-    url = files[i]['thumbnail']
+    if 'thumbnail' in files[i]:
+      url = files[i]['thumbnail']
+    elif 'url' in files[i]:
+      url = files[i]['url']
+    else:
+      return None
     ext = os.path.splitext(url)[-1]
     if ext == '.gif':
+      if 'url' not in files[i]:
+        return None
       url = files[i]['url']
     img = await util.getImg(url, saveas=key, ext=True)
+    if ext == '.gif':
+      img = await gif2mp4(img)
+      if img == False:
+        return None
     await bar.add(1)
     return await util.media.file_to_media(img, options.mark)
 
   bar.set_prefix('发送中...')
   tasks = [get_media(i) for i in range(len(files))]
   medias = await asyncio.gather(*tasks)
+  medias = [i for i in medias if i is not None]
+  logger.info(medias)
   async with bot.action(event.peer_id, 'photo'):
     res = await bot.send_file(
       event.peer_id,
