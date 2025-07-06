@@ -27,7 +27,7 @@ eheaders = {
 }
 api_url = 'https://s.exhentai.org/api.php'
 if any(i == '' for i in (ipb_member_id, ipb_pass_hash, igneous)):
-  logger.warn(f'ex env 配置错误, 将无法解析 exhentai')
+  logger.warn("env 'ex_ipb_member_id', 'ipb_pass_hash', 'igneous' 配置错误, exhentai 解析将不可用")
 
 
 class PluginException(Exception):
