@@ -18,6 +18,7 @@ qqmusic_encrypt_uin =
 import re
 from telethon import Button, types
 
+from util.progress import Progress
 from plugin import Command, Scope
 from .data_source import (
   get_song_info,
@@ -46,15 +47,15 @@ _pattern1 = re.compile(
   filter=filters.ONLYTEXT & filters.PRIVATE,
   scope=Scope.private(),
 )
-async def _song(event, mid=''):
-  if not mid:
+async def _song(event, sid=''):
+  if not sid:
     match = event.pattern_match
     if event.raw_text.startswith('/'):
       text = event.raw_text[7:].strip()
       match = _pattern1(text)
 
     match = event.pattern_match
-    if (mid := match.group(1)) is None and match.group(2) is None:
+    if (sid := match.group(1)) is None and match.group(2) is None:
       return await event.reply(
         '用法: /qqmusic_song <url>',
       )
@@ -63,44 +64,58 @@ async def _song(event, mid=''):
       r = await util.get('https://c6.y.qq.com/base/fcgi-bin/u?__=' + match.group(2))
       text = str(r.url)
       match = _pattern(text)
-      mid = match.group(1)
+      sid = match.group(1)
       await event.reply(
         f'https://y.qq.com/n/ryqq/songDetail/{mid}',
       )
-
-  res = await get_song_info(mid)
+  
+  mid = await event.reply('请等待...')
+  res = await get_song_info(sid)
   if isinstance(res, str):
     return await event.reply(res)
   msg = parse_song_info(res)
 
-  key = f'qqmusic_{mid}'
+  key = f'qqmusic_{sid}'
   singers = [i['name'] for i in res['singer']]
   singers = '、'.join(singers)
   name = f'{res["title"]} - {singers}'
-  if not (img := util.data.Audios()[key]):
-    url = await get_song_url(mid)
-    img = None
-    if not url:
-      url = await get_try_url(res)
-      key += '_try'
-      name = '(试听) ' + name
-      if key in util.data.Audios():
-        img = util.data.Audios()[key]
-    if not url:
-      return await event.reply(
-        msg,
-        parse_mode='html',
-      )
-
-    if not img:
-      img = await util.getImg(url, saveas=name, ext='mp3')
+  bar = Progress(mid)
   async with bot.action(event.peer_id, 'audio'):
+    if not (img := util.data.Audios()[key]):
+      await mid.edit('下载中...')
+      bar.set_prefix('下载中...')
+      url = await get_song_url(sid)
+      img = None
+      if not url:
+        url = await get_try_url(res)
+        key += '_try'
+        name = '(试听) ' + name
+        if key in util.data.Audios():
+          img = util.data.Audios()[key]
+      if not url:
+        return await event.reply(
+          msg,
+          parse_mode='html',
+        )
+  
+      if not img:
+        img = await util.getImg(
+          url, 
+          saveas=name, 
+          ext='mp3',
+          progress_callback=bar.update,
+        )
+    
+    await mid.edit('上传中...')
+    bar.set_prefix('上传中...')
     m = await bot.send_file(
       event.peer_id,
       file=img,
       caption=msg,
       parse_mode='html',
+      progress_callback=bar.update,
     )
+    await mid.delete()
   with util.data.Audios() as data:
     data[key] = m
 

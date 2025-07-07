@@ -105,6 +105,7 @@ async def _song(event, sid=''):
       parse_mode='html',
       progress_callback=bar.update,
     )
+    await mid.delete()
   with util.data.Audios() as data:
     data[key] = m
 
