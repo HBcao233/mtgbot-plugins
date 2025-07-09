@@ -76,9 +76,6 @@ async def _song(event, sid=''):
   msg = parse_song_info(res)
 
   key = f'qqmusic_{sid}'
-  singers = [i['name'] for i in res['singer']]
-  singers = '、'.join(singers)
-  name = f'{res["title"]} - {singers}'
   bar = Progress(mid)
   async with bot.action(event.peer_id, 'audio'):
     if not (img := util.data.Audios()[key]):
@@ -89,7 +86,6 @@ async def _song(event, sid=''):
       if not url:
         url = await get_try_url(res)
         key += '_try'
-        name = '(试听) ' + name
         if key in util.data.Audios():
           img = util.data.Audios()[key]
       if not url:
@@ -101,7 +97,7 @@ async def _song(event, sid=''):
       if not img:
         img = await util.getImg(
           url, 
-          saveas=name, 
+          saveas=key, 
           ext='mp3',
           progress_callback=bar.update,
         )

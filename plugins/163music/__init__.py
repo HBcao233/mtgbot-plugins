@@ -75,8 +75,6 @@ async def _song(event, sid=''):
   msg = parse_song_detail(res)
 
   key = f'163music_{sid}'
-  singers = '、'.join([i['name'] for i in res['ar']])
-  name = f'{res["name"]} - {singers}'
   bar = Progress(mid)
   async with bot.action(event.peer_id, 'audio'):
     if not (img := util.data.Audios()[key]):
@@ -91,7 +89,7 @@ async def _song(event, sid=''):
       url, ext = res
       img = await getImg(
         url,
-        saveas=name,
+        saveas=key,
         ext=ext,
         progress_callback=bar.update,
       )
