@@ -79,6 +79,7 @@ async def get_info(video_id):
   res = r.json()
   if 'playabilityStatus' in res:
     if res['playabilityStatus']['status'] in ('ERROR', 'LOGIN_REQUIRED'):
+      logger.info(res['playabilityStatus'])
       reason = res['playabilityStatus']['reason']
       if reason == 'This video is unavailable':
         reason = '视频不可用'
