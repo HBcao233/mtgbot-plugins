@@ -79,9 +79,14 @@ async def _soutu(event):
       ),
     ],
   ]
-  await event.reply(
+  m = await bot.get_messages(event.peer_id, ids=[event.message.id])
+  reply_to = event.message.id
+  if m[0] is None:
+    reply_to = message.id
+  await event.respond(
     '请点击以下链接手动搜图\n或使用 /saucenao 命令搜图',
     buttons=buttons,
+    reply_to=reply_to,
   )
 
 
@@ -136,7 +141,16 @@ async def _saucenao(event):
     msg = '错误: ' + res
   else:
     msg = '\n\n'.join(res)
-  await event.reply(msg, parse_mode='html')
+  
+  m = await bot.get_messages(event.peer_id, ids=[event.message.id])
+  reply_to = event.message.id
+  if m[0] is None:
+    reply_to = message.id
+  await event.respond(
+    msg, 
+    parse_mode='html',
+    reply_to=reply_to,
+  )
 
 
 @Command(
