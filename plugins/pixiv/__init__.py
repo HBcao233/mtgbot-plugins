@@ -23,7 +23,7 @@ from .data_source import PixivClient, parse_msg, get_telegraph
 cmd_header_pattern = re.compile(r'/?pid')
 _p = r"""(?:^|(?#
   cmd)^(?:/?pid) ?|(?#
-  url)(?:https?://)?(?:www\.)?(?:pixiv\.net/(?:member_illust\.php\?.*illust_id=|artworks/|i/))(?#
+  url)(?:https?://)?(?:www\.)?(?:pixiv\.net/.*?(?:illust_id=|artworks/|i/))(?#
 ))(?#
 )(\d{6,12})(?:[^a-zA-Z0-9\n].*)?$|^/pid"""
 _pattern = re.compile(_p).search
@@ -34,7 +34,7 @@ class Pixiv:
   @Command(
     'pid',
     pattern=_pattern,
-    info='获取p站作品 /pid <url/pid> [hide] [mark]',
+    info='获取p站作品 /pid <url/pid> [hide] [mask]',
     filter=filters.ONLYTEXT & filters.PRIVATE,
     scope=Scope.private(),
   )
@@ -56,13 +56,13 @@ class Pixiv:
         '获取p站图片\n'
         '- <url/pid>: p站链接或pid\n'
         '- [hide/省略]: 省略图片说明\n'
-        '- [mark/遮罩]: 给图片添加遮罩\n'
+        '- [mask/遮罩]: 给图片添加遮罩\n'
         '- [origin/原图]: 发送原图\n'
       )
 
     self.pid = pid
     self.options = util.string.Options(
-      text, hide=('简略', '省略'), mark=('spoiler', '遮罩'), origin='原图'
+      text, hide=('简略', '省略'), mask=('spoiler', '遮罩'), origin='原图'
     )
     logger.info(f'pid: {self.pid}, options: {self.options}')
     self.mid = await self.event.reply('请等待...')
@@ -100,8 +100,8 @@ class Pixiv:
       buttons=[
         [
           Button.inline(
-            '移除遮罩' if self.options.mark else '添加遮罩',
-            b'mark_' + message_id_bytes + sender_bytes,
+            '移除遮罩' if self.options.mask else '添加遮罩',
+            b'mask_' + message_id_bytes + sender_bytes,
           ),
           Button.inline(
             '详细描述' if self.options.hide else '简略描述',
@@ -213,7 +213,7 @@ class Pixiv:
     """
     key = f'{self.pid}_p{i}' + ('' if self.options.origin else '_regular')
     if file_id := data[key]:
-      return util.media.file_id_to_media(file_id, self.options.mark)
+      return util.media.file_id_to_media(file_id, self.options.mask)
 
     imgUrl = (
       self.res['urls']['original']
@@ -232,7 +232,7 @@ class Pixiv:
     await self.bar.add(1)
     return await util.media.file_to_media(
       img,
-      self.options.mark,
+      self.options.mask,
       force_document=self.options.origin,
     )
 
