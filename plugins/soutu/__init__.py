@@ -110,17 +110,6 @@ async def get_image(message, _ext='jpg'):
   return img
 
 
-@bot.on(events.NewMessage)
-async def _(event):
-  if not event.is_private:
-    return
-  if event.message.grouped_id:
-    return
-  if not (event.message.photo or event.message.video):
-    return
-  await _soutu(event)
-
-
 @Command(
   'saucenao',
   info='SauceNAO 搜图',
