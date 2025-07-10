@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # @Author  : HBcao
 # @Email   : hbcaoqaq@gmail.com
-# @Require Plugin: mark
+# @Require Plugin: mask
 
 from telethon import types, events, utils, errors, Button
 from collections.abc import Sequence
@@ -14,12 +14,12 @@ from util.data import MessageData
 from plugin import import_plugin
 
 
-mark = import_plugin('mark')
+mask = import_plugin('mask')
 try:
   hosting = import_plugin('hosting')
 except ModuleNotFoundError:
   hosting = None
-_get_buttons = mark.DelayMedia.get_buttons
+_get_buttons = mask.DelayMedia.get_buttons
 
 
 def get_buttons(self, event):
@@ -32,7 +32,7 @@ def get_buttons(self, event):
   return buttons
 
 
-mark.DelayMedia.get_buttons = get_buttons
+mask.DelayMedia.get_buttons = get_buttons
 
 
 class MergeData(MessageData):

@@ -29,7 +29,7 @@ _pattern = re.compile(
 @Command(
   'misskey',
   pattern=_pattern,
-  info='获取misskey笔记 /misskey <url/noteId> [hide] [mark]',
+  info='获取misskey笔记 /misskey <url/noteId> [hide] [mask]',
   filter=filters.PRIVATE & filters.ONLYTEXT,
   scope=Scope.private(),
 )
@@ -39,14 +39,14 @@ async def _misskey(event, text=''):
   match = _pattern(text)
   if match is None or not (noteId := match.group(1)):
     return await event.reply(
-      '用法: /misskey <url/noteId> [hide] [mark]\n'
+      '用法: /misskey <url/noteId> [hide] [mask]\n'
       '获取misskey笔记\n'
       '- <url/noteId>: 链接或noteId\n'
       '- [hide/省略]: 省略图片说明\n'
-      '- [mark/遮罩]: 给图片添加遮罩'
+      '- [mask/遮罩]: 给图片添加遮罩'
     )
 
-  options = util.string.Options(text, hide=('简略', '省略'), mark=('spoiler', '遮罩'))
+  options = util.string.Options(text, hide=('简略', '省略'), mask=('spoiler', '遮罩'))
   logger.info(f'noteId: {noteId}, options: {options}')
 
   res = await get_note(noteId)
@@ -69,7 +69,7 @@ async def _misskey(event, text=''):
         else documents
       )
       if file_id := data[key]:
-        return util.media.file_id_to_media(file_id, options.mark)
+        return util.media.file_id_to_media(file_id, options.mask)
 
       file = await util.getImg(
         medias[i]['url'],
@@ -82,7 +82,7 @@ async def _misskey(event, text=''):
         return file
       if medias[i]['type'] == 'video':
         file = await util.media.video2mp4(file)
-      return await util.media.file_to_media(file, options.mark)
+      return await util.media.file_to_media(file, options.mask)
 
     tasks = [get_file(i) for i in range(len(medias))]
     files = await asyncio.gather(*tasks)
@@ -112,8 +112,8 @@ async def _misskey(event, text=''):
     buttons=[
       [
         Button.inline(
-          '移除遮罩' if options.mark else '添加遮罩',
-          b'mark_' + message_id_bytes + sender_bytes,
+          '移除遮罩' if options.mask else '添加遮罩',
+          b'mask_' + message_id_bytes + sender_bytes,
         ),
       ],
       [Button.inline('关闭面板', b'delete' + sender_bytes)],

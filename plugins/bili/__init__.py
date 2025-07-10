@@ -34,7 +34,7 @@ async def _(event, text):
     return await event.reply(
       '用法: /bill <aid/bvid>',
     )
-  options = util.string.Options(text, nocache=(), mark=('spoiler', '遮罩'))
+  options = util.string.Options(text, nocache=(), mask=('spoiler', '遮罩'))
 
   flag = False
   if match.group(2):
@@ -75,7 +75,7 @@ async def _(event, text):
   bar = util.progress.Progress(mid, '发送中')
   async with bot.action(event.chat_id, 'video'):
     if (file_id := data.get(key)) and not options.nocache:
-      media = util.media.file_id_to_media(file_id, options.mark)
+      media = util.media.file_id_to_media(file_id, options.mask)
     else:
       await mid.edit('下载中...')
       bar.set_prefix('下载中...')
@@ -85,7 +85,7 @@ async def _(event, text):
       await mid.edit('上传中...')
       bar.set_prefix('上传中...')
       media = await util.media.file_to_media(
-        file, options.mark, progress_callback=bar.update
+        file, options.mask, progress_callback=bar.update
       )
 
     res = await bot.send_file(
@@ -95,8 +95,8 @@ async def _(event, text):
       caption=msg,
       parse_mode='HTML',
       buttons=Button.inline(
-        '移除遮罩' if options.mark else '添加遮罩',
-        b'mark',
+        '移除遮罩' if options.mask else '添加遮罩',
+        b'mask',
       ),
     )
     await mid.delete()

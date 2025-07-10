@@ -19,13 +19,13 @@ def override_message_spoiler(message, spoiler: bool):
 
 
 @Command(
-  'mark',
+  'mask',
   info='给回复媒体添加遮罩',
-  pattern=re.compile('^/(mark|spoiler)'),
+  pattern=re.compile('^/(mask|spoiler)'),
   filter=filters.PRIVATE & filters.ONLYTEXT,
   scope=Scope.private(),
 )
-async def _mark(event, spoiler=True):
+async def _mask(event, spoiler=True):
   if not (reply_message := await event.message.get_reply_message()):
     return await event.reply('请用命令回复一条消息')
   if reply_message.media is None:
@@ -55,25 +55,25 @@ async def _mark(event, spoiler=True):
 
 
 @Command(
-  'unmark',
+  'unmask',
   info='去掉回复媒体的遮罩',
-  pattern=re.compile(r'^/(unmark|unspoiler)'),
+  pattern=re.compile(r'^/(unmask|unspoiler)'),
   filter=filters.PRIVATE & filters.ONLYTEXT,
   scope=Scope.private(),
 )
-async def _unmark(event):
-  return await _mark(event, False)
+async def _unmask(event):
+  return await _mask(event, False)
 
 
-mark_button_pattern = re.compile(
-  rb'mark(?:_([\x00-\xff]{4,4}))?(?:~([\x00-\xff]{6,6}))?$'
+mask_button_pattern = re.compile(
+  rb'mask(?:_([\x00-\xff]{4,4}))?(?:~([\x00-\xff]{6,6}))?$'
 ).match
 
 
-@bot.on(events.CallbackQuery(pattern=mark_button_pattern))
-async def mark_button(event):
+@bot.on(events.CallbackQuery(pattern=mask_button_pattern))
+async def mask_button(event):
   """
-  mark_{message_id}~{sender_id}
+  mask_{message_id}~{sender_id}
   编辑消息遮罩按钮回调
   """
   peer = event.query.peer
@@ -98,7 +98,7 @@ async def mark_button(event):
     await event.answer('消息不存在', alert=True)
     await event.delete()
     return
-  mark = not message.media.spoiler
+  mask = not message.media.spoiler
 
   messages = [message]
   if message.grouped_id:
@@ -106,7 +106,7 @@ async def mark_button(event):
     messages = await bot.get_messages(peer, ids=ids)
 
   # 修改按钮
-  text = '移除遮罩' if mark else '添加遮罩'
+  text = '移除遮罩' if mask else '添加遮罩'
   btn = Button.inline(text, data)
   buttons = message.buttons
   index_i = 0
@@ -114,7 +114,7 @@ async def mark_button(event):
   if buttons:
     for i, ai in enumerate(buttons):
       for j, aj in enumerate(ai):
-        if mark_button_pattern(aj.data):
+        if mask_button_pattern(aj.data):
           index_i = i
           index_j = j
           break
@@ -123,7 +123,7 @@ async def mark_button(event):
     buttons = btn
 
   for i, m in enumerate(messages):
-    file = override_message_spoiler(m, mark)
+    file = override_message_spoiler(m, mask)
     try:
       if i != 0:
         await bot.edit_message(peer, m, file=file)
@@ -195,28 +195,28 @@ class DelayMedia:
     add_bytes = start_mid + b'_' + end_mid
     buttons = []
     if any(not m.media.spoiler for m in self.messages):
-      buttons.append(Button.inline('添加遮罩', b'smark_1_' + add_bytes))
+      buttons.append(Button.inline('添加遮罩', b'smask_1_' + add_bytes))
     if any(m.media.spoiler for m in self.messages):
-      buttons.append(Button.inline('移除遮罩', b'smark_0_' + add_bytes))
+      buttons.append(Button.inline('移除遮罩', b'smask_0_' + add_bytes))
     return buttons
 
 
-smark_button_pattern = re.compile(
-  rb'smark_([01])_([\x00-\xff]{4,4})_([\x00-\xff]{4,4})$'
+smask_button_pattern = re.compile(
+  rb'smask_([01])_([\x00-\xff]{4,4})_([\x00-\xff]{4,4})$'
 ).match
 
 
-@bot.on(events.CallbackQuery(pattern=smark_button_pattern))
-async def smark_button(event):
+@bot.on(events.CallbackQuery(pattern=smask_button_pattern))
+async def smask_button(event):
   """
   接收媒体遮罩按钮回调
   """
   peer = event.query.peer
   match = event.pattern_match
   if match.group(1) == b'1':
-    mark = True
+    mask = True
   else:
-    mark = False
+    mask = False
 
   start_mid = int.from_bytes(match.group(2), 'big')
   end_mid = int.from_bytes(match.group(3), 'big')
@@ -233,14 +233,14 @@ async def smark_button(event):
   btn_message = await event.get_message()
   m = await bot.send_file(
     peer,
-    [override_message_spoiler(m, mark) for m in messages],
+    [override_message_spoiler(m, mask) for m in messages],
     caption=[m.text for m in messages],
     reply_to=btn_message.reply_to and btn_message.reply_to.reply_to_msg_id,
   )
   await m[0].reply(
     '操作完成',
     buttons=Button.inline(
-      '添加遮罩' if not mark else '移除遮罩', b'mark_' + m[0].id.to_bytes(4, 'big')
+      '添加遮罩' if not mask else '移除遮罩', b'mask_' + m[0].id.to_bytes(4, 'big')
     ),
   )
 

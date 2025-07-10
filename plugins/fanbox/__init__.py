@@ -21,7 +21,7 @@ _pattern = re.compile(
 @Command(
   'fanbox',
   pattern=_pattern,
-  info='获取fanbox作品 /fanbox <url/postId> [hide] [mark]',
+  info='获取fanbox作品 /fanbox <url/postId> [hide] [mask]',
   filter=filters.ONLYTEXT & filters.PRIVATE,
   scope=Scope.private(),
 )
@@ -31,12 +31,12 @@ async def _fanbox(event, text):
   match = event.pattern_match
   if not (pid := match.group(1)):
     return await event.reply(
-      '用法: /fanbox <url/postId> [hide/简略] [mark/遮罩] [origin/原图]\n'
+      '用法: /fanbox <url/postId> [hide/简略] [mask/遮罩] [origin/原图]\n'
       'url/postId: fanbox链接或postId\n'
     )
 
   options = util.string.Options(
-    text, hide=('简略', '省略'), mark=('spoiler', '遮罩'), origin='原图'
+    text, hide=('简略', '省略'), mask=('spoiler', '遮罩'), origin='原图'
   )
   mid = await event.reply('请等待...')
 
@@ -95,8 +95,8 @@ async def _fanbox(event, text):
     buttons=[
       [
         Button.inline(
-          '移除遮罩' if options.mark else '添加遮罩',
-          b'mark_' + message_id_bytes + sender_bytes,
+          '移除遮罩' if options.mask else '添加遮罩',
+          b'mask_' + message_id_bytes + sender_bytes,
         ),
         Button.inline(
           '详细描述' if options.hide else '简略描述',
@@ -204,7 +204,7 @@ async def send_photos(event, medias, msg, options):
       url = medias[i]['thumbnail']
       name += '_thumbnail'
     if file_id := data[name]:
-      return util.media.file_id_to_media(file_id, options.mark)
+      return util.media.file_id_to_media(file_id, options.mask)
 
     try:
       headers = {
@@ -214,7 +214,7 @@ async def send_photos(event, medias, msg, options):
       img = await util.getImg(url, saveas=name, ext=ext, headers=headers)
       return await util.media.file_to_media(
         img,
-        options.mark,
+        options.mask,
         force_document=options.origin,
       )
     except Exception:

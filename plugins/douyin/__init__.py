@@ -48,7 +48,7 @@ async def _douyin(event):
     )
 
   logger.info(f'aid: {aid}')
-  options = util.string.Options(event.raw_text, nocache=(), mark=('spoiler', '遮罩'))
+  options = util.string.Options(event.raw_text, nocache=(), mask=('spoiler', '遮罩'))
 
   mid = await event.reply('请等待...')
   res = await get_aweme_detail(aid)
@@ -63,7 +63,7 @@ async def _douyin(event):
   bar = util.progress.Progress(mid)
   async with bot.action(event.peer_id, 'video'):
     if (file_id := data.get(key)) and not options.nocache:
-      media = util.media.file_id_to_media(file_id, options.mark)
+      media = util.media.file_id_to_media(file_id, options.mask)
     else:
       await mid.edit('下载中...')
       bar.set_prefix('下载中...')
@@ -71,7 +71,7 @@ async def _douyin(event):
       await mid.edit('上传中...')
       bar.set_prefix('上传中...')
       media = await util.media.file_to_media(
-        img, options.mark, progress_callback=bar.update
+        img, options.mask, progress_callback=bar.update
       )
 
     m = await bot.send_file(
@@ -80,8 +80,8 @@ async def _douyin(event):
       caption=msg,
       parse_mode='html',
       buttons=Button.inline(
-        '移除遮罩' if options.mark else '添加遮罩',
-        b'mark',
+        '移除遮罩' if options.mask else '添加遮罩',
+        b'mask',
       ),
     )
     await mid.delete()

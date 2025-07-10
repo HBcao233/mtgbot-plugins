@@ -28,7 +28,7 @@ async def _kid(event, text):
   match = event.pattern_match
   if not (pid := match.group(3)):
     return await event.reply('用法: /kid <kemono_url>')
-  options = util.string.Options(text, nocache=(), mark=('遮罩', 'spoiler'))
+  options = util.string.Options(text, nocache=(), mask=('遮罩', 'spoiler'))
   source = match.group(1)
   uid = match.group(2)
   kid = f'https://kemono.su/{source}'
@@ -117,7 +117,7 @@ async def _kid(event, text):
     nonlocal files, data, options
     key = f'kemono_{source}_{pid}_p{i}'
     if file_id := data[key]:
-      return util.media.file_id_to_media(file_id, options.mark)
+      return util.media.file_id_to_media(file_id, options.mask)
     if 'thumbnail' in files[i]:
       url = files[i]['thumbnail']
     elif 'url' in files[i]:
@@ -135,7 +135,7 @@ async def _kid(event, text):
       if img == False:
         return None
     await bar.add(1)
-    return await util.media.file_to_media(img, options.mark)
+    return await util.media.file_to_media(img, options.mask)
 
   bar.set_prefix('发送中...')
   tasks = [get_media(i) for i in range(len(files))]
@@ -163,8 +163,8 @@ async def _kid(event, text):
     '获取完成',
     buttons=[
       Button.inline(
-        '移除遮罩' if options.mark else '添加遮罩',
-        b'mark_' + message_id_bytes + sender_bytes,
+        '移除遮罩' if options.mask else '添加遮罩',
+        b'mask_' + message_id_bytes + sender_bytes,
       ),
     ],
   )

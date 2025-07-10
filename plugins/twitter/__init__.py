@@ -27,7 +27,7 @@ _pattern = re.compile(_p).search
 @Command(
   'tid',
   pattern=_pattern,
-  info='获取推文 /tid <url/tid> [hide] [mark]',
+  info='获取推文 /tid <url/tid> [hide] [mask]',
   filter=filters.ONLYTEXT & filters.PRIVATE,
   scope=Scope.private(),
 )
@@ -40,10 +40,10 @@ async def _tid(event, text):
       '获取推文\n'
       '- <url/tid>: 推文链接或 status id\n'
       '- [hide/简略]: 获取简略推文\n'
-      '- [mark/遮罩]: 添加遮罩'
+      '- [mask/遮罩]: 添加遮罩'
     )
 
-  options = util.string.Options(text, hide=('简略', '省略'), mark=('spoiler', '遮罩'))
+  options = util.string.Options(text, hide=('简略', '省略'), mask=('spoiler', '遮罩'))
   logger.info(f'{tid = }, {options = }')
 
   res = await get_twitter(tid)
@@ -70,14 +70,14 @@ async def _tid(event, text):
       t = photos if i['type'] == 'photo' else videos
       ext = 'jpg' if i['type'] == 'photo' else 'mp4'
       if file_id := t[md5]:
-        media = util.media.file_id_to_media(file_id, options.mark)
+        media = util.media.file_id_to_media(file_id, options.mask)
       else:
         file = await util.getImg(
           url, headers=gheaders, saveas=f'{tid}_{index}', ext=ext
         )
         if i['type'] == 'video':
           file = await util.media.video2mp4(file)
-        media = await util.media.file_to_media(file, options.mark)
+        media = await util.media.file_to_media(file, options.mask)
       medias.append(media)
 
     res = await bot.send_file(
@@ -102,8 +102,8 @@ async def _tid(event, text):
     buttons=[
       [
         Button.inline(
-          '移除遮罩' if options.mark else '添加遮罩',
-          b'mark_' + message_id_bytes + sender_bytes,
+          '移除遮罩' if options.mask else '添加遮罩',
+          b'mask_' + message_id_bytes + sender_bytes,
         ),
         Button.inline(
           '详细描述' if options.hide else '简略描述',

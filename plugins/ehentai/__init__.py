@@ -38,7 +38,7 @@ _pattern = re.compile(
 @Command(
   'eid',
   pattern=_pattern,
-  info='e站爬取 /eid <url> [hide] [mark]',
+  info='e站爬取 /eid <url> [hide] [mask]',
   filter=filters.PRIVATE & filters.ONLYTEXT,
   scope=Scope.private(),
 )

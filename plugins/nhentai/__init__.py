@@ -21,7 +21,7 @@ _pattern = re.compile(
 @Command(
   'nid',
   pattern=_pattern,
-  info='n站爬取 /nid <url> [hide] [mark]',
+  info='n站爬取 /nid <url> [hide] [mask]',
   filter=filters.PRIVATE & filters.ONLYTEXT,
   scope=Scope.private(),
 )
