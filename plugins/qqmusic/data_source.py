@@ -1,6 +1,7 @@
 import qqmusic_api
 import util
 import config
+from util.log import logger
 
 
 musicid = config.env.get('qqmusic_musicid', '')
@@ -60,6 +61,7 @@ async def get_song_url(mid):
     return False
   res = r.json()
   if 'error' in res:
+    logger.warning(f'获取歌曲url失败: {res}')
     return False
   url = res['data']['music_url']['128']['url']
   return url
@@ -100,4 +102,5 @@ async def get_try_url(res):
     vs=res['vs'][0],
     credential=credential,
   )
+  logger.info(f'尝试获取试听url: {url}')
   return url

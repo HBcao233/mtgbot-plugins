@@ -33,10 +33,10 @@ import util
 
 
 _pattern = re.compile(
-  r'(?:(?:(?:https?://)?i\.y\.qq\.com/(?:n/ryqq/songDetail/|(?:.*?songmid=)))([0-9a-zA-Z]{12,16})|(?:c6\.y\.qq\.com/base/fcgi-bin/u\?__=([0-9a-zA-Z]{7,14}))|^/qqmusic(?!_))'
+  r'(?:(?:(?:https?://)?(?:i\.|3g\.)?y\.qq\.com/(?:n/ryqq/songDetail/|(?:.*?songmid=)))([0-9a-zA-Z]{12,16})|(?:c6\.y\.qq\.com/base/fcgi-bin/u\?__=([0-9a-zA-Z]{7,14}))|^/qqmusic(?!_))'
 ).search
 _pattern1 = re.compile(
-  r'(?:(?:(?:https?://)?i\.y\.qq\.com/(?:n/ryqq/songDetail/|(?:.*?songmid=)))?([0-9a-zA-Z]{12,16})|(?:c6\.y\.qq\.com/base/fcgi-bin/u\?__=([0-9a-zA-Z]{7,14}))|^/qqmusic(?!_))'
+  r'(?:(?:(?:https?://)?(?:i\.|3g\.)?y\.qq\.com/(?:n/ryqq/songDetail/|(?:.*?songmid=)))?([0-9a-zA-Z]{12,16})|(?:c6\.y\.qq\.com/base/fcgi-bin/u\?__=([0-9a-zA-Z]{7,14}))|^/qqmusic(?!_))'
 ).search
 
 
@@ -66,7 +66,7 @@ async def _song(event, sid=''):
       match = _pattern(text)
       sid = match.group(1)
       await event.reply(
-        f'https://y.qq.com/n/ryqq/songDetail/{mid}',
+        f'https://y.qq.com/n/ryqq/songDetail/{sid}',
       )
   
   mid = await event.reply('请等待...')
@@ -89,10 +89,11 @@ async def _song(event, sid=''):
         if key in util.data.Audios():
           img = util.data.Audios()[key]
       if not url:
-        return await event.reply(
+        await mid.edit(
           msg,
           parse_mode='html',
         )
+        return
   
       if not img:
         img = await util.getImg(
