@@ -109,7 +109,6 @@ class Pixiv:
           ),
         ],
         [Button.inline('获取原图', b'pidori_' + pid_bytes)],
-        [Button.inline('关闭面板', b'delete' + sender_bytes)],
       ],
     )
 
