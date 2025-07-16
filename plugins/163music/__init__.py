@@ -28,14 +28,17 @@ from .data_source import (
   general_search,
   parse_search,
   getImg,
+  add_metadata,
+  get_program_info,
+  parse_program_info,
 )
 
 
 _pattern = re.compile(
-  r'(?:(?:(?:https?://)?(?:y\.)?music\.163\.com/(?:[#m|]/)?song\?id=)([0-9]{3,12})|(?:163cn\.tv/([0-9a-zA-Z]{7,7}))|^/163music(?!_))'
+  r'(?:(?:(?:https?://)?(?:y\.)?music\.163\.com/(?:[#m|]/)?song\?.*?id=)([0-9]{3,12})|(?:163cn\.tv/([0-9a-zA-Z]{7,7}))|(?:y\.)?music\.163\.com/(?:[#m]/)?program\?.*?id=([0-9]{3,12})|^/163music(?!_))'
 ).search
 _pattern1 = re.compile(
-  r'(?:(?:(?:https?://)?(?:y\.)?music\.163\.com/(?:[#m|]/)?song\?id=)?([0-9]{3,12})|(?:163cn\.tv/([0-9a-zA-Z]{7,7}))|^/163music(?!_))'
+  r'(?:(?:(?:https?://)?(?:y\.)?music\.163\.com/(?:[#m|]/)?song\?.*?id=)?([0-9]{3,12})|(?:163cn\.tv/([0-9a-zA-Z]{7,7}))|(?:y\.)?music\.163\.com/(?:[#m]/)?program\?.*?id=([0-9]{3,12})|^/163music(?!_))'
 ).search
 
 
@@ -47,13 +50,14 @@ _pattern1 = re.compile(
   scope=Scope.private(),
 )
 async def _song(event, sid=''):
+  program = False
   if not sid:
     match = event.pattern_match
     if event.raw_text.startswith('/'):
       text = event.raw_text[8:].strip()
       match = _pattern1(text)
 
-    if (sid := match.group(1)) is None and match.group(2) is None:
+    if (sid := match.group(1)) is None and match.group(2) is None and match.group(3) is None:
       return await event.reply(
         '用法: /163music <url/id>',
       )
@@ -67,13 +71,24 @@ async def _song(event, sid=''):
       await event.reply(
         f'https://music.163.com/#/song?id={sid}',
       )
-
+    elif (pid := match.group(3)):
+      program = True
+      
   mid = await event.reply('请等待...')
-  res = await get_song_detail(sid)
-  if isinstance(res, str):
-    return await event.reply(res)
-  msg = parse_song_detail(res)
-
+  if not program:
+    info = await get_song_detail(sid)
+  else:
+    info = await get_program_info(pid)
+    sid = info['program']['mainTrackId']
+    
+  if isinstance(info, str):
+    return await event.reply(info)
+  
+  if not program:
+    msg, metainfo = parse_song_detail(info)
+  else:
+    msg, metainfo = parse_program_info(info)
+    
   key = f'163music_{sid}'
   bar = Progress(mid)
   async with bot.action(event.peer_id, 'audio'):
@@ -83,7 +98,7 @@ async def _song(event, sid=''):
       res = await get_url(sid)
       if res is None:
         return await event.reply(
-          msg,
+          '\n'.join(msg),
           parse_mode='html',
         )
       url, ext = res
@@ -93,13 +108,15 @@ async def _song(event, sid=''):
         ext=ext,
         progress_callback=bar.update,
       )
+      msg.insert(1, f'Type: {ext}')
+      img = await add_metadata(img, ext, metainfo)
 
     await mid.edit('上传中...')
     bar.set_prefix('上传中...')
     m = await bot.send_file(
       event.peer_id,
       file=img,
-      caption=msg,
+      caption='\n'.join(msg),
       parse_mode='html',
       progress_callback=bar.update,
     )

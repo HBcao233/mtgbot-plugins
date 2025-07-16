@@ -100,23 +100,30 @@ async def get_song_detail(mid):
 
 
 def parse_song_detail(res):
-  mid = res['id']
+  sid = res['id']
   name = res['name']
   alia = ''
   if len(res['alia']) > 0:
-    alia = f' ({res["alia"][0]})'
-  url = f'https://music.163.com/#/song?id={mid}'
+    alia = f' ({", ".join(res["alia"])})'
+  url = f'https://music.163.com/#/song?id={sid}'
   singers = '、'.join(
     [
       f'<a href="https://music.163.com/#/artist?id={i["id"]}">{i["name"]}</a>'
       for i in res['ar']
     ]
   )
-  msg = (
-    f'<a href="{url}">{name}</a>{alia} - {singers} #163music\nvia @%s' % bot.me.username
-  )
-  return msg
-
+  msg = [
+    f'<a href="{url}">{name}</a>{alia} - {singers} #163music',
+    f'via @%s' % bot.me.username
+  ]
+  metainfo = {
+    'sid': sid,
+    'coverUrl':  info['al']['picUrl'],
+    'title': name + alia,
+    'singers': singers,
+    'album': info['al']['name'],
+  }
+  return msg, metainfo
 
 async def get_song_url(mid):
   res = await curl(
@@ -168,6 +175,51 @@ async def get_url(mid):
   return await get_song_url(mid)
 
 
+async def add_metadata(img, ext, metainfo):
+  sid = metainfo['sid']
+  cover_name = f'163music_{sid}_cover'
+  cover_url = metainfo['coverUrl']
+  cover = await getImg(
+    cover_url,
+    saveas=cover_name,
+    ext=True,
+  )
+  resimg_name = f'163music_{sid}_meta.{ext}'
+  resimg = util.getCacheFile(resimg_name)
+  title = metainfo['title']
+  singers = metainfo['singers']
+  album = metainfo['album']
+  returncode, stdout = await util.media.ffmpeg([
+    'ffmpeg', 
+    '-i', 
+    cover, 
+    '-i', 
+    img, 
+    '-c', 
+    'copy',
+    '-map',
+    '0:v',
+    '-map',
+    '1:a',
+    '-metadata',
+    f'title={title}',
+    '-metadata', 
+    f'artist={singers}',
+    '-metadata', 
+    f'album={album}', 
+    '-metadata:s:v', 
+    'title=Front cover', 
+    '-metadata:s:v', 
+    'comment=Cover (front)',
+    '-y',
+    resimg,
+  ])
+  if returncode != 0:
+    logger.warning(stdout)
+    return img
+  return resimg
+
+
 async def general_search(keyword):
   res = await curl(
     'https://music.163.com/weapi/cloudsearch/get/web',
@@ -208,3 +260,49 @@ def parse_search(res):
   btns = [Button.url(f'{i + 1} {icon}', urls[i]) for i in range(10)]
   buttons = [btns[i : i + 5] for i in range(0, 10, 5)]
   return '\n'.join(arr), buttons
+
+
+async def get_program_info(pid):
+  res = await curl('https://interface.music.163.com/weapi/dj/program/detail/static/get', {'id': pid })
+  if not res:
+    return
+  return res['data']
+
+
+def parse_program_info(res):
+  pid = res['program']['id']
+  title = res['program']['name']
+  url = f'https://music.163.com/m/program?id={pid}'
+  description = res['program']['description']
+  mainTrackId = res['program']['mainTrackId']
+  song_url = f'https://music.163.com/#/song?id={mainTrackId}'
+  
+  userId = res['anchor']['userId']
+  nickname = res['anchor']['nickname']
+  user_url = f'https://y.music.163.com/m/user?id={userId}'
+  album_id = res['radio']['id']
+  album = res['radio']['name']
+  album_url = f'http://music.163.com/radio?id={album_id}'
+  desc = res['radio']['desc']
+  descriptions = []
+  if description:
+    descriptions.append(description)
+  if desc:
+    descriptions.append(desc)
+  descriptions = '\n'.join(descriptions)
+  msg = [
+    f'<a href="{url}">{title}</a>',
+    f'合集: <a href="{album_url}">{album}</a>',
+    f'作者: <a href="{user_url}">{nickname}</a>',
+    f'<blockquote expandable>{descriptions}</blockquote>',
+    '#163music #播客',
+    f'via @{bot.me.username}',
+  ]
+  metainfo = {
+    'sid': mainTrackId,
+    'coverUrl':  res['program']['coverUrl'],
+    'title': title,
+    'singers': nickname,
+    'album': album,
+  }
+  return msg, metainfo
