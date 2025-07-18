@@ -30,7 +30,7 @@ from .data_source import get_info, parse_info, cookies_path
 
 
 _pattern = re.compile(
-  r'(?:(?:(?:https?://)?(?:.\.)*(?:youtube\.com/(?:watch\?v=|shorts/)|youtu\.be/))([0-9a-zA-Z-_]{3,12})|^/youtube(?!_))'
+  r'(?:^/youtube )?(?:(?:https?://)?(?:.\.)*(?:youtube\.com/(?:watch\?v=|shorts/)|youtu\.be/))([0-9a-zA-Z-_]{3,12})|^/youtube(?![^ ])'
 ).search
 
 

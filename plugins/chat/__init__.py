@@ -326,14 +326,14 @@ blockquote::after {
     # logger.info(f'content: {content}')
 
   cacheDir = util.getCache('')
-  l = []
+  htmls = []
   for i in os.listdir(cacheDir):
     path = os.path.join(cacheDir, i)
     if i.startswith('output') and i.endswith('.html'):
       os.remove(path)
-      l.append(i)
-  if len(l) > 0:
-    logger.info(f'清理 html 文件: {", ".join(l)}')
+      htmls.append(i)
+  if len(htmls) > 0:
+    logger.info(f'清理 html 文件: {", ".join(htmls)}')
 
   # 停止进一步处理
   raise events.StopPropagation

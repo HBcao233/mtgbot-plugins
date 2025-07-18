@@ -125,12 +125,33 @@ async def mask_button(event):
   for i, m in enumerate(messages):
     file = override_message_spoiler(m, mask)
     try:
-      if i != 0:
-        await bot.edit_message(peer, m, file=file)
-      else:
+      if i == 0 and not match.group(1):
         await bot.edit_message(peer, m, file=file, buttons=buttons)
+      else:
+        await bot.edit_message(peer, m, file=file)
+
     except errors.MessageNotModifiedError:
       pass
+
+  if match.group(1):
+    if m := (await event.get_message()):
+      buttons = m.buttons
+      index_i = 0
+      index_j = 0
+      if buttons:
+        for i, ai in enumerate(buttons):
+          for j, aj in enumerate(ai):
+            if mask_button_pattern(aj.data):
+              index_i = i
+              index_j = j
+              break
+        buttons[index_i][index_j] = btn
+      else:
+        buttons = btn
+      try:
+        await m.edit(buttons=buttons)
+      except errors.MessageNotModifiedError:
+        pass
 
   await event.answer()
 

@@ -22,7 +22,7 @@ from .data_source import get_note, parse_msg, parse_medias
 
 
 _pattern = re.compile(
-  r'(?:(?:/?misskey ?)|(?:https?://)?(?:misskey\.io/notes/))([a-z0-9]{16})(?:[^a-zA-Z0-9\n].*)?$|^/misskey'
+  r'(?:^/misskey )?(?:https?://)?(?:misskey\.io/notes/)([a-z0-9]{16})(?:[^a-zA-Z0-9\n].*)?$|^/misskey(?![^ ])'
 ).search
 
 

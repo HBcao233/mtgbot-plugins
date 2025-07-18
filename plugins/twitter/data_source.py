@@ -49,9 +49,15 @@ async def get_twitter(tid):
         return '推文不存在'
       return res['errors'][0]['message']
 
-    entries = res['data']['threaded_conversation_with_injections_v2']['instructions'][
-      0
-    ]['entries']
+    try:
+      any(
+        (entries := i)['type'] == 'TimelineAddEntries'
+        for i in res['data']['threaded_conversation_with_injections_v2']['instructions']
+      )
+      entries = entries['entries']
+    except (KeyError, IndexError):
+      logger.warn(f'解析失败: {res}', exc_info=1)
+      return '解析失败'
     tweet_entrie = [
       i
       for i in entries

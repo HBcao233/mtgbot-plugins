@@ -20,7 +20,7 @@ from .data_source import (
 
 
 _pattern = re.compile(
-  r'(?:(?:https?://)?(?:www\.)(?:ies)?douyin\.com/(?:video/|.*?modal_id=)?([0-9]{12,20})|(?:v\.douyin\.com/([0-9a-zA-Z_]{5,14}))|^/douyin(?!_))'
+  r'(?:(?:/douyin ?)?(?:https?://)?(?:www\.)(?:ies)?douyin\.com/(?:video/|.*?modal_id=)?([0-9]{12,20})|(?:v\.douyin\.com/([0-9a-zA-Z_]{5,14}))|^/douyin(?!_))'
 ).search
 
 
@@ -53,7 +53,7 @@ async def _douyin(event):
   mid = await event.reply('请等待...')
   res = await get_aweme_detail(aid)
   if not res:
-    return await event.reply('获取失败')
+    return await mid.edit('获取失败')
   msg = parse_aweme_detail(res)
 
   url = res['video']['play_addr']['url_list'][-1]

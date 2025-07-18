@@ -13,13 +13,13 @@ pyexecjs
 163music_u = ""
 """
 
-import re
 from telethon import Button
+import re
+import asyncio
 
 import filters
 import util
 from plugin import Command, Scope
-from util.log import logger
 from util.progress import Progress
 from .data_source import (
   get_song_detail,
@@ -35,10 +35,7 @@ from .data_source import (
 
 
 _pattern = re.compile(
-  r'(?:(?:(?:https?://)?(?:y\.)?music\.163\.com/(?:[#m|]/)?song\?.*?id=)([0-9]{3,12})|(?:163cn\.tv/([0-9a-zA-Z]{7,7}))|(?:y\.)?music\.163\.com/(?:[#m]/)?program\?.*?id=([0-9]{3,12})|^/163music(?!_))'
-).search
-_pattern1 = re.compile(
-  r'(?:(?:(?:https?://)?(?:y\.)?music\.163\.com/(?:[#m|]/)?song\?.*?id=)?([0-9]{3,12})|(?:163cn\.tv/([0-9a-zA-Z]{7,7}))|(?:y\.)?music\.163\.com/(?:[#m]/)?program\?.*?id=([0-9]{3,12})|^/163music(?!_))'
+  r'(?:^/163music |(?:(?:https?://)?(?:y\.)?music\.163\.com/(?:[#m|]/)?song\?.*?id=)([0-9]{3,12})|(?:163cn\.tv/([0-9a-zA-Z]{7,7}))|(?:y\.)?music\.163\.com/(?:[#m]/)?program\?.*?id=([0-9]{3,12})|^/163music(?![^ ]))'
 ).search
 
 
@@ -53,11 +50,11 @@ async def _song(event, sid=''):
   program = False
   if not sid:
     match = event.pattern_match
-    if event.raw_text.startswith('/'):
-      text = event.raw_text[8:].strip()
-      match = _pattern1(text)
-
-    if (sid := match.group(1)) is None and match.group(2) is None and match.group(3) is None:
+    if (
+      (sid := match.group(1)) is None
+      and match.group(2) is None
+      and match.group(3) is None
+    ):
       return await event.reply(
         '用法: /163music <url/id>',
       )
@@ -71,24 +68,24 @@ async def _song(event, sid=''):
       await event.reply(
         f'https://music.163.com/#/song?id={sid}',
       )
-    elif (pid := match.group(3)):
+    elif pid := match.group(3):
       program = True
-      
+
   mid = await event.reply('请等待...')
   if not program:
     info = await get_song_detail(sid)
   else:
     info = await get_program_info(pid)
     sid = info['program']['mainTrackId']
-    
+
   if isinstance(info, str):
     return await event.reply(info)
-  
+
   if not program:
     msg, metainfo = parse_song_detail(info)
   else:
     msg, metainfo = parse_program_info(info)
-    
+
   key = f'163music_{sid}'
   bar = Progress(mid)
   async with bot.action(event.peer_id, 'audio'):

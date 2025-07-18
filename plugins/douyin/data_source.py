@@ -2,7 +2,6 @@
 
 from pydantic import BaseModel
 from urllib.parse import urlencode
-import re
 
 import util
 from util.log import logger
@@ -82,6 +81,9 @@ async def get_aweme_detail(aid: str):
   if res['status_code'] != 0:
     return
   res = res['aweme_detail']
+  if res is None:
+    logger.warning(res)
+    return
   res = {
     k: v
     for k, v in res.items()
@@ -95,8 +97,8 @@ def parse_aweme_detail(res):
   aid = res['aweme_id']
   title = res['item_title'] or res['desc']
   url = f'https://www.douyin.com/video/{aid}'
-  uid = res['author']['uid']
-  username = res['author']['unique_id']
+  # uid = res['author']['uid']
+  # username = res['author']['unique_id']
   nickname = res['author']['nickname']
   sec_uid = res['author']['sec_uid']
   author_url = f'https://www.douyin.com/user/{sec_uid}'

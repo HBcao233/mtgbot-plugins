@@ -15,8 +15,10 @@ qqmusic_refresh_token =
 qqmusic_encrypt_uin =
 """
 
+from telethon import Button
 import re
-from telethon import Button, types
+import asyncio
+
 
 from util.progress import Progress
 from plugin import Command, Scope
@@ -33,10 +35,7 @@ import util
 
 
 _pattern = re.compile(
-  r'(?:(?:(?:https?://)?(?:i\.|3g\.)?y\.qq\.com/(?:n/ryqq/songDetail/|(?:.*?songmid=)))([0-9a-zA-Z]{12,16})|(?:c6\.y\.qq\.com/base/fcgi-bin/u\?__=([0-9a-zA-Z]{7,14}))|^/qqmusic(?!_))'
-).search
-_pattern1 = re.compile(
-  r'(?:(?:(?:https?://)?(?:i\.|3g\.)?y\.qq\.com/(?:n/ryqq/songDetail/|(?:.*?songmid=)))?([0-9a-zA-Z]{12,16})|(?:c6\.y\.qq\.com/base/fcgi-bin/u\?__=([0-9a-zA-Z]{7,14}))|^/qqmusic(?!_))'
+  r'(?:^/qqmusic )?(?:(?:https?://)?(?:i\.|3g\.)?y\.qq\.com/(?:n/ryqq/songDetail/|(?:.*?songmid=)))([0-9a-zA-Z]{12,16})|(?:c6\.y\.qq\.com/base/fcgi-bin/u\?__=([0-9a-zA-Z]{7,14}))|^/qqmusic(?![^ ])'
 ).search
 
 
@@ -50,9 +49,6 @@ _pattern1 = re.compile(
 async def _song(event, sid=''):
   if not sid:
     match = event.pattern_match
-    if event.raw_text.startswith('/'):
-      text = event.raw_text[7:].strip()
-      match = _pattern1(text)
 
     match = event.pattern_match
     if (sid := match.group(1)) is None and match.group(2) is None:
@@ -68,7 +64,7 @@ async def _song(event, sid=''):
       await event.reply(
         f'https://y.qq.com/n/ryqq/songDetail/{sid}',
       )
-  
+
   mid = await event.reply('请等待...')
   res = await get_song_info(sid)
   if isinstance(res, str):
@@ -94,15 +90,15 @@ async def _song(event, sid=''):
           parse_mode='html',
         )
         return
-  
+
       if not img:
         img = await util.getImg(
-          url, 
-          saveas=key, 
+          url,
+          saveas=key,
           ext='mp3',
           progress_callback=bar.update,
         )
-    
+
     await mid.edit('上传中...')
     bar.set_prefix('上传中...')
     m = await bot.send_file(

@@ -36,7 +36,7 @@ async def get_note(noteId):
           data=f'{{"uri":"https://misskey.io/notes/{noteId}"}}',
           headers={
             'content-type': 'application/json',
-            'referer': f'https://dvd.chat/',
+            'referer': 'https://dvd.chat/',
             'Authorization': f'Bearer {dvd_token}',
           },
         )

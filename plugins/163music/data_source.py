@@ -114,16 +114,17 @@ def parse_song_detail(res):
   )
   msg = [
     f'<a href="{url}">{name}</a>{alia} - {singers} #163music',
-    f'via @%s' % bot.me.username
+    'via @%s' % bot.me.username,
   ]
   metainfo = {
     'sid': sid,
-    'coverUrl':  info['al']['picUrl'],
+    'coverUrl': res['al']['picUrl'],
     'title': name + alia,
     'singers': singers,
-    'album': info['al']['name'],
+    'album': res['al']['name'],
   }
   return msg, metainfo
+
 
 async def get_song_url(mid):
   res = await curl(
@@ -189,31 +190,33 @@ async def add_metadata(img, ext, metainfo):
   title = metainfo['title']
   singers = metainfo['singers']
   album = metainfo['album']
-  returncode, stdout = await util.media.ffmpeg([
-    'ffmpeg', 
-    '-i', 
-    cover, 
-    '-i', 
-    img, 
-    '-c', 
-    'copy',
-    '-map',
-    '0:v',
-    '-map',
-    '1:a',
-    '-metadata',
-    f'title={title}',
-    '-metadata', 
-    f'artist={singers}',
-    '-metadata', 
-    f'album={album}', 
-    '-metadata:s:v', 
-    'title=Front cover', 
-    '-metadata:s:v', 
-    'comment=Cover (front)',
-    '-y',
-    resimg,
-  ])
+  returncode, stdout = await util.media.ffmpeg(
+    [
+      'ffmpeg',
+      '-i',
+      cover,
+      '-i',
+      img,
+      '-c',
+      'copy',
+      '-map',
+      '0:v',
+      '-map',
+      '1:a',
+      '-metadata',
+      f'title={title}',
+      '-metadata',
+      f'artist={singers}',
+      '-metadata',
+      f'album={album}',
+      '-metadata:s:v',
+      'title=Front cover',
+      '-metadata:s:v',
+      'comment=Cover (front)',
+      '-y',
+      resimg,
+    ]
+  )
   if returncode != 0:
     logger.warning(stdout)
     return img
@@ -263,7 +266,9 @@ def parse_search(res):
 
 
 async def get_program_info(pid):
-  res = await curl('https://interface.music.163.com/weapi/dj/program/detail/static/get', {'id': pid })
+  res = await curl(
+    'https://interface.music.163.com/weapi/dj/program/detail/static/get', {'id': pid}
+  )
   if not res:
     return
   return res['data']
@@ -275,8 +280,8 @@ def parse_program_info(res):
   url = f'https://music.163.com/m/program?id={pid}'
   description = res['program']['description']
   mainTrackId = res['program']['mainTrackId']
-  song_url = f'https://music.163.com/#/song?id={mainTrackId}'
-  
+  # song_url = f'https://music.163.com/#/song?id={mainTrackId}'
+
   userId = res['anchor']['userId']
   nickname = res['anchor']['nickname']
   user_url = f'https://y.music.163.com/m/user?id={userId}'
@@ -300,7 +305,7 @@ def parse_program_info(res):
   ]
   metainfo = {
     'sid': mainTrackId,
-    'coverUrl':  res['program']['coverUrl'],
+    'coverUrl': res['program']['coverUrl'],
     'title': title,
     'singers': nickname,
     'album': album,

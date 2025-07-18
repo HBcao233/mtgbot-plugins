@@ -14,7 +14,7 @@ from .data_source import PluginException, gallery_info, get_telegraph
 
 
 _pattern = re.compile(
-  r'^/?(?:nid)? ?(?:https?://)?nhentai\.net/g/([0-9a-z]+)(?:/([0-9a-z]+))?|^/nid'
+  r'^/?(?:nid )?(?:https?://)?nhentai\.net/g/([0-9a-z]+)(?:/([0-9a-z]+))?|^/nid(?![^ ])'
 ).match
 
 

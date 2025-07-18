@@ -13,8 +13,7 @@ from .data_source import PluginException, get_post, parse_msg, parse_medias
 
 
 _pattern = re.compile(
-  r'(?:^/?fanbox(?:@%s)? |(?:https?://)?(?:(?:[a-z0-9]+\.)?fanbox\.cc/)(?:[@a-z0-9]+/)?(?:posts/)?)(\d+)|^/fanbox'
-  % bot.me.username
+  r'(?:^/fanbox |(?:https?://)?(?:(?:[a-z0-9]+\.)?fanbox\.cc/)(?:[@a-z0-9]+/)?(?:posts/)?)(\d+)|^/fanbox'
 ).match
 
 
@@ -39,6 +38,7 @@ async def _fanbox(event, text):
     text, hide=('简略', '省略'), mask=('spoiler', '遮罩'), origin='原图'
   )
   mid = await event.reply('请等待...')
+  logger.info(f'pid: {pid}, options: {options}')
 
   try:
     res = await get_post(pid)

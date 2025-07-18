@@ -1,5 +1,4 @@
 from urllib.parse import urlparse
-from util.log import logger
 import os
 import re
 import time

@@ -70,13 +70,13 @@ async def main():
   choice = input('请输入选项 (1/2): ').strip()
 
   if choice == '1':
-    t = QRLoginType.QQ
-
+    credential = await qrcode_login_example(QRLoginType.QQ)
   elif choice == '2':
-    await qrcode_login_example(QRLoginType.WX)
+    credential = await qrcode_login_example(QRLoginType.WX)
   else:
     print('无效的选项')
-  credential = await qrcode_login_example()
+    return
+
   print(
     '\n'.join(
       [

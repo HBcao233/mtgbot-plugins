@@ -5,3 +5,6 @@ builtins = ["bot"]
 [tool.ruff.format]
 # Prefer single quotes over double quotes.
 quote-style = "single"
+
+[tool.ruff.lint]
+ignore = ["E402"]

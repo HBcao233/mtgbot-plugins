@@ -13,14 +13,15 @@ import re
 import ujson as json
 
 import util
+import filters
 from util.log import logger
+from util.progress import Progress
 from plugin import Command, Scope
 from .data_source import gheaders, get_twitter, parse_msg, parseMedias
-import filters
 
 
 cmd_header_pattern = re.compile(r'/?tid')
-_p = r'(?:^|^(?:/?tid) ?|(?:https?://)?[a-z]*?(?:twitter|x)\.com/[a-zA-Z0-9_]+/status/)(\d{13,20})(?:[^0-9].*)?$|^/tid'
+_p = r'(?:^/?tid |(?:https?://)?[a-z]*?(?:twitter|x)\.com/[a-zA-Z0-9_]+/status/)(\d{13,20})(?:[^0-9].*)?$|^/tid(?![^ ])'
 _pattern = re.compile(_p).search
 
 
@@ -45,6 +46,7 @@ async def _tid(event, text):
 
   options = util.string.Options(text, hide=('简略', '省略'), mask=('spoiler', '遮罩'))
   logger.info(f'{tid = }, {options = }')
+  mid = await event.reply('请等待...')
 
   res = await get_twitter(tid)
   if isinstance(res, str):
@@ -63,6 +65,7 @@ async def _tid(event, text):
   medias = []
   photos = util.Photos()
   videos = util.Videos()
+  bar = Progress(mid, prefix='下载中...')
   async with bot.action(event.chat_id, medias_info[0]['type']):
     for index, i in enumerate(medias_info):
       url = i['url']
@@ -73,11 +76,20 @@ async def _tid(event, text):
         media = util.media.file_id_to_media(file_id, options.mask)
       else:
         file = await util.getImg(
-          url, headers=gheaders, saveas=f'{tid}_{index}', ext=ext
+          url,
+          headers=gheaders,
+          saveas=f'{tid}_{index}',
+          ext=ext,
+          progress_callback=bar.update,
         )
         if i['type'] == 'video':
           file = await util.media.video2mp4(file)
-        media = await util.media.file_to_media(file, options.mask)
+        bar.set_prefix('上传中...')
+        media = await util.media.file_to_media(
+          file,
+          options.mask,
+          progress_callback=bar.update,
+        )
       medias.append(media)
 
     res = await bot.send_file(
@@ -87,6 +99,7 @@ async def _tid(event, text):
       caption=msg,
       parse_mode='HTML',
     )
+    await mid.delete()
 
   with photos:
     with videos:

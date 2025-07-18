@@ -93,7 +93,7 @@ def gauss_elimination(matrix: list[int], all_solves=False) -> int:
     nonlocal row
     freevar_num = row - len(var_rule)
     # 遍历生成所有解
-    l = (
+    res = (
       sum(
         (allbit_xor(var_rule[j] & i) ^ (result >> j & 1)) * 2**j
         for j in range(len(var_rule))
@@ -102,9 +102,9 @@ def gauss_elimination(matrix: list[int], all_solves=False) -> int:
       for i in range(2**freevar_num)
     )
     if all_solves:
-      return list(l)
+      return list(res)
     return min(
-      l,
+      res,
       key=lambda s: count_of_1(s),
     )
 
@@ -141,8 +141,6 @@ def gauss_elimination(matrix: list[int], all_solves=False) -> int:
 
 
 if __name__ == '__main__':
-  import sys
-
   # '''
   row = 4
   # row = int(sys.argv[1])

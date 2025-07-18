@@ -7,12 +7,10 @@
 saucenao_api_key =
 """
 
-from telethon import events, Button
+from telethon import Button
 from urllib.parse import quote
 
 import util
-import filters
-from util.log import logger
 from plugin import Command, import_plugin
 from .data_source import to_img, saucenao_search, esearch
 
@@ -43,6 +41,9 @@ async def _soutu(event):
   data = util.Data('urls')
   if not (url := data.get(str(_id))):
     img = await get_image(message)
+    if not img:
+      await event.reply('回复的文件不是图片')
+      return
     url = await hosting.get_url(img)
     with data:
       data[str(_id)] = url
@@ -95,7 +96,7 @@ async def get_image(message, _ext='jpg'):
   ext = file.ext
   mime_type = file.mime_type
   if 'image' not in mime_type and 'video' not in mime_type:
-    return await event.reply('回复的文件不是图片')
+    return 
 
   if message.photo:
     _id = message.photo.id
@@ -125,18 +126,21 @@ async def _saucenao(event):
     return await event.reply('请用命令回复一张图片')
 
   img = await get_image(message)
+  if not img:
+    await event.reply('回复的文件不是图片')
+    return
   res = await saucenao_search(img)
   if isinstance(res, str):
     msg = '错误: ' + res
   else:
     msg = '\n\n'.join(res)
-  
+
   m = await bot.get_messages(event.peer_id, ids=[event.message.id])
   reply_to = event.message.id
   if m[0] is None:
     reply_to = message.id
   await event.respond(
-    msg, 
+    msg,
     parse_mode='html',
     reply_to=reply_to,
   )
@@ -157,6 +161,9 @@ async def _esearch(event):
     return await event.reply('请用命令回复一张图片')
 
   img = await get_image(message, 'webp')
+  if not img:
+    await event.reply('回复的文件不是图片')
+    return
   res = await esearch(img)
   if isinstance(res, str):
     msg = res

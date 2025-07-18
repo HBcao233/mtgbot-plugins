@@ -27,7 +27,9 @@ eheaders = {
 }
 api_url = 'https://s.exhentai.org/api.php'
 if any(i == '' for i in (ipb_member_id, ipb_pass_hash, igneous)):
-  logger.warn("env 'ex_ipb_member_id', 'ipb_pass_hash', 'igneous' 配置错误, exhentai 解析将不可用")
+  logger.warn(
+    "env 'ex_ipb_member_id', 'ipb_pass_hash', 'igneous' 配置错误, exhentai 解析将不可用"
+  )
 
 
 class PluginException(Exception):
@@ -299,7 +301,7 @@ class GT:
       try:
         url = await hosting.get_url(img)
       except Exception:
-        logger.warning(f'hosting.get_url 调用失败', exc_info=1)
+        logger.warning('hosting.get_url 调用失败', exc_info=1)
         raise PluginException('上传失败')
     except Exception:
       logger.warning(f'p{i + 1} 上传失败', exc_info=1)

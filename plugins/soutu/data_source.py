@@ -2,7 +2,6 @@ from functools import cmp_to_key
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup, element
 import os
-import ujson as json
 import httpx
 
 import util
@@ -21,7 +20,9 @@ eheaders = {
   'cookie': f'ipb_member_id={ipb_member_id}; ipb_pass_hash={ipb_pass_hash}; igneous={igneous}',
 }
 if any(i == '' for i in (ipb_member_id, ipb_pass_hash, igneous)):
-  logger.warn("env 'ex_ipb_member_id', 'ipb_pass_hash', 'igneous' 配置错误, exsearch 可能不可用")
+  logger.warn(
+    "env 'ex_ipb_member_id', 'ipb_pass_hash', 'igneous' 配置错误, exsearch 可能不可用"
+  )
 
 
 async def to_img(path, ext='jpg'):
@@ -51,7 +52,7 @@ async def saucenao_search(path):
     return parse_saucenao(res)
 
   r = await util.post(
-    f'https://saucenao.com/search.php',
+    'https://saucenao.com/search.php',
     params={
       'db': 999,
       'output_type': 2,
@@ -126,9 +127,9 @@ def parse_saucenao(res):
     elif index_id == 8:
       # TODO:
       logger.info(i)
-      service_name = 'seiga'
-      member_id = i['data']['member_id']
-      seiga_id = i['data']['seiga_id']
+      # service_name = 'seiga'
+      # member_id = i['data']['member_id']
+      # seiga_id = i['data']['seiga_id']
 
     elif index_id == 9 or index_id == 12:
       creator = i['data']['creator']
@@ -240,7 +241,6 @@ def parse_saucenao(res):
 
     elif index_id == 32:
       logger.info(i)
-      
 
     elif index_id == 34:
       da_id = i['data']['da_id']
@@ -346,22 +346,22 @@ def parse_saucenao(res):
     )
   return msgs
 
-  
+
 async def esearch(path):
   eh = 'ex'
   if any(i == '' for i in (ipb_member_id, ipb_pass_hash, igneous)):
-    logger.warn("env 'ex_ipb_member_id', 'ipb_pass_hash', 'igneous' 配置错误, exsearch 将使用 e-hentai.org 站点")
+    logger.warn(
+      "env 'ex_ipb_member_id', 'ipb_pass_hash', 'igneous' 配置错误, exsearch 将使用 e-hentai.org 站点"
+    )
     eh = 'e-'
   r = httpx.post(
     f'https://upld.{eh}hentai.org/upld/image_lookup.php',
     headers=eheaders,
-    files={
-      'sfile': open(path, 'rb')
-    },
+    files={'sfile': open(path, 'rb')},
     data={
       'fs_similar': 'on',
       'fs_covers': '',
-    }
+    },
   )
   if r.status_code != 302:
     logger.info(f'{path} {r.status_code} {r.text}')
@@ -372,9 +372,9 @@ async def esearch(path):
   r = await util.get(url, headers=eheaders)
   if 'No hits found' in r.text:
     return '无结果'
-    
+
   res = []
-  soup = BeautifulSoup(text, 'html.parser')
+  soup = BeautifulSoup(r.text, 'html.parser')
   arr = soup.select('.glte')[0].children
   for i in arr:
     if not isinstance(i, element.Tag):
@@ -384,12 +384,14 @@ async def esearch(path):
     img = a.find('img')
     title = img.attrs['title']
     image = img.attrs['src']
-    res.append({
-      'url': url,
-      'title': title,
-      'image': image,
-    })
-    
+    res.append(
+      {
+        'url': url,
+        'title': title,
+        'image': image,
+      }
+    )
+
   res = [
     f'结果{i + 1}: <a href="{i["url"]}">预览图</a>'
     f'链接: <a href="{i["url"]}">{i["title"]}</a>'

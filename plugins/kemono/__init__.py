@@ -12,8 +12,7 @@ from .data_source import parse_page, get_info, gif2mp4
 
 
 _pattern = re.compile(
-  r'^/?(?:kid(?:@%s)?)? ?(?:(?:https://)?kemono\.(?:party|su)/)?([a-z]+)(?:(?:/user)?/(\d+))?(?:/post)?/(\d+)|^/kid'
-  % bot.me.username
+  r'^(?:/kid)? ?(?:(?:https://)?kemono\.(?:party|su)/)?([a-z]+)(?:(?:/user)?/(\d+))?(?:/post)?/(\d+)|^/kid(?![^ ])'
 ).match
 
 
@@ -132,7 +131,7 @@ async def _kid(event, text):
     img = await util.getImg(url, saveas=key, ext=True)
     if ext == '.gif':
       img = await gif2mp4(img)
-      if img == False:
+      if not img:
         return None
     await bar.add(1)
     return await util.media.file_to_media(img, options.mask)
