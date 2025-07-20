@@ -123,7 +123,7 @@ async def _tid(event, text):
           b'tid_' + message_id_bytes + b'_' + tid_bytes + sender_bytes,
         ),
       ],
-      [Button.inline('关闭面板', b'delete' + sender_bytes)],
+      # [Button.inline('关闭面板', b'delete' + sender_bytes)],
     ],
   )
   raise events.StopPropagation
