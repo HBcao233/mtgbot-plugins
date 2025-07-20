@@ -32,7 +32,10 @@ async def _soutu(event):
     not (message or (message := await event.message.get_reply_message()))
     or not message.file
   ):
-    return await event.reply('请用命令回复一张图片')
+    m = await event.reply('请用命令回复一张图片')
+    if not event.is_private:
+      bot.schedule_delete_messages(3, event.peer_id, m.id)
+    return
 
   if message.photo:
     _id = message.photo.id
@@ -123,7 +126,10 @@ async def _saucenao(event):
     not (message or (message := await event.message.get_reply_message()))
     or not message.file
   ):
-    return await event.reply('请用命令回复一张图片')
+    m = await event.reply('请用命令回复一张图片')
+    if not event.is_private:
+      bot.schedule_delete_messages(3, event.peer_id, m.id)
+    return
 
   img = await get_image(message)
   if not img:
@@ -139,11 +145,13 @@ async def _saucenao(event):
   reply_to = event.message.id
   if m[0] is None:
     reply_to = message.id
-  await event.respond(
+  m = await event.respond(
     msg,
     parse_mode='html',
     reply_to=reply_to,
   )
+  if isinstance(res, str) and not event.is_private:
+    bot.schedule_delete_messages(5, event.peer_id, m.id)
 
 
 @Command(
@@ -169,4 +177,15 @@ async def _esearch(event):
     msg = res
   else:
     msg = '\n\n'.join(res)
-  await event.reply(msg, parse_mode='html')
+  
+  m = await bot.get_messages(event.peer_id, ids=[event.message.id])
+  reply_to = event.message.id
+  if m[0] is None:
+    reply_to = message.id
+  m = await event.respond(
+    msg, 
+    parse_mode='html',
+    reply_to=reply_to,
+  )
+  if isinstance(res, str) and not event.is_private:
+    bot.schedule_delete_messages(5, event.peer_id, m.id)
