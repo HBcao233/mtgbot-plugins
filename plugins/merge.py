@@ -28,7 +28,7 @@ def get_buttons(self, event):
     start_mid = self.messages[0].id.to_bytes(4, 'big')
     end_mid = self.messages[-1].id.to_bytes(4, 'big')
     add_bytes = start_mid + b'_' + end_mid
-    buttons.append(Button.inline('合并图片', data=b'amerge_' + add_bytes))
+    buttons[0].append(Button.inline('合并图片', data=b'amerge_' + add_bytes))
   return buttons
 
 

@@ -7,17 +7,53 @@
 saucenao_api_key =
 """
 
-from telethon import Button
+from telethon import events, utils, Button
 from urllib.parse import quote
+import re 
 
 import util
 from plugin import Command, import_plugin
 from .data_source import to_img, saucenao_search, esearch
 
+
+mask = import_plugin('mask')
 try:
   hosting = import_plugin('hosting')
 except ModuleNotFoundError:
   hosting = None
+
+_get_buttons = mask.DelayMedia.get_buttons
+
+
+def get_buttons(self, event):
+  buttons = _get_buttons(self, event)
+  if all(i.photo for i in self.messages):
+    mid = self.messages[0].id.to_bytes(4, 'big')
+    buttons.append([Button.inline('搜图', data=b'soutu_' + mid)])
+  return buttons
+
+
+mask.DelayMedia.get_buttons = get_buttons
+
+
+async def get_image(message, _ext='jpg'):
+  file = message.file
+  ext = file.ext
+  mime_type = file.mime_type
+  if 'image' not in mime_type and 'video' not in mime_type:
+    return 
+
+  if message.photo:
+    _id = message.photo.id
+  elif message.document:
+    _id = message.document.id
+  name = f'{_id}{ext}'
+  img = util.getCache(name)
+  await message.download_media(file=img)
+  if 'video' in mime_type or ext == 'gif':
+    img = await to_img(img, _ext)
+
+  return img
 
 
 @Command(
@@ -94,24 +130,25 @@ async def _soutu(event):
   )
 
 
-async def get_image(message, _ext='jpg'):
-  file = message.file
-  ext = file.ext
-  mime_type = file.mime_type
-  if 'image' not in mime_type and 'video' not in mime_type:
-    return 
+soutu_button_pattern = re.compile(
+  rb'soutu_([\x00-\xff]{4,4})$'
+).match
 
-  if message.photo:
-    _id = message.photo.id
-  elif message.document:
-    _id = message.document.id
-  name = f'{_id}{ext}'
-  img = util.getCache(name)
-  await message.download_media(file=img)
-  if 'video' in mime_type or ext == 'gif':
-    img = await to_img(img, _ext)
 
-  return img
+@bot.on(events.CallbackQuery(pattern=soutu_button_pattern))
+async def soutu_button(event):
+  peer = event.query.peer
+  match = event.pattern_match
+  mid = int.from_bytes(match.group(1), 'big')
+  messages = await bot.get_messages(peer, ids=[mid])
+  message = messages[0]
+  if message is None:
+    await event.answer('消息不存在', alert=True)
+    await event.delete()
+    return
+  event.message = message
+  event.peer_id = utils.get_peer_id(peer)
+  await _soutu(event)
 
 
 @Command(
@@ -150,8 +187,6 @@ async def _saucenao(event):
     parse_mode='html',
     reply_to=reply_to,
   )
-  if isinstance(res, str) and not event.is_private:
-    bot.schedule_delete_messages(5, event.peer_id, m.id)
 
 
 @Command(
@@ -187,5 +222,3 @@ async def _esearch(event):
     parse_mode='html',
     reply_to=reply_to,
   )
-  if isinstance(res, str) and not event.is_private:
-    bot.schedule_delete_messages(5, event.peer_id, m.id)

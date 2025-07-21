@@ -219,7 +219,7 @@ class DelayMedia:
       buttons.append(Button.inline('添加遮罩', b'smask_1_' + add_bytes))
     if any(m.media.spoiler for m in self.messages):
       buttons.append(Button.inline('移除遮罩', b'smask_0_' + add_bytes))
-    return buttons
+    return [buttons]
 
 
 smask_button_pattern = re.compile(
