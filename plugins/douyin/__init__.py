@@ -52,8 +52,8 @@ async def _douyin(event):
 
   mid = await event.reply('请等待...')
   res = await get_aweme_detail(aid)
-  if not res:
-    return await mid.edit('获取失败')
+  if isinstance(res, str):
+    return await mid.edit(res)
   msg = parse_aweme_detail(res)
 
   url = res['video']['play_addr']['url_list'][-1]

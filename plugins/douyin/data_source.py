@@ -61,7 +61,7 @@ async def get_aweme_detail(aid: str):
   params = PostDetail(aweme_id=aid).model_dump()
 
   a_bogus = ABogus(user_agent=user_agent).generate_abogus(urlencode(params))[1]
-  logger.info(a_bogus)
+  # logger.info(a_bogus)
 
   params.update(
     {
@@ -73,17 +73,14 @@ async def get_aweme_detail(aid: str):
     params=params,
     headers=headers,
   )
-  if not r.text:
-    return
-  if r.status_code != 200:
-    return
+  if not r.text or r.status_code != 200:
+    return '请求失败'
   res = r.json()
   if res['status_code'] != 0:
-    return
+    return '获取失败'
   res = res['aweme_detail']
   if res is None:
-    logger.warning(res)
-    return
+    return '视频不存在'
   res = {
     k: v
     for k, v in res.items()
