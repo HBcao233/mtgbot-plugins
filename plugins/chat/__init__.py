@@ -5,11 +5,11 @@
 import os
 import json
 import re
-import openai
 import random
 import time
-from datetime import datetime
 from telethon import events, types, errors, Button
+from datetime import datetime
+from openai import AsyncOpenAI
 
 import config
 import util
@@ -113,7 +113,7 @@ async def _chat(event):
     if not inline_mode
     else event
   )
-  client = openai.Client(base_url=f'{api_url}', api_key=f'{api_key}')
+  client = AsyncOpenAI(base_url=f'{api_url}', api_key=f'{api_key}')
 
   content = ''
   reasoning_content = ''
@@ -251,13 +251,14 @@ blockquote::after {
     g = interval()
 
     # 流式调用
-    for chunk in client.chat.completions.create(
+    stream = await client.chat.completions.create(
       model=f'{model}',
       messages=msgs,
       temperature=0.2,
       max_tokens=max_tokens,
       stream=True,
-    ):
+    )
+    async for chunk in stream:
       # logger.info(chunk)
       if not chunk.choices:
         if content != '' and not content.endswith('\n'):
