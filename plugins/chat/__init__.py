@@ -105,6 +105,7 @@ async def _chat(event):
   )
   # 打印实际发送给 API 的消息内容
   logger.debug(f'[CHAT] messages to API: {msgs!r}')
+  logger.info(user_message)
 
   # 发送占位消息
   inline_mode = event.message is None
