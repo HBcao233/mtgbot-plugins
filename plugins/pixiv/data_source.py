@@ -26,7 +26,7 @@ class PixivClient(util.curl.Client):
     self,
     pid,
     *,
-    proxy=True,
+    proxy=None,
     headers=None,
     follow_redirects=True,
     timeout=None,
@@ -137,17 +137,17 @@ def parse_msg(res, hide=False):
     if 'translation' in i.keys():
       tags.append(('#' + i['translation']['en']).replace('#R-', '#R').replace(' ', '_'))
 
-  props = []
+  props = set()
   if any((tag := t) in tags for t in ['#R18', '#R17.9']):
-    props.append('#NSFW')
-    props.append(tag)
+    props.add('#NSFW')
+    props.add(tag)
   if '#R18G' in tags:
-    props.append('#R18G')
-    props.append('#NSFW')
+    props.add('#R18G')
+    props.add('#NSFW')
   if res['illustType'] == 2:
-    props.append('#动图')
+    props.add('#动图')
   if res['aiType'] == 2:
-    props.append('#AI生成')
+    props.add('#AI生成')
   prop = ' '.join(props)
   if prop != '':
     prop += '\n'
