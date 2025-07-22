@@ -24,6 +24,7 @@
 | youtube | youtube解析 | `yt-dlp` | `youtube_token` |
 | qqmusic | QQ音乐解析 | `qqmusic-api-python` | `qqmusic_musicid`, `qqmusic_musickey`, `qqmusic_refresh_key`, `qqmusic_refresh_token`, `qqmusic_encrypt_uin`|
 | 163music | 网易云音乐解析 | `pycryptodome` | `163music_csrf_token`, `163music_u` |
+| instagram | instagram解析 || `instagram_csrftoken`, `instagram_sessionid` | |
 |||||
 | keyword | 关键词回复 | | `superadmin` |
 | pan | tg网盘 | | |
