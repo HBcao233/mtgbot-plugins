@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # @Author  : HBcao
 # @Email   : hbcaoqaq@gmail.com
+# @Info    : twitter/x 解析
 """.env.example
 # X cookie 中的 ct0
 twitter_csrf_token =
@@ -45,7 +46,7 @@ async def _tid(event, text):
     )
 
   options = util.string.Options(text, hide=('简略', '省略'), mask=('spoiler', '遮罩'))
-  logger.info(f'{tid = }, {options = }')
+  logger.info(f'tid: {tid}, options: {options}')
   mid = await event.reply('请等待...')
 
   res = await get_twitter(tid)
