@@ -220,7 +220,7 @@ class Pixiv:
       else self.res['urls']['regular']
     )
     url = imgUrl.replace('_p0', f'_p{i}')
-    url = url.replace('i.pximg.net', 'i.pixiv.cat')
+    # url = url.replace('i.pximg.net', 'i.pixiv.cat')
 
     try:
       logger.info(f'GET {util.curl.logless(url)}')
