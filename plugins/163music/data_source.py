@@ -120,7 +120,7 @@ def parse_song_detail(res):
     'sid': sid,
     'coverUrl': res['al']['picUrl'],
     'title': name + alia,
-    'singers': singers,
+    'singers': '、'.join([i['name'] for i in res['ar']]),
     'album': res['al']['name'],
   }
   return msg, metainfo
@@ -170,9 +170,11 @@ async def get_flac_url(mid):
 
 
 async def get_url(mid):
+  '''
   res = await get_flac_url(mid)
   if res is not None:
     return res
+  '''
   return await get_song_url(mid)
 
 
@@ -197,8 +199,8 @@ async def add_metadata(img, ext, metainfo):
       cover,
       '-i',
       img,
-      '-c',
-      'copy',
+      # '-c',
+      # 'copy',
       '-map',
       '0:v',
       '-map',
