@@ -51,6 +51,7 @@ async def _ig(event, text):
   
   msg = parse_info(res)
   medias_info = parse_medias(res)
+  logger.info(medias_info)
   photos = util.Photos()
   videos = util.Videos()
   bar = Progress(mid, prefix='下载中...')
@@ -80,11 +81,12 @@ async def _ig(event, text):
           file,
           options.mask,
           progress_callback=bar.update if len(medias_info) == 1 else None,
+          as_image=True if ext == '.webp' else False,
         )
       medias.append(media)
       if len(medias_info) > 1:
         await bar.add(1)
-    
+    logger.info(medias)
     m = await bot.send_file(
       event.peer_id,
       medias,

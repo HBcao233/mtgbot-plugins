@@ -73,31 +73,24 @@ def parse_info(info):
 
 
 def parse_medias(info):
+  # logger.info(info)
   medias = []
-  if 'edge_sidecar_to_children' not in info:
-    _type = 'video'
-    if info['__typename'] == 'GraphVideo':
-      _type = 'video'
-    else:
-      logger.info(info['__typename'])
-    url = info['video_url']
-    ext = os.path.split(url.split('?')[0])[-1]
-    return [{
-      'type': _type,
-      'key': f'ig_{info["__typename"]}_{info["id"]}',
-      'url': url,
-      'ext': ext,
-      'is_video': info['is_video'],
-    }]
-  for i in info['edge_sidecar_to_children']['edges']:
-    ai = i['node']
-    url = ai['display_url']
-    ext = os.path.split(url.split('?')[0])[-1]
+  m = [info]
+  if 'edge_sidecar_to_children' in info:
+    m = [i['node'] for i in info['edge_sidecar_to_children']['edges']]
+  for ai in m:
     _type = 'photo'
     if ai['__typename'] == 'GraphImage':
       _type = 'photo'
+      url = ai['display_url']
+    elif info['__typename'] == 'GraphVideo':
+      _type = 'video'
+      url = ai['video_url']
     else:
       logger.info(ai['__typename'])
+    
+    ext = os.path.splitext(url.split('?')[0])[-1]
+    
     medias.append({
       'type': _type,
       'key': f'ig_{ai["__typename"]}_{ai["id"]}',
