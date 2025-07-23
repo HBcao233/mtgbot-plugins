@@ -29,6 +29,7 @@ from .data_source import (
   general_search,
   parse_search,
   get_try_url,
+  add_metadata,
 )
 import filters
 import util
@@ -69,7 +70,7 @@ async def _song(event, sid=''):
   res = await get_song_info(sid)
   if isinstance(res, str):
     return await event.reply(res)
-  msg = parse_song_info(res)
+  msg, metainfo = parse_song_info(res)
 
   key = f'qqmusic_{sid}'
   bar = Progress(mid)
@@ -98,6 +99,7 @@ async def _song(event, sid=''):
           ext='mp3',
           progress_callback=bar.update,
         )
+        img = await add_metadata(img, 'mp3', metainfo)
 
     await mid.edit('上传中...')
     bar.set_prefix('上传中...')

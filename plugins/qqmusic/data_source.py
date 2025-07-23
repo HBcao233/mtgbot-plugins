@@ -22,7 +22,9 @@ async def get_song_info(mid):
   res = await qqmusic_api.song.query_song(value=[mid], credential=credential)
   if len(res) == 0:
     return '获取失败'
-  return res[0]
+  res = res[0] 
+  res['album']['picUrl'] = qqmusic_api.album.get_cover(res['album']['mid'])
+  return res
 
 
 def parse_song_info(res):
@@ -46,7 +48,61 @@ def parse_song_info(res):
     f'<a href="{url}">{title}</a>{subtitle} - {singers} #qqmusic\n via @%s'
     % bot.me.username
   )
-  return msg
+  metainfo = {
+    'sid': mid,
+    'coverUrl': res['album']['picUrl'],
+    'title': title + subtitle,
+    'singers': '、'.join(i['name'] for i in res['singer']),
+    'album': res['album']['name'],
+  }
+  return msg, metainfo
+
+
+async def add_metadata(img, ext, metainfo):
+  sid = metainfo['sid']
+  cover_name = f'qqmusic_{sid}_cover'
+  cover_url = metainfo['coverUrl']
+  cover = await util.getImg(
+    cover_url,
+    saveas=cover_name,
+    ext=True,
+  )
+  resimg_name = f'qqmusic_{sid}_meta.{ext}'
+  resimg = util.getCacheFile(resimg_name)
+  title = metainfo['title']
+  singers = metainfo['singers']
+  album = metainfo['album']
+  returncode, stdout = await util.media.ffmpeg(
+    [
+      'ffmpeg',
+      '-i',
+      cover,
+      '-i',
+      img,
+      '-c',
+      'copy',
+      '-map',
+      '0:v',
+      '-map',
+      '1:a',
+      '-metadata',
+      f'title={title}',
+      '-metadata',
+      f'artist={singers}',
+      '-metadata',
+      f'album={album}',
+      '-metadata:s:v',
+      'title=Front cover',
+      '-metadata:s:v',
+      'comment=Cover (front)',
+      '-y',
+      resimg,
+    ]
+  )
+  if returncode != 0:
+    logger.warning(stdout)
+    return img
+  return resimg
 
 
 async def get_song_url(mid):
