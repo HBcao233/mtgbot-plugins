@@ -79,7 +79,7 @@ def parse_saucenao(res):
   long_remaining = res['header']['long_remaining']
   minimum_similarity = float(res['header']['minimum_similarity'])
   if float(res['results'][0]['header']['similarity']) <= minimum_similarity:
-    logger.info(res)
+    # logger.info(res)
     return '结果相似度过低'
 
   results = [
