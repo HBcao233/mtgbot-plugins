@@ -10,7 +10,7 @@ from plugin import handler, InlineCommand
 import filters
 
 
-_p = r'[ \[\(\{]*(-?\d{1,3})? *(?:[\/~d,:-]|to)*? *(-?\d{1,3})?[ \]\)\}]*$'
+_p = r'[ \[\(\{]*(-?\d{1,3})? *(?:(?:[\/~d,:-]|to) *(-?\d{1,3})?[ \]\)\}]*)?$'
 _pattern = re.compile((r'/?roll(?:@%s)?' % bot.me.username) + _p).match
 _query_pattern = re.compile(_p).match
 
