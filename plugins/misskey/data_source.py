@@ -1,12 +1,18 @@
 import httpx
 import json
+import re
+from datetime import datetime
+
 import util
-from util.log import logger
 import config
+from util.log import logger
+from util.log import timezone
 
 
 token = config.env.get('misskey_token', '')
 dvd_token = config.env.get('dvd_token', '')
+if not token:
+  logger.warning('misskey_token 未配置, misskey 获取将不可用.')
 
 
 async def get_note(noteId):
@@ -60,12 +66,28 @@ def parse_msg(res):
   noteId = res['id']
   username = res['user']['username']
   nickname = res['user']['name']
+  
+  # createdAt = res['createdAt'].replace('.000Z', '').replace('T', '')
+  createdAt = datetime.strptime(res['createdAt'].split('.')[0], r'%Y-%m-%dT%H:%M:%S')
+  createdAt.astimezone(timezone)
+  createdAt = createdAt.strftime('%Y年%m月%d日 %H:%M:%S')
+  text = res['text']
+  text = re.sub(r'\?\[([\s\S]*?)\]\(([\s\S]*?)\)', r'<a href="\2">\1</a>', text)
+  if text:
+    text = f'\n<blockquote expandable>{text}\n{createdAt}</blockquote>'
+  else:
+    text = f'\n{createdAt}'
+  
+  dvdInfo = ''
+  if dvdId := res.get('dvdId', ''):
+    dvdInfo = f'\n<a href="https://dvd.chat/notes/{dvdId}">在 DVD Chat 上访问</a>'
+
   msg = (
     f'<a href="https://misskey.io/notes/{noteId}">{noteId}</a> | '
     f'<a href="https://misskey.io/@{username}">{nickname}</a> #Misskey'
+    f'{dvdInfo}{text}'
+    f'\nvia @{bot.me.username}'
   )
-  if dvdId := res.get('dvdId', ''):
-    msg += f'\n<a href="https://dvd.chat/notes/{dvdId}">在 DVD Chat 上访问</a>'
   return msg
 
 
