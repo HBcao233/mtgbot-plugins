@@ -13,7 +13,7 @@ pyexecjs
 163music_u = ""
 """
 
-from telethon import Button
+from telethon import types, Button
 import re
 import asyncio
 
@@ -34,9 +34,8 @@ from .data_source import (
 )
 
 
-_pattern = re.compile(
-  r'(?:^/163music |(?:(?:https?://)?(?:y\.)?music\.163\.com/(?:[#m|]/)?song\?.*?id=)([0-9]{3,12})|(?:163cn\.tv/([0-9a-zA-Z]{7,7}))|(?:y\.)?music\.163\.com/(?:[#m]/)?program\?.*?id=([0-9]{3,12})|^/163music(?![^ ]))'
-).search
+_p = r'(?:^/163music |(?:/163music )?(?:(?:https?://)?(?:y\.)?music\.163\.com/(?:[#m|]/)?song\?.*?id=))([0-9]{3,12})|(?:163cn\.tv/([0-9a-zA-Z]{7,7}))|(?:y\.)?music\.163\.com/(?:[#m]/)?program\?.*?id=([0-9]{3,12})|^/163music(?![^ ])'
+_pattern = re.compile(_p).search
 
 
 @Command(
@@ -69,7 +68,7 @@ async def _song(event, sid=''):
         f'https://music.163.com/#/song?id={sid}',
       )
     elif pid := match.group(3):
-      program = True
+      program = True  # 播客
 
   mid = await event.reply('请等待...')
   if not program:
@@ -107,15 +106,28 @@ async def _song(event, sid=''):
       )
       msg.insert(1, f'Type: {ext}')
       img = await add_metadata(img, ext, metainfo)
+      await mid.edit('上传中...')
+      bar.set_prefix('上传中...')
+      img = await util.media.file_to_media(
+        img, 
+        attributes=[
+          types.DocumentAttributeAudio(
+            voice=False,
+            duration=info['dt'] // 1000,
+            title=metainfo['title'],
+            performer=metainfo['singers'],
+            waveform=None,
+          ),
+          types.DocumentAttributeFilename(f"{metainfo['title']} - {metainfo['singers']}.mp3"),
+        ],
+        progress_callback=bar.update
+      )
 
-    await mid.edit('上传中...')
-    bar.set_prefix('上传中...')
     m = await bot.send_file(
       event.peer_id,
       file=img,
       caption='\n'.join(msg),
       parse_mode='html',
-      progress_callback=bar.update,
     )
     await mid.delete()
   with util.data.Audios() as data:
