@@ -15,7 +15,7 @@ qqmusic_refresh_token =
 qqmusic_encrypt_uin =
 """
 
-from telethon import Button
+from telethon import types, Button
 import re
 import asyncio
 
@@ -67,10 +67,10 @@ async def _song(event, sid=''):
       )
 
   mid = await event.reply('请等待...')
-  res = await get_song_info(sid)
-  if isinstance(res, str):
-    return await event.reply(res)
-  msg, metainfo = parse_song_info(res)
+  info = await get_song_info(sid)
+  if isinstance(info, str):
+    return await event.reply(info)
+  msg, metainfo = parse_song_info(info)
 
   key = f'qqmusic_{sid}'
   bar = Progress(mid)
@@ -100,9 +100,23 @@ async def _song(event, sid=''):
           progress_callback=bar.update,
         )
         img = await add_metadata(img, 'mp3', metainfo)
+        await mid.edit('上传中...')
+        bar.set_prefix('上传中...')
+        img = await util.media.file_to_media(
+          img, 
+          attributes=[
+            types.DocumentAttributeAudio(
+              voice=False,
+              duration=info['interval'],
+              title=metainfo['title'],
+              performer=metainfo['singers'],
+              waveform=None,
+            ),
+            types.DocumentAttributeFilename(f"{metainfo['title']} - {metainfo['singers']}.mp3"),
+          ],
+          progress_callback=bar.update
+        )
 
-    await mid.edit('上传中...')
-    bar.set_prefix('上传中...')
     m = await bot.send_file(
       event.peer_id,
       file=img,
