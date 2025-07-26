@@ -21,9 +21,8 @@ import filters
 from .data_source import get_note, parse_msg, parse_medias
 
 
-_pattern = re.compile(
-  r'(?:^/misskey )?(?:https?://)?(?:misskey\.io/notes/)([a-z0-9]{16})(?:[^a-zA-Z0-9\n].*)?$|^/misskey(?![^ ])'
-).search
+_p = r'(?:^/misskey |(?:https?://)?(?:misskey\.io/notes/))([a-z0-9A-Z]{16})(?:[^a-zA-Z0-9\n].*)?$|^/misskey(?![^ ])'
+_pattern = re.compile(_p).search
 
 
 @Command(
@@ -34,10 +33,8 @@ _pattern = re.compile(
   scope=Scope.private(),
 )
 async def _misskey(event, text=''):
-  # match = event.pattern_match
-  text = re.sub(r'^/?misskey', '', text).strip()
-  match = _pattern(text)
-  if match is None or not (noteId := match.group(1)):
+  match = event.pattern_match
+  if not (noteId := match.group(1)):
     return await event.reply(
       '用法: /misskey <url/noteId> [hide] [mask]\n'
       '获取misskey笔记\n'
