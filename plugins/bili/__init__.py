@@ -62,10 +62,10 @@ async def _(event, text):
     )
 
   mid = await event.reply('请等待...')
-  res = await get_bili(bvid, aid)
-  if isinstance(res, str):
+  info = await get_bili(bvid, aid)
+  if isinstance(info, str):
     return await mid.edit('视频不存在')
-  bvid, aid, cid, title, msg = parse_msg(res, p)
+  bvid, aid, cid, title, msg = parse_msg(info, p)
   logger.info(f'{bvid} av{aid} P{p} cid: {cid}')
 
   data = util.Videos()
@@ -73,7 +73,7 @@ async def _(event, text):
   if p > 1:
     key += '_p' + str(p)
   bar = util.progress.Progress(mid, '发送中')
-  async with bot.action(event.chat_id, 'video'):
+  async with bot.action(event.peer_id, 'video'):
     if (file_id := data.get(key)) and not options.nocache:
       media = util.media.file_id_to_media(file_id, options.mask)
     else:
@@ -88,8 +88,8 @@ async def _(event, text):
         file, options.mask, progress_callback=bar.update
       )
 
-    res = await bot.send_file(
-      event.chat_id,
+    m = await bot.send_file(
+      event.peer_id,
       media,
       reply_to=event.message,
       caption=msg,
@@ -101,4 +101,33 @@ async def _(event, text):
     )
     await mid.delete()
   with data:
-    data[key] = res
+    data[key] = m
+  
+  key = f'{bvid}_pic'
+  data = util.Photos()
+  async with bot.action(event.peer_id, 'photo'):
+    if (file_id := data.get(key)) and not options.nocache:
+      media = util.media.file_id_to_media(file_id, options.mask)
+    else:
+      img = await util.getImg(
+        info['pic'],
+        headers={
+          'referer': 'https://www.bilibili.com/'
+        },
+        saveas=key,
+        ext=True,
+      )
+      media = await util.media.file_to_media(
+        img, options.mask, progress_callback=bar.update
+      )
+    m = await bot.send_file(
+      event.peer_id,
+      media,
+      reply_to=event.message,
+      buttons=Button.inline(
+        '移除遮罩' if options.mask else '添加遮罩',
+        b'mask',
+      ),
+    )
+  with data:
+    data[key] = m
