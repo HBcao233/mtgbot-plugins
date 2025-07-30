@@ -12,7 +12,7 @@ from .data_source import parse_page, get_info, gif2mp4
 
 
 _pattern = re.compile(
-  r'^(?:/kid)? ?(?:(?:https://)?kemono\.(?:party|su)/)?([a-z]+)(?:(?:/user)?/(\d+))?(?:/post)?/(\d+)|^/kid(?![^ ])'
+  r'^(?:/kid)? ?(?:(?:https://)?kemono\.(?:party|su|cr)/)?([a-z]+)(?:(?:/user)?/(\d+))?(?:/post)?/(\d+)|^/kid(?![^ ])'
 ).match
 
 
@@ -30,10 +30,12 @@ async def _kid(event, text):
   options = util.string.Options(text, nocache=(), mask=('遮罩', 'spoiler'))
   source = match.group(1)
   uid = match.group(2)
-  kid = f'https://kemono.su/{source}'
+  kid = f'https://kemono.cr/{source}'
   if uid:
     kid += f'/user/{uid}'
   kid += f'/post/{pid}'
+  logger.info(f'kid: {kid}, options: {options}')
+  
   mid = await event.reply('请等待...')
 
   info = await get_info(source, uid, pid)
@@ -57,7 +59,7 @@ async def _kid(event, text):
     if 'name' not in i:
       u = i['path']
       if 'http' not in u:
-        u = 'https://kemono.su' + u
+        u = 'https://kemono.cr' + u
       n = os.path.basename(u)
       n = os.path.splitext(n)[0]
       _files[n] = {
@@ -65,7 +67,7 @@ async def _kid(event, text):
         'url': u,
       }
     elif i['name'] in _files:
-      _files[i['name']]['url'] = 'https://kemono.su/data' + i['path']
+      _files[i['name']]['url'] = 'https://kemono.cr/data' + i['path']
   files = [i for i in _files.values()]
   _attachments = [
     {
@@ -86,9 +88,8 @@ async def _kid(event, text):
 
     msg = (
       f'标题: {title}\n'
-      f'作者: <a href="{user_url}">{user_name}</a>\n'
-      f'预览: {url}\n'
-      f'原链接: {kid}'
+      f'<a href="{url}">预览</a> | <a href="{kid}">原链接</a>\n'
+      f'作者: <a href="{user_url}">{user_name}</a>'
     )
     if attachments:
       msg += '\n\n' + attachments

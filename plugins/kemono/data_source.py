@@ -5,12 +5,12 @@ from util.log import logger
 
 
 async def get_info(source, uid, pid):
-  r = await util.get(f'https://kemono.su/api/v1/{source}/user/{uid}/post/{pid}')
+  r = await util.get(f'https://kemono.cr/api/v1/{source}/user/{uid}/post/{pid}')
   if r.status_code != 200:
     return False
   info = r.json()
   info['source'] = source
-  r1 = await util.get(f'https://kemono.su/api/v1/{source}/user/{uid}/profile')
+  r1 = await util.get(f'https://kemono.cr/api/v1/{source}/user/{uid}/profile')
   if r.status_code != 200:
     return False
   info['author'] = r1.json()
