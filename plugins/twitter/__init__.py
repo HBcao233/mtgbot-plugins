@@ -67,7 +67,7 @@ async def _tid(event, text):
   photos = util.Photos()
   videos = util.Videos()
   bar = Progress(mid, prefix='下载中...')
-  async with bot.action(event.chat_id, medias_info[0]['type']):
+  async with bot.action(event.peer_id, medias_info[0]['type']):
     for index, i in enumerate(medias_info):
       url = i['url']
       md5 = i['md5']
@@ -94,7 +94,7 @@ async def _tid(event, text):
       medias.append(media)
 
     res = await bot.send_file(
-      event.chat_id,
+      event.peer_id,
       medias,
       reply_to=event.message,
       caption=msg,
