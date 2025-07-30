@@ -81,7 +81,7 @@ async def _song(event, sid=''):
       url = await get_song_url(sid)
       img = None
       if not url:
-        url = await get_try_url(res)
+        url = await get_try_url(info)
         key += '_try'
         if key in util.data.Audios():
           img = util.data.Audios()[key]
