@@ -2,8 +2,9 @@
 # @Author  : HBcao
 # @Email   : hbcaoqaq@gmail.com
 
-from telethon import events, utils, errors, Button
+from telethon import types, events, utils, errors, Button
 import re
+import os
 import asyncio
 
 import util
@@ -252,12 +253,16 @@ async def smask_button(event):
     return
 
   btn_message = await event.get_message()
-  m = await bot.send_file(
-    peer,
-    [override_message_spoiler(m, mask) for m in messages],
-    caption=[m.text for m in messages],
-    reply_to=btn_message.reply_to and btn_message.reply_to.reply_to_msg_id,
-  )
+  try:
+    m = await bot.send_file(
+      peer,
+      [override_message_spoiler(i, mask) for i in messages],
+      caption=[m.text for m in messages],
+      reply_to=btn_message.reply_to and btn_message.reply_to.reply_to_msg_id,
+    )
+  except errors.MediaEmptyError:
+    logger.info(f'发送失败, 尝试下载后发送')
+    m = await download_mask(event, mask, messages, btn_message)
   await m[0].reply(
     '操作完成',
     buttons=Button.inline(
@@ -276,3 +281,33 @@ async def smask_button(event):
   except errors.MessageNotModifiedError:
     pass
   await event.answer()
+
+
+async def download_mask(event, mask, messages, btn_message):
+  peer = event.query.peer
+  medias = []
+  data = util.Documents() if messages[0].document else util.Photos()
+  keys = []
+  for i in messages:
+    _id = i.document.id if i.document else i.photo.id
+    key = str(_id) + i.file.ext
+    keys.append(key)
+    if file_id := data.get(key):
+      media = util.media.file_id_to_media(file_id, mask)
+    else:
+      img = util.getCache(key)
+      if not os.path.isfile(img):
+        await i.download_media(file=img)
+      media = await util.media.file_to_media(img, mask, nosound_video=True)
+    medias.append(media)
+
+  m = await bot.send_file(
+    peer,
+    medias,
+    caption=[m.text for m in messages],
+    reply_to=btn_message.reply_to and btn_message.reply_to.reply_to_msg_id,
+  )
+  with data:
+    for i, ai in enumerate(m):
+      data[keys[i]] = ai
+  return m
