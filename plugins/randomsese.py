@@ -11,6 +11,7 @@ from plugin import InlineCommand
 
 @InlineCommand(' *$')
 async def _(event):
+  builder = event.builder
   r = await util.get(
     'https://api.lolicon.app/setu/v2?size=regular&size=thumb&tag=萝莉&r18=1'
   )
@@ -21,26 +22,24 @@ async def _(event):
   msg = f'<a href="https://www.pixiv.net/artworks/{res["pid"]}">pixiv_{res["pid"]}</a>'
   message, entities = html_parser.parse(msg)
 
-  result = types.InputBotInlineResult(
-    id=str(time.time()),
-    type='photo',
-    thumb=types.InputWebDocument(
-      url=res['urls']['thumb'],
-      size=0,
-      mime_type='image/jpeg',
-      attributes=[],
-    ),
+  result = builder.article(
+    # id=str(int(time.time() * 1000)),
+    # type='photo',
+    title='随机涩图',
+    description='',
+    text=message,
+    entities=entities,
     content=types.InputWebDocument(
       url=res['urls']['regular'],
       size=0,
       mime_type='image/jpeg',
       attributes=[],
     ),
-    send_message=types.InputBotInlineMessageMediaAuto(
-      message=message,
-      entities=entities,
+    thumb=types.InputWebDocument(
+      url=res['urls']['thumb'],
+      size=0,
+      mime_type='image/jpeg',
+      attributes=[],
     ),
-    title='随机涩图',
-    description='',
   )
   return [result]
