@@ -40,8 +40,10 @@ async def get_bili(bvid, aid):
   )
   res = r.json()
   if res['code'] in [-404, 62002, 62004]:
+    logger.info(r.text)
     return '视频不存在'
   elif res['code'] != 0:
+    logger.info(r.text)
     return '请求失败'
   return res['data']
 

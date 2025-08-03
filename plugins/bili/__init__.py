@@ -15,10 +15,8 @@ from plugin import Command, Scope
 import filters
 from .data_source import get_bili, parse_msg, get_video
 
-
-_pattern = re.compile(
-  r'(?:^|^/bili |(?:https?://)?bilibili\.com/video/)(av\d{1,11}|(?:BV|bv)[0-9a-zA-Z]{8,12})|(?:b23\.tv\\?/((?![0-9]{7,7})[0-9a-zA-Z]{7,7}))|^/bili(?![^ ])'
-).search
+_p = r'(?:^|^/bili |(?:https?://)?bilibili\.com/video/)(av\d{2,11}|(?:BV|bv)[0-9a-zA-Z]{8,12})|(?:b23\.tv\\?/((?![0-9]{7,7})[0-9a-zA-Z]{7,7}))|^/bili(?![^ ])'
+_pattern = re.compile(_p).search
 
 
 @Command(
@@ -47,7 +45,7 @@ async def _(event, text):
   g = match.group(1)
   aid = ''
   bvid = ''
-  if 'av' in g:
+  if g.startswith('av'):
     aid = g.replace('av', '')
   else:
     bvid = g
@@ -55,7 +53,8 @@ async def _(event, text):
   if match1 := re.search(r'(?:\?|&)p=(\d+)', text):
     if (_p := int(match1.group(1))) > 1:
       p = _p
-
+  
+  logger.info(f'bvid: {bvid}, aid: {aid}, options: {options}')
   if flag:
     await event.reply(
       f'https://www.bilibili.com/video/{bvid}' + ('?p=' + str(p) if p > 1 else ''),
@@ -102,7 +101,7 @@ async def _(event, text):
     await mid.delete()
   with data:
     data[key] = m
-  
+
   key = f'{bvid}_pic'
   data = util.Photos()
   async with bot.action(event.peer_id, 'photo'):
@@ -111,9 +110,7 @@ async def _(event, text):
     else:
       img = await util.getImg(
         info['pic'],
-        headers={
-          'referer': 'https://www.bilibili.com/'
-        },
+        headers={'referer': 'https://www.bilibili.com/'},
         saveas=key,
         ext=True,
       )
