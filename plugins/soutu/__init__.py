@@ -9,7 +9,7 @@ saucenao_api_key =
 
 from telethon import events, utils, Button
 from urllib.parse import quote
-import re 
+import re
 
 import util
 from plugin import Command, import_plugin
@@ -27,7 +27,7 @@ _get_buttons = mask.DelayMedia.get_buttons
 
 def get_buttons(self, event):
   buttons = _get_buttons(self, event)
-  if all(i.photo for i in self.messages):
+  if all(i.photo or i.video for i in self.messages):
     mid = self.messages[0].id.to_bytes(4, 'big')
     buttons.append([Button.inline('搜图', data=b'soutu_' + mid)])
   return buttons
@@ -41,7 +41,7 @@ async def get_image(message, _ext='jpg'):
   ext = file.ext
   mime_type = file.mime_type
   if 'image' not in mime_type and 'video' not in mime_type:
-    return 
+    return
 
   if message.photo:
     _id = message.photo.id
@@ -119,20 +119,15 @@ async def _soutu(event):
       ),
     ],
   ]
-  m = await bot.get_messages(event.peer_id, ids=[event.message.id])
-  reply_to = event.message.id
-  if m[0] is None:
-    reply_to = message.id
+
   await event.respond(
-    '请点击以下链接手动搜图\n或使用 /saucenao 命令搜图',
+    '请点击以下链接手动搜图',
     buttons=buttons,
-    reply_to=reply_to,
+    reply_to=message.id,
   )
 
 
-soutu_button_pattern = re.compile(
-  rb'soutu_([\x00-\xff]{4,4})$'
-).match
+soutu_button_pattern = re.compile(rb'soutu_([\x00-\xff]{4,4})$').match
 
 
 @bot.on(events.CallbackQuery(pattern=soutu_button_pattern))
@@ -178,14 +173,10 @@ async def _saucenao(event):
   else:
     msg = '\n\n'.join(res)
 
-  m = await bot.get_messages(event.peer_id, ids=[event.message.id])
-  reply_to = event.message.id
-  if m[0] is None:
-    reply_to = message.id
   m = await event.respond(
     msg,
     parse_mode='html',
-    reply_to=reply_to,
+    reply_to=message.id,
   )
 
 
@@ -212,13 +203,9 @@ async def _esearch(event):
     msg = res
   else:
     msg = '\n\n'.join(res)
-  
-  m = await bot.get_messages(event.peer_id, ids=[event.message.id])
-  reply_to = event.message.id
-  if m[0] is None:
-    reply_to = message.id
+
   m = await event.respond(
-    msg, 
+    msg,
     parse_mode='html',
-    reply_to=reply_to,
+    reply_to=message.id,
   )
