@@ -39,9 +39,9 @@ class PixivClient(util.curl.Client):
     _headers.update({'referer': f'https://www.pixiv.net/artworks/{pid}'})
     _headers.update(headers)
     super().__init__(
-      proxy=proxy, 
-      headers=_headers, 
-      follow_redirects=follow_redirects, 
+      proxy=proxy,
+      headers=_headers,
+      follow_redirects=follow_redirects,
       timeout=timeout,
     )
 

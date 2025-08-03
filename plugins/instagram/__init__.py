@@ -5,11 +5,11 @@
 """.env.example
 # cookie 中的 csrftoken sessionid
 instagram_csrftoken =
-instagram_sessionid = 
+instagram_sessionid =
 """
 
 from telethon import events, errors, Button
-import re 
+import re
 
 import util
 import filters
@@ -44,11 +44,11 @@ async def _ig(event, text):
   options = util.string.Options(text, hide=('简略', '省略'), mask=('spoiler', '遮罩'))
   logger.info(f'shortcode: {shortcode}, options: {options}')
   mid = await event.reply('请等待...')
-  
+
   res = await media_info(shortcode)
   if isinstance(res, str):
     return await mid.edit(res)
-  
+
   msg = parse_info(res)
   medias_info = parse_medias(res)
   logger.info(medias_info)
@@ -95,13 +95,13 @@ async def _ig(event, text):
       parse_mode='HTML',
     )
   await mid.delete()
-  
+
   with photos:
     with videos:
       for i, ai in enumerate(m):
         t = photos if ai.photo else videos
         t[medias_info[i]['key']] = ai
-  
+
   message_id_bytes = m[0].id.to_bytes(4, 'big')
   sender_bytes = b'~' + event.sender_id.to_bytes(6, 'big', signed=True)
   shortcode_bytes = shortcode.encode()
@@ -121,4 +121,3 @@ async def _ig(event, text):
       # [Button.inline('关闭面板', b'delete' + sender_bytes)],
     ],
   )
-  

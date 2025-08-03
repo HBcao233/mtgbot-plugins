@@ -116,9 +116,7 @@ def gen_buttons(row):
         Button.inline('重置', b'light_\xfe\x00\x00'),
         Button.inline('求解', b'light_\xff\x00\x00'),
       ],
-      [
-        Button.url('网页版', 'https://games-six-teal.vercel.app/lighton/')
-      ],
+      [Button.url('网页版', 'https://games-six-teal.vercel.app/lighton/')],
     )
   )
   return buttons

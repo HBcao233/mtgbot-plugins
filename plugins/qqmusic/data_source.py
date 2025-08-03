@@ -22,7 +22,7 @@ async def get_song_info(mid):
   res = await qqmusic_api.song.query_song(value=[mid], credential=credential)
   if len(res) == 0:
     return '获取失败'
-  res = res[0] 
+  res = res[0]
   res['album']['picUrl'] = qqmusic_api.album.get_cover(res['album']['mid'])
   return res
 

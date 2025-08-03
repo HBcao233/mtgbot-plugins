@@ -35,7 +35,7 @@ async def _kid(event, text):
     kid += f'/user/{uid}'
   kid += f'/post/{pid}'
   logger.info(f'kid: {kid}, options: {options}')
-  
+
   mid = await event.reply('请等待...')
 
   info = await get_info(source, uid, pid)

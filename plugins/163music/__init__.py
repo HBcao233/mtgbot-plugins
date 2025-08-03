@@ -109,7 +109,7 @@ async def _song(event, sid=''):
       await mid.edit('上传中...')
       bar.set_prefix('上传中...')
       img = await util.media.file_to_media(
-        img, 
+        img,
         attributes=[
           types.DocumentAttributeAudio(
             voice=False,
@@ -118,9 +118,11 @@ async def _song(event, sid=''):
             performer=metainfo['singers'],
             waveform=None,
           ),
-          types.DocumentAttributeFilename(f"{metainfo['title']} - {metainfo['singers']}.mp3"),
+          types.DocumentAttributeFilename(
+            f'{metainfo["title"]} - {metainfo["singers"]}.mp3'
+          ),
         ],
-        progress_callback=bar.update
+        progress_callback=bar.update,
       )
 
     m = await bot.send_file(

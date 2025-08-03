@@ -170,11 +170,11 @@ async def get_flac_url(mid):
 
 
 async def get_url(mid):
-  '''
+  """
   res = await get_flac_url(mid)
   if res is not None:
     return res
-  '''
+  """
   return await get_song_url(mid)
 
 

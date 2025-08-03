@@ -53,7 +53,7 @@ async def _(event, text):
   if match1 := re.search(r'(?:\?|&)p=(\d+)', text):
     if (_p := int(match1.group(1))) > 1:
       p = _p
-  
+
   logger.info(f'bvid: {bvid}, aid: {aid}, options: {options}')
   if flag:
     await event.reply(

@@ -362,7 +362,7 @@ class CryptoUtility:
         self.big_array[1] = initial_value
         self.big_array[index_b] = index_b
       else:
-        sum_initial = initial_value # + value_e
+        sum_initial = initial_value  # + value_e
 
       char_value = ord(char)
       sum_initial %= len(self.big_array)

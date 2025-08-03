@@ -66,7 +66,7 @@ def parse_msg(res):
   noteId = res['id']
   username = res['user']['username']
   nickname = res['user']['name']
-  
+
   # createdAt = res['createdAt'].replace('.000Z', '').replace('T', '')
   createdAt = datetime.strptime(res['createdAt'].split('.')[0], r'%Y-%m-%dT%H:%M:%S')
   createdAt.astimezone(timezone)
@@ -77,7 +77,7 @@ def parse_msg(res):
     text = f'\n<blockquote expandable>{text}\n{createdAt}</blockquote>'
   else:
     text = f'\n{createdAt}'
-  
+
   dvdInfo = ''
   if dvdId := res.get('dvdId', ''):
     dvdInfo = f'\n<a href="https://dvd.chat/notes/{dvdId}">在 DVD Chat 上访问</a>'

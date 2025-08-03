@@ -1,6 +1,6 @@
 import json
-import os 
-import httpx 
+import os
+import httpx
 from datetime import datetime
 
 import util
@@ -16,7 +16,9 @@ gheaders = {
   'X-Csrftoken': csrftoken,
 }
 if csrftoken == '' or sessionid == '':
-  logger.warning('instagram_csrftoken或instagram_sessionid配置错误, instagram解析将不可用')
+  logger.warning(
+    'instagram_csrftoken或instagram_sessionid配置错误, instagram解析将不可用'
+  )
 
 ig_proxy = config.env.get('ig_proxy', None)
 logger.info(f'ig_proxy: {ig_proxy}')
@@ -52,11 +54,11 @@ def parse_info(info):
   fullname = info['owner']['full_name']
   username = info['owner']['username']
   author_url = f'https://www.instagram.com/{username}/'
-  
+
   taken_at_timestamp = info['taken_at_timestamp']
   taken_datetime = datetime.fromtimestamp(taken_at_timestamp, timezone)
   taken_time = taken_datetime.strftime('%Y年%m月%d日 %H:%M:%S')
-  
+
   captions = info['edge_media_to_caption']['edges']
   caption = ''
   if len(captions) > 0:
@@ -67,9 +69,9 @@ def parse_info(info):
     caption = f'\n{taken_time}'
   msg = (
     f'<a href="{url}">{shortcode}</a> - <a href="{author_url}">{fullname}</a> #instagram{caption}'
-    f'\nvia @{bot.me.username}' 
+    f'\nvia @{bot.me.username}'
   )
-  return msg 
+  return msg
 
 
 def parse_medias(info):
@@ -88,14 +90,16 @@ def parse_medias(info):
       url = ai['video_url']
     else:
       logger.info(ai['__typename'])
-    
+
     ext = os.path.splitext(url.split('?')[0])[-1]
-    
-    medias.append({
-      'type': _type,
-      'key': f'ig_{ai["__typename"]}_{ai["id"]}',
-      'url': url,
-      'ext': ext,
-      'is_video': ai['is_video'],
-    })
+
+    medias.append(
+      {
+        'type': _type,
+        'key': f'ig_{ai["__typename"]}_{ai["id"]}',
+        'url': url,
+        'ext': ext,
+        'is_video': ai['is_video'],
+      }
+    )
   return medias
