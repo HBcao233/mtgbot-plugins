@@ -24,11 +24,15 @@ _get_buttons = mask.DelayMedia.get_buttons
 
 def get_buttons(self, event):
   buttons = _get_buttons(self, event)
-  if all(i.photo for i in event.messages):
+  if all(i.photo or i.video for i in event.messages):
     start_mid = self.messages[0].id.to_bytes(4, 'big')
     end_mid = self.messages[-1].id.to_bytes(4, 'big')
     add_bytes = start_mid + b'_' + end_mid
-    buttons[0].append(Button.inline('合并图片', data=b'amerge_' + add_bytes))
+    if any(i.video for i in event.messages):
+      text = '合并媒体'
+    else:
+      text = '合并图片'
+    buttons[0].append(Button.inline(text, data=b'amerge_' + add_bytes))
   return buttons
 
 
