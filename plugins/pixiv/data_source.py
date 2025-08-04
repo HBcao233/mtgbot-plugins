@@ -8,7 +8,9 @@ from asyncio.subprocess import PIPE
 import util
 import config
 from util.log import logger
+from util.log import timezone
 from plugin import import_plugin
+
 
 try:
   hosting = import_plugin('hosting')
@@ -173,16 +175,17 @@ def parse_msg(res, hide=False):
       comment = comment + '\n......'
     if comment != '':
       comment = ':\n<blockquote expandable>' + comment + '</blockquote>'
-
+  
+  createDate = datetime.strptime(res['createDate'], r'%Y-%m-%dT%H:%M:%S%z')
+  createDate.astimezone(timezone)
+  createDate = createDate.strftime('%Y年%m月%d日 %H:%M:%S')
+  
   msg = (
     f'{prop}<a href="https://www.pixiv.net/artworks/{pid}/">{title}</a>'
     f' | <a href="https://www.pixiv.net/users/{uid}/">{username}</a> #pixiv [<code>{pid}</code>]'
-    + (
-      ''
-      if hide
-      else f'{comment}\n<blockquote expandable>{" ".join(i for i in tags if i not in ["#R18", "#R18G"])}</blockquote>'
-    )
   )
+  if not hide:
+    msg += f'{comment}\n<blockquote expandable>{" ".join(i for i in tags if i not in ["#R18", "#R18G"])}</blockquote>\n{createDate}'
   return msg, tags
 
 
