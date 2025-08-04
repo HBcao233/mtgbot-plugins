@@ -2,10 +2,12 @@ import re
 import time
 import httpx
 import ujson as json
+from datetime import datetime
 
 import config
 import util
 from util.log import logger
+from util.log import timezone 
 
 
 env = config.env
@@ -97,22 +99,20 @@ def parse_msg(res):
   full_text = re.sub(
     r'([^@]*[^/@]+)@([0-9a-zA-Z_]*)', r'\1<a href="https://x.com/\2">@\2</a>', full_text
   )
-
-  utc_time = time.strptime(tweet['created_at'], r'%a %b %d %H:%M:%S %z %Y')
-  local_time = time.localtime(
-    time.mktime(utc_time) + utc_time.tm_gmtoff - time.timezone
-  )
-  create_time = time.strftime('%Y年%m月%d日 %H:%M:%S', local_time)
+  
+  created_at = datetime.strptime(tweet['created_at'], r'%a %b %d %H:%M:%S %z %Y')
+  created_at.astimezone(timezone)
+  created_at = created_at.strftime('%Y年%m月%d日 %H:%M:%S')
+  
   msg = (
     f'<a href="https://x.com/{username}/status/{tid}">{tid}</a>'
     f' | <a href="https://x.com/{username}">{nickname}</a> #X'
-    + (
-      f':\n<blockquote expandable>{full_text}\n{create_time}</blockquote>'
-      if full_text != ''
-      else f':\n{create_time}'
-    )
   )
-  return msg, full_text, create_time
+  if full_text:
+    msg += f':\n<blockquote expandable>{full_text}\n{created_at}</blockquote>'
+  else:
+    msg += f':\n{created_at}'
+  return msg, full_text, created_at
 
 
 def parseMedias(tweet):
