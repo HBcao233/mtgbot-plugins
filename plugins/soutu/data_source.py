@@ -78,15 +78,21 @@ def parse_saucenao(res):
   short_remaining = res['header']['short_remaining']
   long_remaining = res['header']['long_remaining']
   minimum_similarity = float(res['header']['minimum_similarity'])
-  if float(res['results'][0]['header']['similarity']) <= minimum_similarity:
-    # logger.info(res)
+  if float(res['results'][0]['header']['similarity']) <= max(minimum_similarity, 60):
     return '结果相似度过低'
 
   results = [
-    i for i in res['results'] if float(i['header']['similarity']) > minimum_similarity
+    i 
+    for i in res['results'] 
+    if float(i['header']['similarity']) > max(minimum_similarity, 60)
   ]
+  logger.info(results[0]['header']['similarity'])
 
   def cmp(x, y):
+    if x['header']['similarity'] > y['header']['similarity']:
+      return -1
+    if x['header']['similarity'] < y['header']['similarity']:
+      return 1
     i = x['header']['index_id']
     j = y['header']['index_id']
     if i == 5 and j != 5:
