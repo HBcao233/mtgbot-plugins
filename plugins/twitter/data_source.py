@@ -81,14 +81,17 @@ async def get_twitter(tid):
     return '未知错误'
 
 
+def replace_unsupported_characters(t):
+  return t.replace('\u17b5', '\\u17b5')
+
 def parse_msg(res):
   user = res['core']['user_results']['result']['core']
-  nickname = user['name']
+  nickname = replace_unsupported_characters(user['name'])
   username = user['screen_name']
-
+  
   tweet = res['legacy']
   tid = tweet['id_str']
-  full_text = tweet['full_text']
+  full_text = replace_unsupported_characters(tweet['full_text'])
   if 'urls' in tweet['entities'].keys():
     for i in tweet['entities']['urls']:
       full_text = full_text.replace(i['url'], i['expanded_url'])
@@ -99,6 +102,8 @@ def parse_msg(res):
   full_text = re.sub(
     r'([^@]*[^/@]+)@([0-9a-zA-Z_]*)', r'\1<a href="https://x.com/\2">@\2</a>', full_text
   )
+  if '暗号' in full_text and ('t.me' in full_text or '通道' in full_text or '直通' in full_text or '领取' in full_text or '联系' in full_text or '渠道' in full_text or '进群' in full_text or '飞机' in full_text):
+    full_text = f'\u26a0推文内容疑似推广诈骗，请注意甄别\n\n{full_text}'
   
   created_at = datetime.strptime(tweet['created_at'], r'%a %b %d %H:%M:%S %z %Y')
   created_at.astimezone(timezone)
