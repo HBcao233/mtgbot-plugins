@@ -104,7 +104,7 @@ async def _chat(event):
     + [{'role': 'user', 'content': user_message}]
   )
   # 打印实际发送给 API 的消息内容
-  logger.debug(f'[CHAT] messages to API: {msgs!r}')
+  # logger.debug(f'[CHAT] messages to API: {msgs!r}')
   logger.info(user_message)
 
   # 发送占位消息
@@ -255,9 +255,10 @@ blockquote::after {
     stream = await client.chat.completions.create(
       model=f'{model}',
       messages=msgs,
-      temperature=0.2,
       max_tokens=max_tokens,
       stream=True,
+      temperature=0.6,
+      top_p=0.7,
     )
     async for chunk in stream:
       # logger.info(chunk)
@@ -270,13 +271,14 @@ blockquote::after {
         break
 
       delta = chunk.choices[0].delta
+      logger.debug(f'[CHAT] delta: {delta}')
       if not delta:
         if hasattr(chunk.choices[0], 'message'):
           content += chunk.choices[0].message['content']
           break
         continue
-      c = delta.content or ''
-      rc = delta.reasoning_content or ''
+      c = getattr(delta, 'content', '')
+      rc = getattr(delta, 'reasoning_content', '')
       if c:
         content += c
       elif rc:
