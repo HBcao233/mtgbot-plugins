@@ -16,7 +16,11 @@ async def gallery_info(gid):
   url = f'https://nhentai.net/api/gallery/{gid}'
   headers = {'referer': f'https://nhentai.net/g/{gid}'}
   r = await util.get(url, headers=headers)
-  res = r.json()
+  try:
+    res = r.json()
+  except json.JSONDecodeError:
+    raise PluginException('解析失败')
+
   if 'error' in res:
     e = res['error']
     _dict = {'does not exist': '页面不存在'}

@@ -28,6 +28,8 @@ _pattern = re.compile(
 async def nid(event, text):
   match = event.pattern_match
   gid = match.group(1)
+  if not gid:
+    return await event.reply('用法: 直接发送nhentai链接')
 
   options = util.string.Options(text, nocache=())
 
