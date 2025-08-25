@@ -169,7 +169,7 @@ async def _saucenao(event):
     return
   res = await saucenao_search(img)
   if isinstance(res, str):
-    msg = '错误: ' + res
+    msg = 'SauceNAO 搜图: ' + res
   else:
     msg = '\n\n'.join(res)
 

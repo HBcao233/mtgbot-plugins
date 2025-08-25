@@ -123,7 +123,7 @@ def parse_msg(res):
   if full_text:
     msg += f':\n<blockquote expandable>{full_text}\n{created_at}</blockquote>'
   else:
-    msg += f':\n{created_at}'
+    msg += f'\n{created_at}'
   return msg, full_text, created_at
 
 
