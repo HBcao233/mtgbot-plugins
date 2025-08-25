@@ -216,7 +216,7 @@ class GT:
       res = await self.get_urls(client)
       if isinstance(res, str):
         return res
-      logger.info(self.urls)
+      # logger.info(self.urls)
       try:
         result = await self.download_imgs(client)
       except PluginException as e:
@@ -293,11 +293,20 @@ class GT:
     url = res.url
     try:
       logger.info(f'GET {logless(url)}')
-      img = await client.getImg(
-        url,
-        saveas=key,
-        ext=True,
-      )
+      try:
+        img = await client.getImg(
+          url,
+          saveas=key,
+          ext=True,
+        )
+      except (httpx.ConnectTimeout, httpx.RemoteProtocolError):
+        # 重试
+        img = await client.getImg(
+          url,
+          saveas=key,
+          ext=True,
+        )
+      img = await util.media.to_img(img)
       try:
         url = await hosting.get_url(img)
       except Exception:
@@ -305,7 +314,7 @@ class GT:
         raise PluginException('上传失败')
     except Exception:
       logger.warning(f'p{i + 1} 上传失败', exc_info=1)
-      return Res(url)
+      return Res(f'p{i + 1} 获取失败')
     else:
       data[key] = url
     return Res(url)
