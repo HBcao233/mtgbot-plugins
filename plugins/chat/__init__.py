@@ -7,18 +7,20 @@ import json
 import re
 import random
 import time
-from telethon import events, types, errors, Button
+from telethon import events, types, errors, utils, Button
 from datetime import datetime
 from openai import AsyncOpenAI
 
-import config
 import util
-from plugin import handler, InlineCommand
-from util.log import logger
+import config
 import filters
+from util.log import logger
+from plugin import Command, InlineCommand
+
 
 # ==============一些必须填写的变量=================================================================================：
 # API可以去薅Modelscope魔塔社区的免费一天2000次Inference，其它平台通用OpenAI格式的API也可以。
+# 英伟达的deepseek是免费的, 而且 deepseek-ai/deepseek-r1-0528 模型对涩涩限制不大
 # 参阅 https://www.modelscope.cn/docs/model-service/API-Inference/intro
 
 # 填写API地址，不要忘记后面有个/v1
@@ -62,7 +64,7 @@ def save_history(user_id, history):
     json.dump(history, f, ensure_ascii=False, indent=2)
 
 
-@handler(
+@Command(
   'chat',
   info='与小派魔聊天',
   filter=filters.ONLYTEXT,
@@ -71,12 +73,12 @@ async def _chat(event):
   # 获取调用者 ID
   user_id = event.sender_id
 
-  # 提取用户消息，回复优先
-  if event.message and (reply := await event.message.get_reply_message()):
-    user_message = reply.message or reply.text or ''
-  else:
-    parts = event.raw_text.split(maxsplit=1)
-    user_message = parts[1] if len(parts) > 1 else ''
+  # 提取用户消息
+  # if event.message and (reply := await event.message.get_reply_message()):
+  #   user_message = reply.message or reply.text or ''
+  # else:
+  parts = event.raw_text.split(maxsplit=1)
+  user_message = parts[1] if len(parts) > 1 else ''
 
   # 如果没输入内容，提示并退出
   if not user_message:
@@ -114,7 +116,7 @@ async def _chat(event):
     if not inline_mode
     else event
   )
-  client = AsyncOpenAI(base_url=f'{api_url}', api_key=f'{api_key}')
+  client = AsyncOpenAI(base_url=f'{api_url}', api_key=f'{api_key}', timeout=60)
 
   content = ''
   reasoning_content = ''
@@ -381,14 +383,29 @@ async def _(event):
   await _chat(event)
 
 
-@handler('clear', info='清除上下文记忆')
+@Command('clear', info='清除上下文记忆')
 async def _(event):
   # 清除指定用户的上下文记忆
   user_id = event.sender_id
   path = os.path.join(MEMORY_DIR, f'{user_id}.json')
+  
+  chat = await bot.get_entity(event.peer_id)
+  name = getattr(chat, 'first_name', None) or getattr(chat, 'title', None)
+  if t := getattr(chat, 'last_name', None):
+    name += ' ' + t
+  
+  peer_id = utils.get_peer_id(event.peer_id)
+  url = f'tg://user?id={peer_id}'
+  name = f'[{util.string.markdown_escape(name)}]({url})'
+  
   if os.path.isfile(path):
     os.remove(path)
-    await event.respond('✅ 已清除你的对话上下文记忆。')
+    m = await event.respond(f'✅ {name} 已清除你的对话上下文记忆。')
   else:
-    await event.respond('ℹ️ 你的对话上下文为空，无需清除。')
-  raise events.StopPropagation
+    m = await event.respond(f'ℹ️ {name} 你的对话上下文为空，无需清除。')
+  if not event.is_private:
+    try:
+      await bot.delete_messages(event.peer_id, event.message.id)
+    except errors.MessageDeleteForbiddenError:
+      pass
+    bot.schedule_delete_messages(10, event.peer_id, m.id)
