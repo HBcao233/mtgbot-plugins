@@ -20,6 +20,7 @@ import asyncio
 import filters
 import util
 from plugin import Command, Scope
+from util.log import logger
 from util.progress import Progress
 from .data_source import (
   get_song_detail,
@@ -47,6 +48,7 @@ _pattern = re.compile(_p).search
 )
 async def _song(event, sid=''):
   program = False
+  pid = None
   if not sid:
     match = event.pattern_match
     if (
@@ -70,6 +72,7 @@ async def _song(event, sid=''):
     elif pid := match.group(3):
       program = True  # 播客
 
+  logger.info(f'sid: {sid}, program: {program}, pid: {pid}')
   mid = await event.reply('请等待...')
   if not program:
     info = await get_song_detail(sid)
@@ -182,7 +185,7 @@ async def _search(event):
   )
 
 
-@Command('start', pattern=r'/start 163music_([0-9]{3,8})')
+@Command('start', pattern=r'/start 163music_([0-9]{3,12})')
 async def _(event):
   match = event.pattern_match
   mid = match.group(1)
