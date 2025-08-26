@@ -72,7 +72,8 @@ async def _song(event, sid=''):
     elif pid := match.group(3):
       program = True  # 播客
 
-  logger.info(f'sid: {sid}, program: {program}, pid: {pid}')
+  options = util.string.Options(event.message.message, nocache=())
+  logger.info(f'sid: {sid}, program: {program}, pid: {pid}, options: {options}')
   mid = await event.reply('请等待...')
   if not program:
     info = await get_song_detail(sid)
@@ -91,7 +92,7 @@ async def _song(event, sid=''):
   key = f'163music_{sid}'
   bar = Progress(mid)
   async with bot.action(event.peer_id, 'audio'):
-    if not (img := util.data.Audios()[key]):
+    if not (img := util.data.Audios()[key]) or options.nocache:
       await mid.edit('下载中...')
       bar.set_prefix('下载中...')
       res = await get_url(sid)
@@ -111,8 +112,16 @@ async def _song(event, sid=''):
       img = await add_metadata(img, ext, metainfo)
       await mid.edit('上传中...')
       bar.set_prefix('上传中...')
+      
+      cover = await getImg(
+        metainfo['coverUrl'],
+        saveas=f'163music_{sid}_cover',
+        ext=True,
+      )
+      thumb = util.media.img2bytes(util.media.getPhotoThumbnail(cover), 'jpg')
       img = await util.media.file_to_media(
         img,
+        thumb=thumb,
         attributes=[
           types.DocumentAttributeAudio(
             voice=False,

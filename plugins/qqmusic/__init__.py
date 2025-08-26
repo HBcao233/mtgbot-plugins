@@ -19,7 +19,7 @@ from telethon import types, Button
 import re
 import asyncio
 
-
+from util.log import logger
 from util.progress import Progress
 from plugin import Command, Scope
 from .data_source import (
@@ -66,6 +66,8 @@ async def _song(event, sid=''):
         f'https://y.qq.com/n/ryqq/songDetail/{sid}',
       )
 
+  options = util.string.Options(event.message.message, nocache=())
+  logger.info(f'sid: {sid}, options: {options}')
   mid = await event.reply('请等待...')
   info = await get_song_info(sid)
   if isinstance(info, str):
@@ -74,8 +76,10 @@ async def _song(event, sid=''):
 
   key = f'qqmusic_{sid}'
   bar = Progress(mid)
+  title = metainfo['title']
+  filename = f'{metainfo["title"]} - {metainfo["singers"]}.mp3'
   async with bot.action(event.peer_id, 'audio'):
-    if not (img := util.data.Audios()[key]):
+    if not (img := util.data.Audios()[key]) or options.nocache:
       await mid.edit('下载中...')
       bar.set_prefix('下载中...')
       url = await get_song_url(sid)
@@ -83,7 +87,9 @@ async def _song(event, sid=''):
       if not url:
         url = await get_try_url(info)
         key += '_try'
-        if key in util.data.Audios():
+        title = '(试听) ' + filename
+        filename = '(试听) ' + filename
+        if key in util.data.Audios() and not options.nocache:
           img = util.data.Audios()[key]
       if not url:
         await mid.edit(
@@ -102,19 +108,25 @@ async def _song(event, sid=''):
         img = await add_metadata(img, 'mp3', metainfo)
         await mid.edit('上传中...')
         bar.set_prefix('上传中...')
+        
+        cover = await util.getImg(
+          metainfo['coverUrl'],
+          saveas=f'qqmusic_{sid}_cover',
+          ext=True,
+        )
+        thumb = util.media.img2bytes(util.media.getPhotoThumbnail(cover), 'jpg')
         img = await util.media.file_to_media(
           img,
+          thumb=thumb,
           attributes=[
             types.DocumentAttributeAudio(
               voice=False,
               duration=info['interval'],
-              title=metainfo['title'],
+              title=title,
               performer=metainfo['singers'],
               waveform=None,
             ),
-            types.DocumentAttributeFilename(
-              f'{metainfo["title"]} - {metainfo["singers"]}.mp3'
-            ),
+            types.DocumentAttributeFilename(filename),
           ],
           progress_callback=bar.update,
         )
