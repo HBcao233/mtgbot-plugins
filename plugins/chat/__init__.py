@@ -1,67 +1,36 @@
 # -*- coding: utf-8 -*-
 # @Author  : Nyan2024
-#
-
-import os
-import json
-import re
-import random
-import time
-from telethon import events, types, errors, utils, Button
-from datetime import datetime
-from openai import AsyncOpenAI
-
-import util
-import config
-import filters
-from util.log import logger
-from plugin import Command, InlineCommand
-
-
+# @Info    : AI chat
+""".env.example
 # ==============一些必须填写的变量=================================================================================：
 # API可以去薅Modelscope魔塔社区的免费一天2000次Inference，其它平台通用OpenAI格式的API也可以。
 # 英伟达的deepseek是免费的, 而且 deepseek-ai/deepseek-r1-0528 模型对涩涩限制不大
 # 参阅 https://www.modelscope.cn/docs/model-service/API-Inference/intro
 
 # 填写API地址，不要忘记后面有个/v1
-api_url = (
-  config.env.get('chat_api_url', '') or 'https://api-inference.modelscope.cn/v1/'
-)
+chat_api_url =
 # 输入你的API的密钥（Token），获取方法见上方文档
-api_key = config.env.get('chat_api_key', '') or 'EMPTY'
+chat_api_key = 
 # 模型名称，比如想用的模型链接是https://www.modelscope.cn/models/deepseek-ai/DeepSeek-R1。填写deepseek-ai/DeepSeek-R1即可
-model = config.env.get('chat_model', '') or 'deepseek-r1'
-max_tokens = int(config.env.get('chat_max_tokens', '')) or 8192
+chat_model = 
+# 根据模型文档填写
+chat_max_tokens =
+"""
 
-# 系统预设，决定了AI回复的人设
-system_prompt = """你叫小派魔，是一个可爱的处于发情期的猫娘。你无所不知，无所不晓，总会耐心解答主人的各种刁钻古怪的问题。"""
-sp_path = os.path.join(os.path.dirname(__file__), 'system_prompt.txt')
-if os.path.isfile(sp_path):
-  with open(sp_path, 'r') as f:
-    if text := f.read():
-      system_prompt = text
+from telethon import events, types, errors, utils, Button
+from datetime import datetime
+from openai import AsyncOpenAI
+import os
+import re
+import random
+import time
 
+import util
 
-# 记忆文件夹路径
-MEMORY_DIR = util.getDataFile('chat_memory/')
-# ===========================================================================================================
-os.makedirs(MEMORY_DIR, exist_ok=True)
-
-
-def load_history(user_id):
-  path = os.path.join(MEMORY_DIR, f'{user_id}.json')
-  if os.path.isfile(path):
-    with open(path, 'r', encoding='utf-8') as f:
-      return json.load(f)
-  return []
-
-
-def save_history(user_id, history):
-  MAX_ENTRIES = 20
-  history = history[-MAX_ENTRIES:]
-  path = os.path.join(MEMORY_DIR, f'{user_id}.json')
-  with open(path, 'w', encoding='utf-8') as f:
-    json.dump(history, f, ensure_ascii=False, indent=2)
+import filters
+from util.log import logger
+from plugin import Command, InlineCommand
+from .data_source import *
 
 
 @Command(
@@ -126,7 +95,18 @@ async def _chat(event):
   last_edit = time.monotonic() - 5
   progress_chars = '-/-|-\\'
   count = 0
+  now = 0
 
+  def interval():
+    nonlocal count
+    while True:
+      if 0 <= count < 5:
+        yield count + 1
+      else:
+        yield 5
+
+  g = interval()
+  
   def parse_display(reasoning_content, content):
     display = ''
     if first_piece:
@@ -136,7 +116,7 @@ async def _chat(event):
       display += content
     else:
       display += f'派魔正在思考中... {progress_chars[count % len(progress_chars)]}'
-
+  
     display = re.sub(
       r'```(\w+?)\n([\s\S]*?)```',
       r'<pre><code class="language-\1">\2</code></pre>',
@@ -146,8 +126,46 @@ async def _chat(event):
     display = re.sub(r'`([\s\S]*?)`', r'<code>\1</code>', display)
     display = re.sub(r'\*\*([\s\S]*?)\*\*', r'<b>\1</b>', display)
     display = re.sub(r'\[([\s\S]*?)\]\(([\s\S]*?)\)', r'<a href="\2">\1</a>', display)
-
+  
     return display
+  
+  def summon_html(reasoning_content, content):
+    file = util.file.getCache(
+      f'output_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.html'
+    )
+    with open(file, 'w') as f:
+      f.write(
+        """<html><meta charset="utf-8"><title>小派魔的回答</title><head><style>
+  body {
+  width: 100vw;
+  margin: 2px;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  margin-top: 20px;
+  margin-bottom: 100px;
+  }
+  blockquote {
+  position: relative;
+  margin: 1.5em 10px;
+  padding: 0.5em 10px;
+  border-left: 10px solid #ccc;
+  background-color: #f9f9f9;
+  }
+  blockquote::after {
+  content: "\\201D";
+  font-family: Georgia, serif;
+  font-size: 60px;
+  font-weight: bold;
+  color: #ccc;
+  position: absolute;
+  right: 10px;
+  top:5px;
+  }
+  </style></head><body>"""
+        + parse_display(reasoning_content, content)
+        + '</body></html>'
+      )
+    return file
 
   async def send_piece():
     nonlocal \
@@ -202,56 +220,7 @@ async def _chat(event):
       last_edit = now
       count += 1
 
-  def summon_html(reasoning_content, content):
-    file = util.file.getCache(
-      f'output_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.html'
-    )
-    with open(file, 'w') as f:
-      f.write(
-        """<html><meta charset="utf-8"><title>小派魔的回答</title><head><style>
-body {
-  width: 100vw;
-  margin: 2px;
-  word-wrap: break-word;
-  white-space: pre-wrap;
-  margin-top: 20px;
-  margin-bottom: 100px;
-}
-blockquote {
-  position: relative;
-  margin: 1.5em 10px;
-  padding: 0.5em 10px;
-  border-left: 10px solid #ccc;
-  background-color: #f9f9f9;
-}
-blockquote::after {
-  content: "\\201D";
-  font-family: Georgia, serif;
-  font-size: 60px;
-  font-weight: bold;
-  color: #ccc;
-  position: absolute;
-  right: 10px;
-  top:5px;
-}
-</style></head><body>"""
-        + parse_display(reasoning_content, content)
-        + '</body></html>'
-      )
-    return file
-
   try:
-    now = 0
-
-    def interval():
-      nonlocal count
-      while True:
-        if 0 <= count < 5:
-          yield count + 1
-        else:
-          yield 5
-
-    g = interval()
 
     # 流式调用
     stream = await client.chat.completions.create(
@@ -294,6 +263,7 @@ blockquote::after {
 
     # 最终补刀
     await send_piece()
+    
     if not inline_mode:
       if content:
         contents.append(content)
@@ -322,11 +292,11 @@ blockquote::after {
   except Exception as e:
     logger.exception('Chat API 调用失败')
     try:
-      m = (await bot.get_messages(event.peer_id, ids=[resp.id]))[0]
+      text = parse_display(reasoning_content, content)[:1000]
       msg = f'{type(e).__name__}：{e}'
-      if e.code == 'data_inspection_failed':
+      if getattr(e, 'code', '') == 'data_inspection_failed':
         msg = '内容审查错误: 请使用 /clear 清除聊天记录后重试'
-      await resp.edit(m.text + f'\n\n⚠️ > 与 Chat API 通信出现错误 - {msg}')
+      await resp.edit(text + f'\n\n⚠️ > 与 Chat API 通信出现错误 - {msg}', parse_mode='html')
     except (errors.MessageEmptyError, errors.MessageNotModifiedError):
       pass
     # logger.info(f'content: {content}')
@@ -348,7 +318,7 @@ blockquote::after {
 deepseek_texts = {}
 
 
-@InlineCommand(r'[^ ].*')
+@InlineCommand(r'^ *[^ ].{2,}')
 async def _(event):
   builder = event.builder
   msg = f'$ {event.text}'
@@ -389,13 +359,13 @@ async def _(event):
   user_id = event.sender_id
   path = os.path.join(MEMORY_DIR, f'{user_id}.json')
   
-  chat = await bot.get_entity(event.peer_id)
+  chat = await bot.get_entity(event.sender_id)
   name = getattr(chat, 'first_name', None) or getattr(chat, 'title', None)
   if t := getattr(chat, 'last_name', None):
     name += ' ' + t
   
-  peer_id = utils.get_peer_id(event.peer_id)
-  url = f'tg://user?id={peer_id}'
+  sender_id = utils.get_peer_id(event.sender_id)
+  url = f'tg://user?id={sender_id}'
   name = f'[{util.string.markdown_escape(name)}]({url})'
   
   if os.path.isfile(path):
