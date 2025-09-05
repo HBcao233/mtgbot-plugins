@@ -113,17 +113,18 @@ async def gallery_info(gid, token):
     logger.error(f'解析错误: {r.text}', exc_info=1)
     raise PluginException('解析错误')
 
-  if res['title_jpn']:
-    title = res['title_jpn']
-  else:
-    title = res['title']
-  num = res['filecount']
+  info = {
+    'title_jpn': res['title_jpn'],
+    'title': res['title'],
+    'num': res['filecount'],
+  }
   _magnets = []
   for i in res['torrents']:
     _magnets.append(f'· <code>magnet:?xt=urn:btih:{i["hash"]}</code>')
   magnets = ''
   if _magnets:
     magnets = '磁力链：\n' + '\n'.join(_magnets) + '\n'
+  info['magnets'] = magnets
 
   _tags: dict[str, list[str]] = {
     'language': [],
@@ -174,7 +175,8 @@ async def gallery_info(gid, token):
   }
   # 命名空间名: #标签1 #标签2
   tags = '\n'.join(ns[k] + ': ' + ' '.join(_tags[k]) for k in ns if _tags[k])
-  return title, num, magnets, tags + '\n'
+  info['tags'] = tags + '\n'
+  return info
 
 
 class Res:

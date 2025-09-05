@@ -82,10 +82,14 @@ async def send_gallery(event, arr, options):
   gid = arr[2]
   gtoken = arr[3]
   try:
-    title, num, magnets, tags = await gallery_info(gid, gtoken)
+    info = await gallery_info(gid, gtoken)
   except PluginException as e:
     return await mid.edit(str(e))
 
+  title = info['title']
+  num = info['num']
+  magnets = info['magnets']
+  tags = info['tags']
   now = datetime.now()
   key = f'eg{gid}-{now:%m-%d}'
   if not (url := util.Data('urls')[key]) or options.nocache:
@@ -95,9 +99,13 @@ async def send_gallery(event, arr, options):
     with util.Data('urls') as data:
       data[key] = url
 
+  title_jpn = ''
+  if info['title_jpn']:
+    title_jpn = f'日语标题: <code>{info["title_jpn"]}</code>\n'
   eurl = f'https://{eh}hentai.org/g/{gid}/{gtoken}'
   msg = (
     f'标题: <code>{title}</code>\n'
+    f'{title_jpn}'
     f'{tags}'
     f'数量: {num}\n'
     f'{magnets}'
