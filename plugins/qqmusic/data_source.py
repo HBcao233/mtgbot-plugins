@@ -128,10 +128,7 @@ async def general_search(keyword):
     keyword, page=1, highlight=False, credential=credential
   )
   res = res['body']['item_song']['items']
-  result = [
-    {k: v for k, v in d.items() if k in ['mid', 'title', 'singer']} for d in res
-  ]
-  return result
+  return res
 
 
 def parse_search(res):
@@ -139,11 +136,21 @@ def parse_search(res):
 
   icons = [f'{i}\ufe0f\u20e3' for i in range(1, 10)] + ['\U0001f51f']
 
-  arr = [
-    f'{icons[i]} <a href="https://t.me/{bot.me.username}?start=qqmusic_{res[i]["mid"]}">{res[i]["title"]}</a> - '
-    + '、'.join([j['name'] for j in res[i]['singer']])
-    for i in range(10)
-  ]
+  arr = []
+  for i in range(10):
+    ai = res[i]
+    title = ai["title"]
+    if ai.get('subtitle', ''):
+      title += f" ({ai['subtitle']})"
+    singers = '、'.join(j['name'] for j in ai['singer'])
+    
+    vip = ai.get('pay', {}).get('pay_play', '')
+    if vip:
+      vip = ' 👑'
+    text = f'{icons[i]} <a href="https://t.me/{bot.me.username}?start=qqmusic_{ai["mid"]}">{title}</a>{vip} - {singers}'
+    if ai.get('lyric', ''):
+      text += f"\n　 {ai['lyric']}"
+    arr.append(text)
 
   icon = '\U0001f3b5'
   urls = [f'https://t.me/{bot.me.username}?start=qqmusic_{i["mid"]}' for i in res]

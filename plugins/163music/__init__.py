@@ -8,7 +8,7 @@ pyexecjs
 """
 
 """.env.example
-# cookie 中的 csrf_token
+# cookie 中的 __csrf
 163music_csrf_token =
 163music_u = ""
 """
@@ -90,9 +90,11 @@ async def _song(event, sid=''):
     msg, metainfo = parse_program_info(info)
 
   key = f'163music_{sid}'
+  title = metainfo['title']
   bar = Progress(mid)
   async with bot.action(event.peer_id, 'audio'):
-    if not (img := util.data.Audios()[key]) or options.nocache:
+    if not (img := (util.data.Audios()[key] or util.data.Audios()[key + '_try'])) or options.nocache:
+      
       await mid.edit('下载中...')
       bar.set_prefix('下载中...')
       res = await get_url(sid)
@@ -101,7 +103,14 @@ async def _song(event, sid=''):
           '\n'.join(msg),
           parse_mode='html',
         )
-      url, ext = res
+      url, ext, time = res
+      if not url:
+        return await mid.edit('\n'.join(msg), parse_mode='html',)
+      logger.info(f'url: {url}')
+      if time < metainfo['duration']:
+        key += '_try'
+        title = '(试听) ' + title
+        
       img = await getImg(
         url,
         saveas=key,
@@ -116,7 +125,7 @@ async def _song(event, sid=''):
       cover = await getImg(
         metainfo['coverUrl'],
         saveas=f'163music_{sid}_cover',
-        ext=True,
+        ext='jpg',
       )
       thumb = util.media.img2bytes(util.media.getPhotoThumbnail(cover), 'jpg')
       img = await util.media.file_to_media(
@@ -125,8 +134,8 @@ async def _song(event, sid=''):
         attributes=[
           types.DocumentAttributeAudio(
             voice=False,
-            duration=info['dt'] // 1000,
-            title=metainfo['title'],
+            duration=time,
+            title=title,
             performer=metainfo['singers'],
             waveform=None,
           ),
@@ -164,13 +173,20 @@ async def _search(event):
     async with bot.conversation(event.chat_id) as conv:
       mid = await conv.send_message(
         '请在 60 秒内发送您想要搜索的关键词',
-        buttons=Button.text('取消', single_use=True),
+        buttons=[
+          Button.text('取消', single_use=True),
+          Button.text('占位', single_use=False),
+        ],
       )
 
-      try:
-        message = await conv.get_response()
-      except asyncio.TimeoutError:
-        pass
+      while True:
+        try:
+          message = await conv.get_response()
+        except asyncio.TimeoutError:
+          pass
+        if message.message != '占位':
+          break
+
       if message.message == '取消':
         return await mid.respond('操作取消', buttons=Button.clear())
       if (

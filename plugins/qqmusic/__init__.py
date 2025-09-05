@@ -159,13 +159,20 @@ async def _search(event):
     async with bot.conversation(event.chat_id) as conv:
       mid = await conv.send_message(
         '请在 60 秒内发送您想要搜索的关键词',
-        buttons=Button.text('取消', single_use=True),
+        buttons=[
+          Button.text('取消', single_use=True),
+          Button.text('占位', single_use=False),
+        ],
       )
 
-      try:
-        message = await conv.get_response()
-      except asyncio.TimeoutError:
-        pass
+      while True:
+        try:
+          message = await conv.get_response()
+        except asyncio.TimeoutError:
+          pass
+        if message.message != '占位':
+          break
+
       if message.message == '取消':
         return await mid.respond('操作取消', buttons=Button.clear())
       if (

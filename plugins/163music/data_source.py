@@ -19,7 +19,7 @@ from .settmusic import settmusic
 csrf_token = config.env.get('163music_csrf_token', '')
 music_u = config.env.get('163music_u', '')
 headers = {
-  'cookie': f'os=pc; appver=8.9.70; MUSIC_U={music_u}',
+  'cookie': f'os=pc; appver=8.9.70; __csrf={csrf_token}; MUSIC_U={music_u}',
 }
 path = os.path.dirname(__file__)
 js_path = os.path.join(path, 'encode.js')
@@ -122,6 +122,7 @@ def parse_song_detail(res):
     'title': name + alia,
     'singers': '、'.join([i['name'] for i in res['ar']]),
     'album': res['al']['name'],
+    'duration': res['dt'] // 1000,
   }
   return msg, metainfo
 
@@ -138,7 +139,7 @@ async def get_song_url(mid):
   if not res:
     return
   res = res['data'][0]
-  return res['url'], res['type']
+  return res['url'], res['type'], res['time'] // 1000
 
 
 async def get_flac_url(mid):
@@ -185,7 +186,7 @@ async def add_metadata(img, ext, metainfo):
   cover = await getImg(
     cover_url,
     saveas=cover_name,
-    ext=True,
+    ext='jpg',
   )
   resimg_name = f'163music_{sid}_meta.{ext}'
   resimg = util.getCacheFile(resimg_name)
@@ -254,11 +255,22 @@ def parse_search(res):
 
   icons = [f'{i}\ufe0f\u20e3' for i in range(1, 10)] + ['\U0001f51f']
 
-  arr = [
-    f'{icons[i]} <a href="https://t.me/{bot.me.username}?start=163music_{res[i]["id"]}">{res[i]["name"]}</a> - '
-    + '、'.join([j['name'] for j in res[i]['ar']])
-    for i in range(10)
-  ]
+  arr = []
+  for i in range(10):
+    ai = res[i]
+    title = ai["name"]
+    if len(ai.get('tns', [])) > 0:
+      title += f" ({ai['tns'][0]})"
+    singers = '、'.join([j['name'] for j in ai['ar']])
+    vip = ''
+    if ai['privilege'].get('fee', 0) == 1:
+      vip = ' 👑'
+  
+    text = f'{icons[i]} <a href="https://t.me/{bot.me.username}?start=163music_{ai["id"]}">{title}</a>{vip} - {singers}'
+    if len(ai.get('lyrics', [])) > 0:
+      lyrics = ' '.join(ai['lyrics'])
+      text += f'\n　 {lyrics}'
+    arr.append(text)
 
   icon = '\U0001f3b5'
   urls = [f'https://t.me/{bot.me.username}?start=163music_{i["id"]}' for i in res]
@@ -283,6 +295,7 @@ def parse_program_info(res):
   description = res['program']['description']
   mainTrackId = res['program']['mainTrackId']
   # song_url = f'https://music.163.com/#/song?id={mainTrackId}'
+  duration = res['program']['duration'] // 1000
 
   userId = res['anchor']['userId']
   nickname = res['anchor']['nickname']
@@ -311,5 +324,6 @@ def parse_program_info(res):
     'title': title,
     'singers': nickname,
     'album': album,
+    'duration': duration,
   }
   return msg, metainfo
