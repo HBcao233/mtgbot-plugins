@@ -6,6 +6,7 @@ import filters
 
 @Command(
   'del',
+  pattern='^/del(?!_)',
   info='删除消息',
   scope=Scope.superadmin(),
   filter=filters.SUPERADMIN,
@@ -17,7 +18,4 @@ async def _del(event):
     pass
   if not (reply := await event.message.get_reply_message()):
     return
-  try:
-    await bot.delete_messages(event.peer_id, (reply.id, ))
-  except errors.MessageDeleteForbiddenError:
-    pass
+  await bot.delete_messages(event.peer_id, reply.id)
