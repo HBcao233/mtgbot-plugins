@@ -61,6 +61,10 @@ async def _(event):
   create_time = int.from_bytes(match.group(1), 'big')
   guess = int.from_bytes(match.group(2), 'big')
   data = util.Data('guess')
+  clean_outdate(data)
+  if not data.get(str(create_time)):
+    return await event.answer('该猜点游戏已经过期了喵', alert=True)
+
   count = functools.reduce(
     lambda num, i: num + 1 if i['user_id'] == user_id else num,
     data[str(create_time)]['guess'],
@@ -129,3 +133,15 @@ def get_buttons(count, create_time):
         btn = Button.inline('　', b'')
       buttons[i].append(btn)
   return buttons
+
+
+def clean_outdate(data):
+  daybefore = int(time.time() * 1000) - 3600 * 24 * 1000
+  need_del = []
+  for k in data.keys():
+    if int(k) <= daybefore:
+      need_del.append(k)
+  
+  with data:
+    for k in need_del:
+      del data[k]
