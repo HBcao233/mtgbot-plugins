@@ -1,9 +1,10 @@
+from datetime import datetime
+from asyncio.subprocess import PIPE
 import re
 import asyncio
-import os.path
-from datetime import datetime
+import os
 import httpx
-from asyncio.subprocess import PIPE
+import time
 
 import util
 import config
@@ -99,21 +100,30 @@ class PixivClient(util.curl.Client):
         )
       await proc.wait()
 
-    f = frames[0]['file']
-    f, ext = os.path.splitext(f)
-    rate = str(round(1000 / frames[0]['delay'], 2))
+    s = []
+    for i in frames:
+      file = os.path.join(_dir, i['file'])
+      delay = i['delay'] / 1000
+      s.append(f"file '{file}'")
+      s.append(f"duration {delay:.3f}")
+    s = '\n'.join(s)
+    frames_txt = util.getCache(f'{self.pid}_frames.txt')
+    with open(frames_txt, 'w') as f:
+      f.write(s)
+    
     img = util.getCache(f'{self.pid}_ugoira.mp4')
+    
     # fmt: off
     command = [
       'ffmpeg', 
-      '-framerate', rate, 
-      '-loop', '0', 
-      '-f', 'image2',
-      '-i', util.getCache(name + f'/%{len(f)}d{ext}'), 
-      '-r', rate, 
+      '-f', 'concat', 
+      '-safe', '0', 
+      '-i', frames_txt, 
       '-c:v', 'h264', 
       '-pix_fmt', 'yuv420p', 
       '-vf', "pad=ceil(iw/2)*2:ceil(ih/2)*2", 
+      '-movflags',
+      '+faststart',
       '-y', img
     ]
     # fmt: on
@@ -142,17 +152,18 @@ def parse_msg(res, hide=False):
     if 'translation' in i.keys():
       tags.append(('#' + i['translation']['en']).replace('#R-', '#R').replace(' ', '_'))
 
-  props = set()
-  if any((tag := t) in tags for t in ['#R18', '#R17.9']):
-    props.add('#NSFW')
-    props.add(tag)
-  if '#R18G' in tags:
-    props.add('#R18G')
-    props.add('#NSFW')
-  if res['illustType'] == 2:
-    props.add('#动图')
+  props = []
   if res['aiType'] == 2:
-    props.add('#AI生成')
+    props.append('#AI生成')
+    tags.insert(0, '#AI生成')
+  if any((tag := t) in tags for t in ['#R18', '#R17.9']):
+    props.append(tag)
+  if '#R18G' in tags:
+    props.append('#R18G')
+  if any((tag := t) in tags for t in ['#R18', '#R17.9', '#R18G']):
+    props.append('#NSFW')
+  if res['illustType'] == 2:
+    props.append('#动图')
   prop = ' '.join(props)
   if prop != '':
     prop += '\n'
@@ -206,33 +217,64 @@ class Res:
     }
 
 
-async def get_telegraph(res, tags, client, mid):
+async def get_url(imgUrl, pid, i, client, bar):
+  data = util.Data('urls')
+  img_url = imgUrl.replace('p0', f'p{i}')
+  name = f'{pid}_p{i}_regular'
+  if url := data.get(name):
+    await bar.add(1)
+    return Res(url)
+  
+  async def get_img_retry():
+    for j in range(4):
+      try:
+        logger.info(f'GET {util.curl.logless(img_url)}')
+        return await client.getImg(
+          img_url,
+          saveas=name,
+          ext=True,
+          timeout=30,
+        )
+      except (httpx.RemoteProtocolError, httpx.ConnectError, httpx.ReadTimeout):
+        time.sleep(1)
+        logger.info(f'p{i} 重试 第{j+1}次')
+        if j >= 3:
+          return Res(None, f'p{i}获取失败')
+  img = await get_img_retry()
+  if isinstance(img, Res):
+    return img
+  url = await hosting.get_url(img)
+  with data:
+    data[name] = url
+  await bar.add(1)
+  return Res(url)
+
+
+async def get_telegraph(res, tags, client, mid, nocache):
   data = util.Data('urls')
   now = datetime.now()
   pid = res['illustId']
   key = f'{pid}-{now:%m-%d}'
   count = res['pageCount']
-  if not (url := data[key]):
+  if not (url := data.get(key)) or nocache:
+    bar = util.progress.Progress(
+      mid,
+      total=count,
+      prefix='下载中...',
+    )
     imgUrl = res['urls']['regular']
-    imgUrl_re = imgUrl.replace('i.pximg.net', 'i.pixiv.re')
     async with PixivClient(pid) as client:
-      name = f'{pid}_p0_regular'
-      img = await client.getImg(
-        imgUrl,
-        saveas=name,
-        ext=True,
-      )
-      first_url = await hosting.get_url(img)
-      with data:
-        data[name] = first_url
-    result = [Res(first_url)]
-    result += [Res(imgUrl_re.replace('_p0', f'_p{i}')) for i in range(1, count)]
+      tasks = [get_url(imgUrl, pid, i, client, bar) for i in range(count)]
+      gather_task = asyncio.gather(*tasks)
+      result = await gather_task
+    num = sum(1 if getattr(i, 'url') else 0 for i in result)
     result.append(
       Res(None, f'原链接: https://www.pixiv.net/artworks/{pid}'),
     )
+    result.append(Res(None, f'获取数量: {num} / {count}'))
     content = [i.parse() for i in result]
     url = await util.telegraph.createPage(
-      f'[pixiv] {pid} {res["illustTitle"]}', content
+      f'[pixiv] {pid} {res["illustTitle"]}', content,
     )
     with data:
       data[key] = url
@@ -240,8 +282,8 @@ async def get_telegraph(res, tags, client, mid):
   msg = (
     f'标题: {res["illustTitle"]}\n'
     f'标签: {" ".join(tags)}\n'
+    f'<a href="{url}">预览</a> | <a href="https://www.pixiv.net/artworks/{pid}">原链接</a>\n'
     f'作者: <a href="https://www.pixiv.net/users/{res["userId"]}/">{res["userName"]}</a>\n'
-    f'数量: {res["pageCount"]}\n'
-    f'<a href="{url}">预览</a> | <a href="https://www.pixiv.net/artworks/{pid}">原链接</a>'
+    f'数量: {res["pageCount"]}'
   )
   return url, msg

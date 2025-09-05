@@ -62,7 +62,11 @@ class Pixiv:
 
     self.pid = pid
     self.options = util.string.Options(
-      text, hide=('简略', '省略'), mask=('spoiler', '遮罩'), origin='原图'
+      text, 
+      hide=('简略', '省略'), 
+      mask=('spoiler', '遮罩'), 
+      origin='原图',
+      nocache='',
     )
     logger.info(f'pid: {self.pid}, options: {self.options}')
     self.mid = await self.event.reply('请等待...')
@@ -119,7 +123,7 @@ class Pixiv:
     async with bot.action(self.event.peer_id, 'file'):
       data = util.Animations()
       await self.mid.edit('生成动图中...')
-      if not (file := data[self.pid]):
+      if not (file := data[self.pid]) or self.options.nocache:
         file = await client.get_anime()
         if not file:
           return await self.event.reply('生成动图失败')
@@ -143,7 +147,7 @@ class Pixiv:
     """
     发送telegraph
     """
-    url, msg = await get_telegraph(self.res, self.tags, client, self.mid)
+    url, msg = await get_telegraph(self.res, self.tags, client, self.mid, self.options.nocache)
     if isinstance(url, dict):
       await self.mid.reply(f'生成 telegraph 失败: {url["message"]}')
       return
