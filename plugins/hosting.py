@@ -12,11 +12,11 @@ hosting_root = os.path.join(config.botRoot, 'hosting')
 if hosting_host:
   u = urlparse(hosting_host)
   if u.scheme == '' and u.netloc == '':
-    hosting_host = 'http://' + u.path.split('/')[0]
+    hosting_host = 'http://' + u.path
   else:
-    hosting_host = u.netloc
+    hosting_host = f'http://{u.netloc}{u.path}'
     if u.scheme:
-      hosting_host = f'{u.scheme}://{u.netloc}'
+      hosting_host = f'{u.scheme}://{u.netloc}{u.path}'
 # logger.info(hosting_host)
 
 
