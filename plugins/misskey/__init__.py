@@ -21,7 +21,7 @@ import filters
 from .data_source import get_note, parse_msg, parse_medias
 
 
-_p = r'(?:^/misskey |(?:https?://)?(?:misskey\.io/notes/))([a-z0-9A-Z]{16})(?:[^a-zA-Z0-9\n].*)?$|^/misskey(?![^ ])'
+_p = r'(?:^/misskey |(?:/misskey )?(?:https?://)?(?:misskey\.io/notes/))([a-z0-9A-Z]{16})(?:[^a-zA-Z0-9\n].*)?$|^/misskey(?![^ ])'
 _pattern = re.compile(_p).search
 
 
@@ -113,6 +113,6 @@ async def _misskey(event, text=''):
           b'mask_' + message_id_bytes + sender_bytes,
         ),
       ],
-      [Button.inline('关闭面板', b'delete' + sender_bytes)],
+      # [Button.inline('关闭面板', b'delete' + sender_bytes)],
     ],
   )

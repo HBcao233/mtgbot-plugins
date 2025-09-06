@@ -63,15 +63,16 @@ async def get_note(noteId):
 
 
 def parse_msg(res):
+  logger.debug(res)
   noteId = res['id']
   username = res['user']['username']
-  nickname = res['user']['name']
+  nickname = res['user']['name'] or res['user']['username']
 
   # createdAt = res['createdAt'].replace('.000Z', '').replace('T', '')
   createdAt = datetime.strptime(res['createdAt'].split('.')[0], r'%Y-%m-%dT%H:%M:%S')
   createdAt.astimezone(timezone)
   createdAt = createdAt.strftime('%Y年%m月%d日 %H:%M:%S')
-  text = res['text']
+  text = res.get('text') or ''
   text = re.sub(r'\?\[([\s\S]*?)\]\(([\s\S]*?)\)', r'<a href="\2">\1</a>', text)
   if text:
     text = f'\n<blockquote expandable>{text}\n{createdAt}</blockquote>'
