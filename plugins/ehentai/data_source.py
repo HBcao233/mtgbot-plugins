@@ -18,6 +18,9 @@ except ModuleNotFoundError:
   hosting = None
 
 
+# 最大获取画廊图片数量
+MAX_FETCH_NUM = 200
+
 env = config.env
 ipb_member_id = env.get('ex_ipb_member_id', '')
 ipb_pass_hash = env.get('ex_ipb_pass_hash', '')
@@ -141,9 +144,9 @@ async def gallery_info(gid, token):
   for i in res['tags']:
     k, v = i.split(':')
     if k in _tags:
-      tag = tags_cn.get(v, None)
+      tag = tags_cn.get(v, v)
       if isinstance(tag, dict):
-        tag = tag.get(k, None)
+        tag = tag.get(k, v)
       if tag:
         _tags[k].append('#' + tag)
 
@@ -203,9 +206,9 @@ class GT:
     self.gtoken = arr[3]
     self.eurl = f'https://{self.eh}hentai.org/g/{self.gid}/{self.gtoken}'
     self.num = int(num)
-    self.total = min(self.num, 100)
+    self.total = min(self.num, MAX_FETCH_NUM)
     self.mid = mid
-    self.bar = util.progress.Progress(mid, 100, '获取图片列表', False)
+    self.bar = util.progress.Progress(mid, self.total, '获取图片列表', False)
 
   async def main(self):
     async with util.curl.Client(
