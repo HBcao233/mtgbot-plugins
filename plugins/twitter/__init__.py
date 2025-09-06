@@ -12,6 +12,7 @@ twitter_auth_token =
 from telethon import events, errors, Button
 import re
 import ujson as json
+import asyncio
 
 import util
 import filters
@@ -21,8 +22,7 @@ from plugin import Command, Scope
 from .data_source import gheaders, get_twitter, parse_msg, parseMedias
 
 
-cmd_header_pattern = re.compile(r'/?tid')
-_p = r'(?:^/?tid |(?:https?://)?[a-z]*?(?:twitter|x)\.com/[a-zA-Z0-9_]+/status/)(\d{13,20})(?:[^0-9].*)?$|^/tid(?![^ ])'
+_p = r'(?:^/?tid |(?:/?tid )?(?:https?://)?[a-z]*?(?:twitter|x)\.com/[a-zA-Z0-9_]+/status/)(\d{13,20})(?:[^0-9].*)?$|^/tid(?![^ ])'
 _pattern = re.compile(_p).search
 
 
@@ -34,8 +34,7 @@ _pattern = re.compile(_p).search
   scope=Scope.private(),
 )
 async def _tid(event, text):
-  text = cmd_header_pattern.sub('', text).strip()
-  match = _pattern(text)
+  match = event.pattern_match
   if match is None or not (tid := match.group(1)):
     return await event.reply(
       '用法: /tid <url/tid> [options]:\n'
@@ -66,33 +65,43 @@ async def _tid(event, text):
   medias = []
   photos = util.Photos()
   videos = util.Videos()
-  bar = Progress(mid, prefix='下载中...')
-  async with bot.action(event.peer_id, medias_info[0]['type']):
-    for index, i in enumerate(medias_info):
-      url = i['url']
-      md5 = i['md5']
-      t = photos if i['type'] == 'photo' else videos
-      ext = 'jpg' if i['type'] == 'photo' else 'mp4'
-      if file_id := t[md5]:
-        media = util.media.file_id_to_media(file_id, options.mask)
-      else:
-        file = await util.getImg(
-          url,
-          headers=gheaders,
-          saveas=f'{tid}_{index}',
-          ext=ext,
-          progress_callback=bar.update,
-        )
-        if i['type'] == 'video':
-          file = await util.media.video2mp4(file)
-        bar.set_prefix('上传中...')
-        media = await util.media.file_to_media(
-          file,
-          options.mask,
-          progress_callback=bar.update,
-        )
-      medias.append(media)
+  bar = Progress(mid, len(medias_info), '下载中...', False)
+  if len(medias_info) == 1:
+    bar.set_total(100)
+    bar.percent = True
+  
+  async def get_media(i, client):
+    ai = medias_info[i]
+    url = ai['url']
+    md5 = ai['md5']
+    _type = ai['type'] 
+    t = photos if _type == 'photo' else videos
+    ext = 'jpg' if _type == 'photo' else 'mp4'
+    if file_id := t.get(md5):
+      return util.media.file_id_to_media(file_id, options.mask)
 
+    file = await client.getImg(
+      url,
+      saveas=f'{tid}_{i}',
+      ext=ext,
+      progress_callback=bar.update if len(medias_info) == 1 else None,
+    )
+    if _type == 'video':
+      file = await util.media.video2mp4(file)
+    if len(medias_info) == 1:
+      bar.set_prefix('上传中...')
+    media = await util.media.file_to_media(
+      file,
+      options.mask,
+      progress_callback=bar.update if len(medias_info) == 1 else None,
+    )
+    return media
+  
+  async with bot.action(event.peer_id, medias_info[0]['type']):
+    async with util.curl.Client(headers=gheaders) as client:
+      tasks = [get_media(i, client) for i in range(len(medias_info))]
+      gather_task = asyncio.gather(*tasks)
+      medias = await gather_task
     res = await bot.send_file(
       event.peer_id,
       medias,
