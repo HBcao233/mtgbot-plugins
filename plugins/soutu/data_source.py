@@ -377,7 +377,7 @@ async def esearch(path):
   url = r.headers['location'] + '&fs_similar=on'
   r = await util.get(url, headers=eheaders)
   if 'No hits found' in r.text:
-    return '无结果'
+    return 'Ehentai搜图: 无结果'
 
   res = []
   soup = BeautifulSoup(r.text, 'html.parser')
