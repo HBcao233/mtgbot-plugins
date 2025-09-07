@@ -106,8 +106,8 @@ async def _song(event, sid=''):
       url, ext, time = res
       if not url:
         return await mid.edit('\n'.join(msg), parse_mode='html',)
-      logger.info(f'url: {url}')
-      if time < metainfo['duration']:
+      logger.info(f"url: {url}, time: {time}, duration: {metainfo['duration']}")
+      if time != 0 and abs(metainfo['duration'] - time) < 1:
         key += '_try'
         title = '(试听) ' + title
         

@@ -122,7 +122,7 @@ def parse_song_detail(res):
     'title': name + alia,
     'singers': '、'.join([i['name'] for i in res['ar']]),
     'album': res['al']['name'],
-    'duration': res['dt'] // 1000,
+    'duration': round(res['dt'] / 1000),
   }
   return msg, metainfo
 
@@ -139,7 +139,7 @@ async def get_song_url(mid):
   if not res:
     return
   res = res['data'][0]
-  return res['url'], res['type'], res['time'] // 1000
+  return res['url'], res['type'], round(res['time'] / 1000)
 
 
 async def get_flac_url(mid):
@@ -295,7 +295,7 @@ def parse_program_info(res):
   description = res['program']['description']
   mainTrackId = res['program']['mainTrackId']
   # song_url = f'https://music.163.com/#/song?id={mainTrackId}'
-  duration = res['program']['duration'] // 1000
+  duration = round(res['program']['duration'] / 1000)
 
   userId = res['anchor']['userId']
   nickname = res['anchor']['nickname']
