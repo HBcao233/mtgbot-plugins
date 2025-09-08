@@ -1,4 +1,4 @@
-import ujson as json
+import json
 import base64
 import codecs
 import random

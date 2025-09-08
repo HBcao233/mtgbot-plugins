@@ -1,5 +1,5 @@
 from datetime import datetime
-import ujson as json
+import json
 import httpx
 import util
 import config

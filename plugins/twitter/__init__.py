@@ -11,7 +11,7 @@ twitter_auth_token =
 
 from telethon import events, errors, Button
 import re
-import ujson as json
+import json
 import asyncio
 
 import util

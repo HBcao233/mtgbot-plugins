@@ -3,7 +3,7 @@ import re
 import traceback
 import asyncio
 from datetime import datetime
-import ujson as json
+import json
 
 import util
 from util.log import logger

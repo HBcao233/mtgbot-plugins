@@ -1,7 +1,7 @@
 import asyncio
 import os
 import re
-import ujson as json
+import json
 
 import util
 from util import logger
