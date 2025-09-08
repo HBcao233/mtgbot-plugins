@@ -50,8 +50,7 @@ async def get_image(message, _ext='jpg'):
   name = f'{_id}{ext}'
   img = util.getCache(name)
   await message.download_media(file=img)
-  if 'video' in mime_type or ext == 'gif':
-    img = await to_img(img, _ext)
+  img = await to_img(img, _ext)
 
   return img
 
