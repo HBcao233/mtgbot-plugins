@@ -2,7 +2,7 @@ from bs4 import BeautifulSoup
 import asyncio
 import re
 import os
-import ujson as json
+import json
 import httpx
 
 import util
@@ -144,7 +144,7 @@ async def gallery_info(gid, token):
   for i in res['tags']:
     k, v = i.split(':')
     if k in _tags:
-      tag = tags_cn.get(v, v)
+      tag = tags_cn.get(v, v.replace(' ', '_'))
       if isinstance(tag, dict):
         tag = tag.get(k, v)
       if tag:
