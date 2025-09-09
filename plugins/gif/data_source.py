@@ -36,9 +36,7 @@ async def video2gif(img, mid):
     output,
     '-y',
   ]
-  returncode, stdout = await util.media.ffmpeg(
-    command, progress_callback=bar.update
-  )
+  returncode, stdout = await util.media.ffmpeg(command, progress_callback=bar.update)
   if returncode != 0:
     logger.error(stdout)
     return False
@@ -81,9 +79,7 @@ async def video2ext(img, ext, mid):
     output,
     '-y',
   ]
-  returncode, stdout = await util.media.ffmpeg(
-    command, progress_callback=bar.update
-  )
+  returncode, stdout = await util.media.ffmpeg(command, progress_callback=bar.update)
   if returncode != 0:
     logger.error(stdout)
     return False

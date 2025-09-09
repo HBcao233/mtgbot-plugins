@@ -94,9 +94,7 @@ async def _soutu(event):
         'Google旧版',
         f'https://www.google.com/searchbyimage?client=app&image_url={url}',
       ),
-      Button.url(
-        'GoogleLens', f'https://lens.google.com/uploadbyurl?url={url}'
-      ),
+      Button.url('GoogleLens', f'https://lens.google.com/uploadbyurl?url={url}'),
     ],
     [
       Button.url(

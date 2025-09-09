@@ -44,9 +44,7 @@ class EchoedMessage(MessageData):
   def get_echo(cls, chat_id, message_id=None):
     cls.init()
     m = cls.get_message(chat_id, message_id)
-    r = cls._conn.execute(
-      'SELECT echo_mid FROM echoed_messages WHERE mid=?', (m.id,)
-    )
+    r = cls._conn.execute('SELECT echo_mid FROM echoed_messages WHERE mid=?', (m.id,))
     if res := r.fetchone():
       return cls.get_message_by_rid(res[0])
     return None
@@ -55,9 +53,7 @@ class EchoedMessage(MessageData):
   def get_origin(cls, chat_id, message_id=None):
     cls.init()
     m = cls.get_message(chat_id, message_id)
-    r = cls._conn.execute(
-      'SELECT mid FROM echoed_messages WHERE echo_mid=?', (m.id,)
-    )
+    r = cls._conn.execute('SELECT mid FROM echoed_messages WHERE echo_mid=?', (m.id,))
     if res := r.fetchone():
       return cls.get_message_by_rid(res[0])
     return None

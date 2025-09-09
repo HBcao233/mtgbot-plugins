@@ -270,9 +270,7 @@ async def _(event):
   if message is None:
     return await event.answer('消息被删除', alert=True)
 
-  hide = any(
-    isinstance(i, types.MessageEntityBlockquote) for i in message.entities
-  )
+  hide = any(isinstance(i, types.MessageEntityBlockquote) for i in message.entities)
 
   async with PixivClient(pid) as client:
     res = await client.get_pixiv()

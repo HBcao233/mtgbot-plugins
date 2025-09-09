@@ -34,13 +34,9 @@ cookies = f"""# Netscape HTTP Cookie File
 
 .youtube.com\tTRUE\t/\tTRUE\t{now}\t__Secure-3PSID\t{token}"""
 if _3PSIDTS:
-  cookies += (
-    f'\n.youtube.com\tTRUE\t/\tTRUE\t{now}\t__Secure-3PSIDTS\t{_3PSIDTS}'
-  )
+  cookies += f'\n.youtube.com\tTRUE\t/\tTRUE\t{now}\t__Secure-3PSIDTS\t{_3PSIDTS}'
 if _3PAPISID:
-  cookies += (
-    f'\n.youtube.com\tTRUE\t/\tTRUE\t{now}\t__Secure-3PAPISID\t{_3PAPISID}'
-  )
+  cookies += f'\n.youtube.com\tTRUE\t/\tTRUE\t{now}\t__Secure-3PAPISID\t{_3PAPISID}'
 
 cookies_path = util.getDataFile('youtube_cookies.txt')
 with open(cookies_path, 'w') as f:

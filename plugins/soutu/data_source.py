@@ -82,9 +82,7 @@ def parse_saucenao(res):
   if float(res['results'][0]['header']['similarity']) <= minimum:
     return '结果相似度过低'
 
-  results = [
-    i for i in res['results'] if float(i['header']['similarity']) > minimum
-  ]
+  results = [i for i in res['results'] if float(i['header']['similarity']) > minimum]
   # logger.info(results[0]['header']['similarity'])
 
   def cmp(x, y):

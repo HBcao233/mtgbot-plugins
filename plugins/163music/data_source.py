@@ -56,9 +56,7 @@ async def asrsea(data):
   data = json.dumps(data, ensure_ascii=False)
   key = '0CoJUm6Qyw8W8jud'
   secKey = ''.join(
-    random.choice(
-      'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-    )
+    random.choice('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
     for i in range(16)
   )
   encText = aes(data, key)
@@ -278,9 +276,7 @@ def parse_search(res):
     arr.append(text)
 
   icon = '\U0001f3b5'
-  urls = [
-    f'https://t.me/{bot.me.username}?start=163music_{i["id"]}' for i in res
-  ]
+  urls = [f'https://t.me/{bot.me.username}?start=163music_{i["id"]}' for i in res]
   btns = [Button.url(f'{i + 1} {icon}', urls[i]) for i in range(10)]
   buttons = [btns[i : i + 5] for i in range(0, 10, 5)]
   return '\n'.join(arr), buttons

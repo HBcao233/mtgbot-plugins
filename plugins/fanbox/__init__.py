@@ -257,9 +257,7 @@ async def get_telegraph(res, medias):
         }
       )
 
-    url = await util.telegraph.createPage(
-      f'[fanbox] {pid} {res["title"]}', content
-    )
+    url = await util.telegraph.createPage(f'[fanbox] {pid} {res["title"]}', content)
     with data:
       data[key] = url
 

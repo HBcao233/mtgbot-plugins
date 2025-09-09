@@ -58,9 +58,7 @@ async def _song(event, sid=''):
       )
 
     if match.group(2):
-      r = await util.get(
-        'https://c6.y.qq.com/base/fcgi-bin/u?__=' + match.group(2)
-      )
+      r = await util.get('https://c6.y.qq.com/base/fcgi-bin/u?__=' + match.group(2))
       text = str(r.url)
       match = _pattern(text)
       sid = match.group(1)

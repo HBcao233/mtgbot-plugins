@@ -41,9 +41,7 @@ async def _ig(event, text):
       '- [mask/遮罩]: 添加遮罩'
     )
 
-  options = util.string.Options(
-    text, hide=('简略', '省略'), mask=('spoiler', '遮罩')
-  )
+  options = util.string.Options(text, hide=('简略', '省略'), mask=('spoiler', '遮罩'))
   logger.info(f'shortcode: {shortcode}, options: {options}')
   mid = await event.reply('请等待...')
 

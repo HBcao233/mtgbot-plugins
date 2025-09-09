@@ -34,20 +34,15 @@ async def _mask(event, spoiler=True):
 
   if reply_message.grouped_id is None:
     if getattr(reply_message.media, 'spoiler', False) is spoiler:
-      return await event.respond(
-        '该媒体已经有遮罩了' if spoiler else '该媒体没有遮罩'
-      )
+      return await event.respond('该媒体已经有遮罩了' if spoiler else '该媒体没有遮罩')
     media = override_message_spoiler(reply_message, spoiler)
     caption = reply_message.text
   else:
     ids = util.data.MessageData.get_group(reply_message.grouped_id)
     # logger.info(ids)
     messages = await bot.get_messages(reply_message.peer_id, ids=ids)
-    if (
-      spoiler and all(getattr(i.media, 'spoiler', False) for i in messages)
-    ) or (
-      not spoiler
-      and not any(getattr(i.media, 'spoiler', False) for i in messages)
+    if (spoiler and all(getattr(i.media, 'spoiler', False) for i in messages)) or (
+      not spoiler and not any(getattr(i.media, 'spoiler', False) for i in messages)
     ):
       return await event.respond(
         '这组媒体都有遮罩' if spoiler else '这组媒体都没有遮罩'

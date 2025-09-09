@@ -76,29 +76,21 @@ async def file(event):
       if (
         (
           any(
-            isinstance((attr := j), types.DocumentAttributeVideo)
-            for j in t.attributes
+            isinstance((attr := j), types.DocumentAttributeVideo) for j in t.attributes
           )
         )
         or (
           any(
-            isinstance((attr := j), types.DocumentAttributeAudio)
-            for j in t.attributes
+            isinstance((attr := j), types.DocumentAttributeAudio) for j in t.attributes
           )
           and attr.voice
         )
-        or any(
-          isinstance(j, types.DocumentAttributeSticker) for j in t.attributes
-        )
+        or any(isinstance(j, types.DocumentAttributeSticker) for j in t.attributes)
       ):
         others.append(add)
-      elif any(
-        isinstance(j, types.DocumentAttributeVideo) for j in t.attributes
-      ):
+      elif any(isinstance(j, types.DocumentAttributeVideo) for j in t.attributes):
         medias.append(add)
-      elif any(
-        isinstance(j, types.DocumentAttributeAnimated) for j in t.attributes
-      ):
+      elif any(isinstance(j, types.DocumentAttributeAnimated) for j in t.attributes):
         others.append(add)
       else:
         documents.append(add)
@@ -118,7 +110,5 @@ async def file(event):
     bot.schedule(del_time, bot.delete_messages(event.peer_id, ms))
 
   for i in others:
-    ms = await bot.send_file(
-      event.peer_id, i, caption=caption, reply_to=event.message
-    )
+    ms = await bot.send_file(event.peer_id, i, caption=caption, reply_to=event.message)
     bot.schedule(del_time, bot.delete_messages(event.peer_id, ms))

@@ -153,9 +153,7 @@ def parse_search(res):
     arr.append(text)
 
   icon = '\U0001f3b5'
-  urls = [
-    f'https://t.me/{bot.me.username}?start=qqmusic_{i["mid"]}' for i in res
-  ]
+  urls = [f'https://t.me/{bot.me.username}?start=qqmusic_{i["mid"]}' for i in res]
   btns = [Button.url(f'{i + 1} {icon}', urls[i]) for i in range(10)]
   buttons = [btns[i : i + 5] for i in range(0, 10, 5)]
   return '\n'.join(arr), buttons

@@ -65,9 +65,7 @@ class PixivClient(util.curl.Client):
 
   async def get_anime(self):
     name = f'{self.pid}_ugoira'
-    r = await self.get(
-      f'https://www.pixiv.net/ajax/illust/{self.pid}/ugoira_meta'
-    )
+    r = await self.get(f'https://www.pixiv.net/ajax/illust/{self.pid}/ugoira_meta')
     res = r.json()['body']
     frames = res['frames']
     _dir = util.getCache(name + '/')
@@ -152,9 +150,7 @@ def parse_msg(res, hide=False):
   for i in res['tags']['tags']:
     tags.append(('#' + i['tag']).replace('#R-', '#R').replace(' ', '_'))
     if 'translation' in i.keys():
-      tags.append(
-        ('#' + i['translation']['en']).replace('#R-', '#R').replace(' ', '_')
-      )
+      tags.append(('#' + i['translation']['en']).replace('#R-', '#R').replace(' ', '_'))
 
   props = []
   if res['aiType'] == 2:
@@ -185,9 +181,7 @@ def parse_msg(res, hide=False):
     )
     comment = re.sub(r'<span[^>]*>(((?!</span>).)*)</span>', r'\1', comment)
     if len(comment) > max_comment_length:
-      comment = re.sub(
-        r'<[^/]+[^<]*(<[^>]*)?$', '', comment[:max_comment_length]
-      )
+      comment = re.sub(r'<[^/]+[^<]*(<[^>]*)?$', '', comment[:max_comment_length])
       comment = re.sub(r'\n$', '', comment)
       comment = comment + '\n......'
     if comment != '':

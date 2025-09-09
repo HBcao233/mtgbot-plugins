@@ -101,9 +101,7 @@ async def parseEidGMsg(eid, soup):
 
 
 async def gallery_info(gid, token):
-  data = json.dumps(
-    {'method': 'gdata', 'gidlist': [[gid, token]], 'namespace': 1}
-  )
+  data = json.dumps({'method': 'gdata', 'gidlist': [[gid, token]], 'namespace': 1})
   r = await util.post(api_url, data=data, headers=eheaders)
   if 'IP address has been' in r.text:
     raise PluginException('请求过于频繁, IP被禁\n' + r.text)

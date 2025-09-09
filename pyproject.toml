@@ -1,5 +1,5 @@
 [tool.ruff]
-line-length = 80
+line-length = 88
 indent-width = 2
 builtins = ["bot"]
 

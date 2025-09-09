@@ -37,8 +37,7 @@ async def get_info(message):
       else:
         _type = 'User'
     elif isinstance(peer, types.PeerChat) or (
-      isinstance(peer, types.PeerChannel)
-      and not getattr(chat, 'broadcast', False)
+      isinstance(peer, types.PeerChannel) and not getattr(chat, 'broadcast', False)
     ):
       _type = 'Group'
     elif isinstance(peer, types.PeerChannel):

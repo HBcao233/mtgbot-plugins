@@ -52,9 +52,7 @@ class Chat:
   async def main(self):
     # 如果没输入内容，提示并退出
     if not self.raw_text:
-      await self.event.respond(
-        '❗️ 请输入要对小派魔说的话，例如 `/chat2 你是谁`'
-      )
+      await self.event.respond('❗️ 请输入要对小派魔说的话，例如 `/chat2 你是谁`')
       return
 
     if not self.event.is_private:
@@ -70,9 +68,7 @@ class Chat:
       await self.parse_reply()
 
     if self.image_url:
-      self.user_message = [
-        {'type': 'image_url', 'image_url': {'url': self.image_url}}
-      ]
+      self.user_message = [{'type': 'image_url', 'image_url': {'url': self.image_url}}]
     self.user_message.append({'type': 'text', 'text': self.raw_text})
 
     logger.info(self.raw_text)
@@ -230,21 +226,19 @@ class Chat:
     if content:
       display += content
     else:
-      display += f'小派魔正在思考中... {progress_chars[self.count % len(progress_chars)]}'
+      display += (
+        f'小派魔正在思考中... {progress_chars[self.count % len(progress_chars)]}'
+      )
 
     display = re.sub(
       r'```(\w+?)\n([\s\S]*?)```',
       r'<pre><code class="language-\1">\2</code></pre>',
       display,
     )
-    display = re.sub(
-      r'```([\s\S]*?)```', r'<pre><code>\1</code></pre>', display
-    )
+    display = re.sub(r'```([\s\S]*?)```', r'<pre><code>\1</code></pre>', display)
     display = re.sub(r'`([\s\S]*?)`', r'<code>\1</code>', display)
     display = re.sub(r'\*\*([\s\S]*?)\*\*', r'<b>\1</b>', display)
-    display = re.sub(
-      r'\[([\s\S]*?)\]\(([\s\S]*?)\)', r'<a href="\2">\1</a>', display
-    )
+    display = re.sub(r'\[([\s\S]*?)\]\(([\s\S]*?)\)', r'<a href="\2">\1</a>', display)
 
     return display
 

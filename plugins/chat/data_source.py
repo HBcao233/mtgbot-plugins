@@ -11,8 +11,7 @@ from util.log import logger
 outdated_time = 3600 * 24 * 3
 
 api_url = (
-  config.env.get('chat_api_url', '')
-  or 'https://api-inference.modelscope.cn/v1/'
+  config.env.get('chat_api_url', '') or 'https://api-inference.modelscope.cn/v1/'
 )
 api_key = config.env.get('chat_api_key', '') or 'EMPTY'
 model = config.env.get('chat_model', '') or 'deepseek-r1'

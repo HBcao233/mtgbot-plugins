@@ -43,9 +43,7 @@ async def _misskey(event, text=''):
       '- [mask/遮罩]: 给图片添加遮罩'
     )
 
-  options = util.string.Options(
-    text, hide=('简略', '省略'), mask=('spoiler', '遮罩')
-  )
+  options = util.string.Options(text, hide=('简略', '省略'), mask=('spoiler', '遮罩'))
   logger.info(f'noteId: {noteId}, options: {options}')
 
   res = await get_note(noteId)

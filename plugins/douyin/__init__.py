@@ -181,9 +181,7 @@ class Douyin:
     )
     async with bot.action(self.event.peer_id, 'photo'):
       async with util.curl.Client() as client:
-        tasks = [
-          self.get_image(i, client, photos, bar) for i in range(len(self.urls))
-        ]
+        tasks = [self.get_image(i, client, photos, bar) for i in range(len(self.urls))]
         gather_task = asyncio.gather(*tasks)
         images = await gather_task
       m = await bot.send_file(

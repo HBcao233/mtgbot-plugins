@@ -56,9 +56,7 @@ async def get_twitter(tid):
     try:
       any(
         (entries := i)['type'] == 'TimelineAddEntries'
-        for i in res['data']['threaded_conversation_with_injections_v2'][
-          'instructions'
-        ]
+        for i in res['data']['threaded_conversation_with_injections_v2']['instructions']
       )
       entries = entries['entries']
     except (KeyError, IndexError):
@@ -71,9 +69,7 @@ async def get_twitter(tid):
     ]
     if len(tweet_entrie) == 0:
       return '解析失败'
-    tweet_result = tweet_entrie[0]['content']['itemContent']['tweet_results'][
-      'result'
-    ]
+    tweet_result = tweet_entrie[0]['content']['itemContent']['tweet_results']['result']
     if 'tweet' in tweet_result.keys():
       return tweet_result['tweet']
     else:
@@ -123,9 +119,7 @@ def parse_msg(res):
   ):
     full_text = f'\u26a0推文内容疑似推广诈骗，请注意甄别\n\n{full_text}'
 
-  created_at = datetime.strptime(
-    tweet['created_at'], r'%a %b %d %H:%M:%S %z %Y'
-  )
+  created_at = datetime.strptime(tweet['created_at'], r'%a %b %d %H:%M:%S %z %Y')
   created_at.astimezone(timezone)
   created_at = created_at.strftime('%Y年%m月%d日 %H:%M:%S')
 
@@ -157,9 +151,7 @@ def parseMedias(tweet):
       )
     else:
       variants = media['video_info']['variants']
-      variants = list(
-        filter(lambda x: x['content_type'] == 'video/mp4', variants)
-      )
+      variants = list(filter(lambda x: x['content_type'] == 'video/mp4', variants))
       variants.sort(key=lambda x: x['bitrate'], reverse=True)
       url = variants[1]['url'] if len(variants) > 1 else variants[0]['url']
       res.append(
