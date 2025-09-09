@@ -291,7 +291,9 @@ class CryptoUtility:
     hex_result = sm3.sm3_hash(func.bytes_to_list(input_data_bytes))
 
     # 将十六进制字符串结果转换为十进制整数列表
-    return [int(hex_result[i : i + 2], 16) for i in range(0, len(hex_result), 2)]
+    return [
+      int(hex_result[i : i + 2], 16) for i in range(0, len(hex_result), 2)
+    ]
 
   def add_salt(self, param: str) -> str:
     """
@@ -374,7 +376,9 @@ class CryptoUtility:
       value_e = self.big_array[(index + 2) % len(self.big_array)]
       sum_initial = (index_b + value_e) % len(self.big_array)
       initial_value = self.big_array[sum_initial]
-      self.big_array[sum_initial] = self.big_array[(index + 2) % len(self.big_array)]
+      self.big_array[sum_initial] = self.big_array[
+        (index + 2) % len(self.big_array)
+      ]
       self.big_array[(index + 2) % len(self.big_array)] = initial_value
       index_b = sum_initial
 
@@ -393,7 +397,9 @@ class CryptoUtility:
     """
 
     # 将输入字符串转换为ASCII码的二进制形式
-    binary_string = ''.join(['{:08b}'.format(ord(char)) for char in input_string])
+    binary_string = ''.join(
+      ['{:08b}'.format(ord(char)) for char in input_string]
+    )
 
     # 补全二进制字符串使其长度为6的倍数
     padding_length = (6 - len(binary_string) % 6) % 6
@@ -406,7 +412,10 @@ class CryptoUtility:
 
     # 根据自定义字符表生成输出字符串
     output_string = ''.join(
-      [self.base64_alphabet[selected_alphabet][index] for index in base64_indices]
+      [
+        self.base64_alphabet[selected_alphabet][index]
+        for index in base64_indices
+      ]
     )
 
     # 添加等号填充，使符合 Base64 编码规范
@@ -435,7 +444,9 @@ class CryptoUtility:
           | ord(abogus_bytes_str[i + 2])
         )
       elif i + 1 < len(abogus_bytes_str):
-        n = (ord(abogus_bytes_str[i]) << 16) | (ord(abogus_bytes_str[i + 1]) << 8)
+        n = (ord(abogus_bytes_str[i]) << 16) | (
+          ord(abogus_bytes_str[i + 1]) << 8
+        )
       else:
         n = ord(abogus_bytes_str[i]) << 16
 
@@ -646,11 +657,20 @@ class ABogus:
     self.options = options  # GET [0, 1, 8] POST [0, 1, 14]
     self.ua_key = b'\x00\x01\x0e'  # ua加密key
 
-    self.character = 'Dkdpgh2ZmsQB80/MfvV36XI1R45-WUAlEixNLwoqYTOPuzKFjJnry79HbGcaStCe'
-    self.character2 = 'ckdp1h4ZKsUB80/Mfvw36XIgR25+WQAlEi7NLboqYTOPuzmFjJnryx9HVGDaStCe'
-    self.character_list = [self.character, self.character2]  # 自定义base64字符表
+    self.character = (
+      'Dkdpgh2ZmsQB80/MfvV36XI1R45-WUAlEixNLwoqYTOPuzKFjJnry79HbGcaStCe'
+    )
+    self.character2 = (
+      'ckdp1h4ZKsUB80/Mfvw36XIgR25+WQAlEi7NLboqYTOPuzmFjJnryx9HVGDaStCe'
+    )
+    self.character_list = [
+      self.character,
+      self.character2,
+    ]  # 自定义base64字符表
 
-    self.crypto_utility = CryptoUtility(self.salt, self.character_list)  # 加密工具类
+    self.crypto_utility = CryptoUtility(
+      self.salt, self.character_list
+    )  # 加密工具类
 
     self.user_agent = (
       user_agent

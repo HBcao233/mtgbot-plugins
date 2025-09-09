@@ -63,16 +63,13 @@ async def get_aweme_detail(aid: str):
   a_bogus = ABogus(user_agent=user_agent).generate_abogus(urlencode(params))[1]
   # logger.info(a_bogus)
 
-  params.update(
-    {
-      'a_bogus': a_bogus,
-    }
-  )
+  params['a_bogus'] = a_bogus
   r = await util.get(
     'https://www.douyin.com/aweme/v1/web/aweme/detail/',
     params=params,
     headers=headers,
   )
+  logger.debug(f'douyin: {r.text}')
   if not r.text or r.status_code != 200:
     return '请求失败'
   res = r.json()
@@ -81,12 +78,6 @@ async def get_aweme_detail(aid: str):
   res = res['aweme_detail']
   if res is None:
     return '视频不存在'
-  res = {
-    k: v
-    for k, v in res.items()
-    if k
-    in ['author', 'aweme_id', 'video', 'desc', 'region', 'preview_title', 'item_title']
-  }
   return res
 
 
