@@ -79,7 +79,9 @@ def gauss_elimination(matrix: list[int], all_solves=False) -> int:
     """
     return sum((matrix[i] >> row) * 2**i for i in range(row))
 
-  def find_optimal_solution(result: int, var_rule: list[int], all_solves=False) -> int:
+  def find_optimal_solution(
+    result: int, var_rule: list[int], all_solves=False
+  ) -> int:
     """
     寻找最优解 (点灯步骤最少的解)
 
@@ -121,7 +123,9 @@ def gauss_elimination(matrix: list[int], all_solves=False) -> int:
         # print('解数量:', 2**freevar_num)
         result = to_result(matrix)
         var_rule = [
-          sum((matrix[j] >> (row - k - 1) & 1) * 2**k for k in range(freevar_num))
+          sum(
+            (matrix[j] >> (row - k - 1) & 1) * 2**k for k in range(freevar_num)
+          )
           for j in range(i)
         ]
         # 解数量较少时尝试寻找最优解, 否则直接返回特解

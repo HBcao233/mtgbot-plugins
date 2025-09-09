@@ -10,7 +10,10 @@ echo_chat_id =
 from telethon import events, types, utils, functions, Button
 from plugin import Command
 from util import logger
-from .data_source import *
+from .data_source import (
+  echo_chat_id,
+  EchoedMessage,
+)
 
 
 @Command(pattern=r'^(?!/).*')

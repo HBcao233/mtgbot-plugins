@@ -8,14 +8,6 @@ if echo_chat_id == 0:
   logger.warn('communicate 插件并未生效: 配置项 echo_chat_id 未设置或设置错误')
 
 
-def to_bytes(i):
-  return i.to_bytes(4, 'big')
-
-
-def from_bytes(b):
-  return int.from_bytes(b, 'big')
-
-
 class EchoedMessage(MessageData):
   inited = False
 
@@ -42,7 +34,8 @@ class EchoedMessage(MessageData):
 
     cursor = cls._conn.cursor()
     cursor.execute(
-      'insert into echoed_messages(mid, echo_mid) values(?,?)', (m.id, echo_m.id)
+      'insert into echoed_messages(mid, echo_mid) values(?,?)',
+      (m.id, echo_m.id),
     )
     cls._conn.commit()
     return cursor.lastrowid
@@ -51,7 +44,9 @@ class EchoedMessage(MessageData):
   def get_echo(cls, chat_id, message_id=None):
     cls.init()
     m = cls.get_message(chat_id, message_id)
-    r = cls._conn.execute('SELECT echo_mid FROM echoed_messages WHERE mid=?', (m.id,))
+    r = cls._conn.execute(
+      'SELECT echo_mid FROM echoed_messages WHERE mid=?', (m.id,)
+    )
     if res := r.fetchone():
       return cls.get_message_by_rid(res[0])
     return None
@@ -60,7 +55,9 @@ class EchoedMessage(MessageData):
   def get_origin(cls, chat_id, message_id=None):
     cls.init()
     m = cls.get_message(chat_id, message_id)
-    r = cls._conn.execute('SELECT mid FROM echoed_messages WHERE echo_mid=?', (m.id,))
+    r = cls._conn.execute(
+      'SELECT mid FROM echoed_messages WHERE echo_mid=?', (m.id,)
+    )
     if res := r.fetchone():
       return cls.get_message_by_rid(res[0])
     return None

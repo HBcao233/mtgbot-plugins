@@ -91,16 +91,20 @@ async def _soutu(event):
   buttons = [
     [
       Button.url(
-        'Google旧版', f'https://www.google.com/searchbyimage?client=app&image_url={url}'
+        'Google旧版',
+        f'https://www.google.com/searchbyimage?client=app&image_url={url}',
       ),
-      Button.url('GoogleLens', f'https://lens.google.com/uploadbyurl?url={url}'),
+      Button.url(
+        'GoogleLens', f'https://lens.google.com/uploadbyurl?url={url}'
+      ),
     ],
     [
       Button.url(
         'Yandex.ru', f'https://yandex.ru/images/search?url={url}&rpt=imageview'
       ),
       Button.url(
-        'Yandex.com (锁区)', f'https://yandex.com/images/search?url={url}&rpt=imageview'
+        'Yandex.com (锁区)',
+        f'https://yandex.com/images/search?url={url}&rpt=imageview',
       ),
     ],
     [
@@ -203,7 +207,7 @@ async def _esearch(event):
   else:
     msg = '\n\n'.join(res)
 
-  m = await event.respond(
+  await event.respond(
     msg,
     parse_mode='html',
     reply_to=message.id,

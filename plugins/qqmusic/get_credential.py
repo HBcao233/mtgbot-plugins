@@ -81,7 +81,13 @@ async def main():
     '\n'.join(
       [
         f'{k}: {getattr(credential, k)}'
-        for k in ['musicid', 'musickey', 'refresh_key', 'refresh_token', 'encrypt_uin']
+        for k in [
+          'musicid',
+          'musickey',
+          'refresh_key',
+          'refresh_token',
+          'encrypt_uin',
+        ]
       ]
     )
   )

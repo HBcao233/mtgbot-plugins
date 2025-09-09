@@ -44,7 +44,9 @@ async def _tid(event, text):
       '- [mask/遮罩]: 添加遮罩'
     )
 
-  options = util.string.Options(text, hide=('简略', '省略'), mask=('spoiler', '遮罩'))
+  options = util.string.Options(
+    text, hide=('简略', '省略'), mask=('spoiler', '遮罩')
+  )
   logger.info(f'tid: {tid}, options: {options}')
   mid = await event.reply('请等待...')
 
@@ -53,7 +55,9 @@ async def _tid(event, text):
     return await event.reply(res)
   if 'tombstone' in res.keys():
     logger.info('tombstone: %s', json.dumps(res))
-    return await event.reply(res['tombstone']['text']['text'].replace('了解更多', ''))
+    return await event.reply(
+      res['tombstone']['text']['text'].replace('了解更多', '')
+    )
 
   msg, full_text, time = parse_msg(res)
   msg = msg if not options.hide else 'https://x.com/i/status/' + tid
@@ -69,12 +73,12 @@ async def _tid(event, text):
   if len(medias_info) == 1:
     bar.set_total(100)
     bar.percent = True
-  
+
   async def get_media(i, client):
     ai = medias_info[i]
     url = ai['url']
     md5 = ai['md5']
-    _type = ai['type'] 
+    _type = ai['type']
     t = photos if _type == 'photo' else videos
     ext = 'jpg' if _type == 'photo' else 'mp4'
     if file_id := t.get(md5):
@@ -96,7 +100,7 @@ async def _tid(event, text):
       progress_callback=bar.update if len(medias_info) == 1 else None,
     )
     return media
-  
+
   async with bot.action(event.peer_id, medias_info[0]['type']):
     async with util.curl.Client(headers=gheaders) as client:
       tasks = [get_media(i, client) for i in range(len(medias_info))]

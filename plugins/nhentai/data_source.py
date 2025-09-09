@@ -124,7 +124,10 @@ async def get_telegraph(gid, title, media_id, exts, nocache, mid):
   success_num = len(result)
   result.extend(
     [
-      Res(None, f'获取数量: {success_num} {f" / {num}" if num != success_num else ""}'),
+      Res(
+        None,
+        f'获取数量: {success_num} {f" / {num}" if num != success_num else ""}',
+      ),
       Res(None, f'原链接: https://nhentai.net/g/{gid}'),
     ]
   )

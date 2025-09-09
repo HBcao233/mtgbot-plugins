@@ -93,8 +93,10 @@ async def _song(event, sid=''):
   title = metainfo['title']
   bar = Progress(mid)
   async with bot.action(event.peer_id, 'audio'):
-    if not (img := (util.data.Audios()[key] or util.data.Audios()[key + '_try'])) or options.nocache:
-      
+    if (
+      not (img := (util.data.Audios()[key] or util.data.Audios()[key + '_try']))
+      or options.nocache
+    ):
       await mid.edit('下载中...')
       bar.set_prefix('下载中...')
       res = await get_url(sid)
@@ -105,12 +107,15 @@ async def _song(event, sid=''):
         )
       url, ext, time = res
       if not url:
-        return await mid.edit('\n'.join(msg), parse_mode='html',)
-      logger.info(f"url: {url}, time: {time}, duration: {metainfo['duration']}")
+        return await mid.edit(
+          '\n'.join(msg),
+          parse_mode='html',
+        )
+      logger.info(f'url: {url}, time: {time}, duration: {metainfo["duration"]}')
       if time != 0 and abs(metainfo['duration'] - time) < 1:
         key += '_try'
         title = '(试听) ' + title
-        
+
       img = await getImg(
         url,
         saveas=key,
@@ -121,7 +126,7 @@ async def _song(event, sid=''):
       img = await add_metadata(img, ext, metainfo)
       await mid.edit('上传中...')
       bar.set_prefix('上传中...')
-      
+
       cover = await getImg(
         metainfo['coverUrl'],
         saveas=f'163music_{sid}_cover',

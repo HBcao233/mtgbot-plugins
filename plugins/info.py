@@ -37,7 +37,8 @@ async def get_info(message):
       else:
         _type = 'User'
     elif isinstance(peer, types.PeerChat) or (
-      isinstance(peer, types.PeerChannel) and not getattr(chat, 'broadcast', False)
+      isinstance(peer, types.PeerChannel)
+      and not getattr(chat, 'broadcast', False)
     ):
       _type = 'Group'
     elif isinstance(peer, types.PeerChannel):
@@ -100,7 +101,11 @@ async def get_info(message):
         )
     else:
       info.extend(
-        ['forward_from: ', f'- name: {message.fwd_from.from_name}', '- id: Hide']
+        [
+          'forward_from: ',
+          f'- name: {message.fwd_from.from_name}',
+          '- id: Hide',
+        ]
       )
   if message.media:
     _type = 'Document'

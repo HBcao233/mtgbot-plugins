@@ -7,7 +7,9 @@ from .gauss_elimination import gen_matrix, gauss_elimination
 
 
 caption = '来用小方块填满我吧❤️～\n'
-solve_tip = '杂鱼~才这种难度就不行了吗~让小派魔教你吧，每个星星点一遍就可以过关哦'
+solve_tip = (
+  '杂鱼~才这种难度就不行了吗~让小派魔教你吧，每个星星点一遍就可以过关哦'
+)
 
 
 @handler(
@@ -26,7 +28,9 @@ async def _(event, text):
   raise events.StopPropagation
 
 
-_button_pattern = re.compile(rb'light_([\x00-\xff]{1,1})([\x00-\xff]{2,2})$').match
+_button_pattern = re.compile(
+  rb'light_([\x00-\xff]{1,1})([\x00-\xff]{2,2})$'
+).match
 
 
 @bot.on(events.CallbackQuery(pattern=_button_pattern))
@@ -83,10 +87,13 @@ async def _event(event):
       and (ij % row != row - 1 or k != ij + 1)
     ):
       buttons[i][j] = Button.inline(
-        '\u3000' if buttons[i][j].text == '\u2588' else '\u2588', buttons[i][j].data
+        '\u3000' if buttons[i][j].text == '\u2588' else '\u2588',
+        buttons[i][j].data,
       )
 
-  if all(buttons[int(k / row)][k % row].text == '\u2588' for k in range(row * row)):
+  if all(
+    buttons[int(k / row)][k % row].text == '\u2588' for k in range(row * row)
+  ):
     await event.answer('你赢啦！', alert=True)
   else:
     await event.answer()
@@ -101,7 +108,9 @@ def gen_buttons(row):
   row_bytes = row.to_bytes(1, 'big')
   buttons = [
     [
-      Button.inline('\u3000', b'light_' + row_bytes + (i * row + j).to_bytes(2, 'big'))
+      Button.inline(
+        '\u3000', b'light_' + row_bytes + (i * row + j).to_bytes(2, 'big')
+      )
       for j in range(row)
     ]
     for i in range(row)

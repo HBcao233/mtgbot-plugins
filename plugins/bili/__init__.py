@@ -57,7 +57,8 @@ async def _(event, text):
   logger.info(f'bvid: {bvid}, aid: {aid}, options: {options}')
   if flag:
     await event.reply(
-      f'https://www.bilibili.com/video/{bvid}' + ('?p=' + str(p) if p > 1 else ''),
+      f'https://www.bilibili.com/video/{bvid}'
+      + ('?p=' + str(p) if p > 1 else ''),
     )
 
   mid = await event.reply('请等待...')

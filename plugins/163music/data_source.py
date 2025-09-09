@@ -56,7 +56,9 @@ async def asrsea(data):
   data = json.dumps(data, ensure_ascii=False)
   key = '0CoJUm6Qyw8W8jud'
   secKey = ''.join(
-    random.choice('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
+    random.choice(
+      'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    )
     for i in range(16)
   )
   encText = aes(data, key)
@@ -72,7 +74,10 @@ async def asrsea(data):
 async def curl(url, params):
   params.update({'csrf_token': csrf_token})
   r = await util.post(
-    url, headers=headers, params={'csrf_token': csrf_token}, data=await asrsea(params)
+    url,
+    headers=headers,
+    params={'csrf_token': csrf_token},
+    data=await asrsea(params),
   )
   if r.status_code != 200:
     return False
@@ -258,14 +263,14 @@ def parse_search(res):
   arr = []
   for i in range(10):
     ai = res[i]
-    title = ai["name"]
+    title = ai['name']
     if len(ai.get('tns', [])) > 0:
-      title += f" ({ai['tns'][0]})"
+      title += f' ({ai["tns"][0]})'
     singers = '、'.join([j['name'] for j in ai['ar']])
     vip = ''
     if ai['privilege'].get('fee', 0) == 1:
       vip = ' 👑'
-  
+
     text = f'{icons[i]} <a href="https://t.me/{bot.me.username}?start=163music_{ai["id"]}">{title}</a>{vip} - {singers}'
     if len(ai.get('lyrics', [])) > 0:
       lyrics = ' '.join(ai['lyrics'])
@@ -273,7 +278,9 @@ def parse_search(res):
     arr.append(text)
 
   icon = '\U0001f3b5'
-  urls = [f'https://t.me/{bot.me.username}?start=163music_{i["id"]}' for i in res]
+  urls = [
+    f'https://t.me/{bot.me.username}?start=163music_{i["id"]}' for i in res
+  ]
   btns = [Button.url(f'{i + 1} {icon}', urls[i]) for i in range(10)]
   buttons = [btns[i : i + 5] for i in range(0, 10, 5)]
   return '\n'.join(arr), buttons
@@ -281,7 +288,8 @@ def parse_search(res):
 
 async def get_program_info(pid):
   res = await curl(
-    'https://interface.music.163.com/weapi/dj/program/detail/static/get', {'id': pid}
+    'https://interface.music.163.com/weapi/dj/program/detail/static/get',
+    {'id': pid},
   )
   if not res:
     return

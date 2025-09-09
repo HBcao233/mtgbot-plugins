@@ -4,7 +4,7 @@ import random
 import time
 import functools
 
-from plugin import Command, InlineCommand
+from plugin import InlineCommand
 from util.log import logger
 import util
 
@@ -141,7 +141,7 @@ def clean_outdate(data):
   for k in data.keys():
     if int(k) <= daybefore:
       need_del.append(k)
-  
+
   with data:
     for k in need_del:
       del data[k]

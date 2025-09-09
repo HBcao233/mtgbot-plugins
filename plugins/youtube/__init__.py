@@ -94,7 +94,9 @@ async def _youtube(event, video_id=''):
 
       await mid.edit('上传中...')
       bar.set_prefix('上传中...')
-      img = await util.media.file_to_media(img, False, progress_callback=bar.update)
+      img = await util.media.file_to_media(
+        img, False, progress_callback=bar.update
+      )
 
     m = await bot.send_file(
       event.peer_id,

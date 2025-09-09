@@ -13,7 +13,7 @@ import filters
 )
 async def _del(event):
   try:
-    await bot.delete_messages(event.peer_id, (event.message.id, ))
+    await bot.delete_messages(event.peer_id, (event.message.id,))
   except errors.MessageDeleteForbiddenError:
     pass
   if not (reply := await event.message.get_reply_message()):

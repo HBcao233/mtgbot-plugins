@@ -3,7 +3,6 @@
 # @Email   : hbcaoqaq@gmail.com
 
 from telethon import types, utils
-import time
 
 import util
 from plugin import InlineCommand
@@ -23,8 +22,6 @@ async def _(event):
   message, entities = html_parser.parse(msg)
 
   result = builder.article(
-    # id=str(int(time.time() * 1000)),
-    # type='photo',
     title='随机涩图',
     description='',
     text=message,

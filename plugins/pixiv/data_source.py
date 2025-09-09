@@ -65,7 +65,9 @@ class PixivClient(util.curl.Client):
 
   async def get_anime(self):
     name = f'{self.pid}_ugoira'
-    r = await self.get(f'https://www.pixiv.net/ajax/illust/{self.pid}/ugoira_meta')
+    r = await self.get(
+      f'https://www.pixiv.net/ajax/illust/{self.pid}/ugoira_meta'
+    )
     res = r.json()['body']
     frames = res['frames']
     _dir = util.getCache(name + '/')
@@ -105,14 +107,14 @@ class PixivClient(util.curl.Client):
       file = os.path.join(_dir, i['file'])
       delay = i['delay'] / 1000
       s.append(f"file '{file}'")
-      s.append(f"duration {delay:.3f}")
+      s.append(f'duration {delay:.3f}')
     s = '\n'.join(s)
     frames_txt = util.getCache(f'{self.pid}_frames.txt')
     with open(frames_txt, 'w') as f:
       f.write(s)
-    
+
     img = util.getCache(f'{self.pid}_ugoira.mp4')
-    
+
     # fmt: off
     command = [
       'ffmpeg', 
@@ -150,7 +152,9 @@ def parse_msg(res, hide=False):
   for i in res['tags']['tags']:
     tags.append(('#' + i['tag']).replace('#R-', '#R').replace(' ', '_'))
     if 'translation' in i.keys():
-      tags.append(('#' + i['translation']['en']).replace('#R-', '#R').replace(' ', '_'))
+      tags.append(
+        ('#' + i['translation']['en']).replace('#R-', '#R').replace(' ', '_')
+      )
 
   props = []
   if res['aiType'] == 2:
@@ -181,16 +185,18 @@ def parse_msg(res, hide=False):
     )
     comment = re.sub(r'<span[^>]*>(((?!</span>).)*)</span>', r'\1', comment)
     if len(comment) > max_comment_length:
-      comment = re.sub(r'<[^/]+[^<]*(<[^>]*)?$', '', comment[:max_comment_length])
+      comment = re.sub(
+        r'<[^/]+[^<]*(<[^>]*)?$', '', comment[:max_comment_length]
+      )
       comment = re.sub(r'\n$', '', comment)
       comment = comment + '\n......'
     if comment != '':
       comment = ':\n<blockquote expandable>' + comment + '</blockquote>'
-  
+
   createDate = datetime.strptime(res['createDate'], r'%Y-%m-%dT%H:%M:%S%z')
   createDate.astimezone(timezone)
   createDate = createDate.strftime('%Y年%m月%d日 %H:%M:%S')
-  
+
   msg = (
     f'{prop}<a href="https://www.pixiv.net/artworks/{pid}/">{title}</a>'
     f' | <a href="https://www.pixiv.net/users/{uid}/">{username}</a> #pixiv [<code>{pid}</code>]'
@@ -224,7 +230,7 @@ async def get_url(imgUrl, pid, i, client, bar):
   if url := data.get(name):
     await bar.add(1)
     return Res(url)
-  
+
   async def get_img_retry():
     for j in range(4):
       try:
@@ -237,9 +243,10 @@ async def get_url(imgUrl, pid, i, client, bar):
         )
       except (httpx.RemoteProtocolError, httpx.ConnectError, httpx.ReadTimeout):
         time.sleep(1)
-        logger.info(f'p{i} 重试 第{j+1}次')
+        logger.info(f'p{i} 重试 第{j + 1}次')
         if j >= 3:
           return Res(None, f'p{i}获取失败')
+
   img = await get_img_retry()
   if isinstance(img, Res):
     return img
@@ -274,7 +281,8 @@ async def get_telegraph(res, tags, client, mid, nocache):
     result.append(Res(None, f'获取数量: {num} / {count}'))
     content = [i.parse() for i in result]
     url = await util.telegraph.createPage(
-      f'[pixiv] {pid} {res["illustTitle"]}', content,
+      f'[pixiv] {pid} {res["illustTitle"]}',
+      content,
     )
     with data:
       data[key] = url

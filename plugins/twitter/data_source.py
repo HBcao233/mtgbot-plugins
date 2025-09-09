@@ -1,5 +1,4 @@
 import re
-import time
 import httpx
 import json
 from datetime import datetime
@@ -7,7 +6,7 @@ from datetime import datetime
 import config
 import util
 from util.log import logger
-from util.log import timezone 
+from util.log import timezone
 
 
 env = config.env
@@ -57,7 +56,9 @@ async def get_twitter(tid):
     try:
       any(
         (entries := i)['type'] == 'TimelineAddEntries'
-        for i in res['data']['threaded_conversation_with_injections_v2']['instructions']
+        for i in res['data']['threaded_conversation_with_injections_v2'][
+          'instructions'
+        ]
       )
       entries = entries['entries']
     except (KeyError, IndexError):
@@ -70,7 +71,9 @@ async def get_twitter(tid):
     ]
     if len(tweet_entrie) == 0:
       return '解析失败'
-    tweet_result = tweet_entrie[0]['content']['itemContent']['tweet_results']['result']
+    tweet_result = tweet_entrie[0]['content']['itemContent']['tweet_results'][
+      'result'
+    ]
     if 'tweet' in tweet_result.keys():
       return tweet_result['tweet']
     else:
@@ -87,11 +90,12 @@ async def get_twitter(tid):
 def replace_unsupported_characters(t):
   return t.replace('\u17b5', '\\u17b5')
 
+
 def parse_msg(res):
   user = res['core']['user_results']['result']['core']
   nickname = replace_unsupported_characters(user['name'])
   username = user['screen_name']
-  
+
   tweet = res['legacy']
   tid = tweet['id_str']
   full_text = replace_unsupported_characters(tweet['full_text'])
@@ -103,19 +107,28 @@ def parse_msg(res):
     r'#([^ \n#]+)', r'<a href="https://x.com/hashtag/\1">#\1</a>', full_text
   )
   full_text = re.sub(
-    r'([^@]*[^/@]+)@([0-9a-zA-Z_]*)', r'\1<a href="https://x.com/\2">@\2</a>', full_text
+    r'([^@]*[^/@]+)@([0-9a-zA-Z_]*)',
+    r'\1<a href="https://x.com/\2">@\2</a>',
+    full_text,
   )
-  if (
-    '暗号' in full_text or '暗语' in full_text
-  ) and (
-    't.me' in full_text or '通道' in full_text or '直通' in full_text or '领取' in full_text or '联系' in full_text or '渠道' in full_text or '进群' in full_text or '飞机' in full_text
+  if ('暗号' in full_text or '暗语' in full_text) and (
+    't.me' in full_text
+    or '通道' in full_text
+    or '直通' in full_text
+    or '领取' in full_text
+    or '联系' in full_text
+    or '渠道' in full_text
+    or '进群' in full_text
+    or '飞机' in full_text
   ):
     full_text = f'\u26a0推文内容疑似推广诈骗，请注意甄别\n\n{full_text}'
-  
-  created_at = datetime.strptime(tweet['created_at'], r'%a %b %d %H:%M:%S %z %Y')
+
+  created_at = datetime.strptime(
+    tweet['created_at'], r'%a %b %d %H:%M:%S %z %Y'
+  )
   created_at.astimezone(timezone)
   created_at = created_at.strftime('%Y年%m月%d日 %H:%M:%S')
-  
+
   msg = (
     f'<a href="https://x.com/{username}/status/{tid}">{tid}</a>'
     f' | <a href="https://x.com/{username}">{nickname}</a> #X'
@@ -144,7 +157,9 @@ def parseMedias(tweet):
       )
     else:
       variants = media['video_info']['variants']
-      variants = list(filter(lambda x: x['content_type'] == 'video/mp4', variants))
+      variants = list(
+        filter(lambda x: x['content_type'] == 'video/mp4', variants)
+      )
       variants.sort(key=lambda x: x['bitrate'], reverse=True)
       url = variants[1]['url'] if len(variants) > 1 else variants[0]['url']
       res.append(

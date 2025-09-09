@@ -48,7 +48,9 @@ def parse_msg(res, hide=False):
     length = 0
     texts = [i['text'] for i in body['blocks'] if i['type'] == 'p']
     index = 0
-    while index < len(texts) and (new_length := length + len(texts[index])) < 400:
+    while (
+      index < len(texts) and (new_length := length + len(texts[index])) < 400
+    ):
       index += 1
       length = new_length
     text = '\n'.join(texts[:index])

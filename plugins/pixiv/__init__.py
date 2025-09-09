@@ -62,9 +62,9 @@ class Pixiv:
 
     self.pid = pid
     self.options = util.string.Options(
-      text, 
-      hide=('简略', '省略'), 
-      mask=('spoiler', '遮罩'), 
+      text,
+      hide=('简略', '省略'),
+      mask=('spoiler', '遮罩'),
       origin='原图',
       nocache='',
     )
@@ -147,7 +147,9 @@ class Pixiv:
     """
     发送telegraph
     """
-    url, msg = await get_telegraph(self.res, self.tags, client, self.mid, self.options.nocache)
+    url, msg = await get_telegraph(
+      self.res, self.tags, client, self.mid, self.options.nocache
+    )
     if isinstance(url, dict):
       await self.mid.reply(f'生成 telegraph 失败: {url["message"]}')
       return
@@ -268,7 +270,9 @@ async def _(event):
   if message is None:
     return await event.answer('消息被删除', alert=True)
 
-  hide = any(isinstance(i, types.MessageEntityBlockquote) for i in message.entities)
+  hide = any(
+    isinstance(i, types.MessageEntityBlockquote) for i in message.entities
+  )
 
   async with PixivClient(pid) as client:
     res = await client.get_pixiv()

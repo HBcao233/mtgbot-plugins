@@ -58,7 +58,9 @@ async def _song(event, sid=''):
       )
 
     if match.group(2):
-      r = await util.get('https://c6.y.qq.com/base/fcgi-bin/u?__=' + match.group(2))
+      r = await util.get(
+        'https://c6.y.qq.com/base/fcgi-bin/u?__=' + match.group(2)
+      )
       text = str(r.url)
       match = _pattern(text)
       sid = match.group(1)
@@ -108,7 +110,7 @@ async def _song(event, sid=''):
         img = await add_metadata(img, 'mp3', metainfo)
         await mid.edit('上传中...')
         bar.set_prefix('上传中...')
-        
+
         cover = await util.getImg(
           metainfo['coverUrl'],
           saveas=f'qqmusic_{sid}_cover',

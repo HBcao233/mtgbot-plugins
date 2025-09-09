@@ -101,7 +101,9 @@ async def parseEidGMsg(eid, soup):
 
 
 async def gallery_info(gid, token):
-  data = json.dumps({'method': 'gdata', 'gidlist': [[gid, token]], 'namespace': 1})
+  data = json.dumps(
+    {'method': 'gdata', 'gidlist': [[gid, token]], 'namespace': 1}
+  )
   r = await util.post(api_url, data=data, headers=eheaders)
   if 'IP address has been' in r.text:
     raise PluginException('请求过于频繁, IP被禁\n' + r.text)
@@ -350,7 +352,8 @@ class GT:
         logger.warning(w)
         return Res(None, w)
     match = re.search(
-      r'''<a.*?load_image\((\d*),.*?'(.*?)'\).*?<img.*?src="(.*?)"''', r.json()['i3']
+      r'''<a.*?load_image\((\d*),.*?'(.*?)'\).*?<img.*?src="(.*?)"''',
+      r.json()['i3'],
     )
     # next_i, next_imgkey = match.group(1), match.group(2)
     return Res(match.group(3))
@@ -371,7 +374,10 @@ async def get_telegraph(arr, title, num, nocache, mid):
   success_num = len(result)
   result.extend(
     [
-      Res(None, f'获取数量: {success_num} {f" / {num}" if num != success_num else ""}'),
+      Res(
+        None,
+        f'获取数量: {success_num} {f" / {num}" if num != success_num else ""}',
+      ),
       Res(None, f'原链接: {eurl}'),
     ]
   )

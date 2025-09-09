@@ -60,7 +60,9 @@ def parse_msg(res, p=1):
     for i in res['pages']:
       if i['page'] == p:
         cid = i['cid']
-  title = res['title'].replace('&', '&gt;').replace('<', '&lt;').replace('>', '&gt;')
+  title = (
+    res['title'].replace('&', '&gt;').replace('<', '&lt;').replace('>', '&gt;')
+  )
   uid = res['owner']['mid']
   nickname = res['owner']['name']
   msg = (
@@ -115,7 +117,9 @@ async def get_video(bvid, aid, cid, bar=None):
   command.extend(['-c:v', 'copy', '-c:a', 'copy', '-y', path])
   logger.info(f'{command = }')
 
-  returncode, stdout = await util.media.ffmpeg(command, progress_callback=bar.update)
+  returncode, stdout = await util.media.ffmpeg(
+    command, progress_callback=bar.update
+  )
   if returncode != 0:
     logger.error(stdout)
     return None

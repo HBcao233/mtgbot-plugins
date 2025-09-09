@@ -139,21 +139,23 @@ def parse_search(res):
   arr = []
   for i in range(10):
     ai = res[i]
-    title = ai["title"]
+    title = ai['title']
     if ai.get('subtitle', ''):
-      title += f" ({ai['subtitle']})"
+      title += f' ({ai["subtitle"]})'
     singers = '、'.join(j['name'] for j in ai['singer'])
-    
+
     vip = ai.get('pay', {}).get('pay_play', '')
     if vip:
       vip = ' 👑'
     text = f'{icons[i]} <a href="https://t.me/{bot.me.username}?start=qqmusic_{ai["mid"]}">{title}</a>{vip} - {singers}'
     if ai.get('lyric', ''):
-      text += f"\n　 {ai['lyric']}"
+      text += f'\n　 {ai["lyric"]}'
     arr.append(text)
 
   icon = '\U0001f3b5'
-  urls = [f'https://t.me/{bot.me.username}?start=qqmusic_{i["mid"]}' for i in res]
+  urls = [
+    f'https://t.me/{bot.me.username}?start=qqmusic_{i["mid"]}' for i in res
+  ]
   btns = [Button.url(f'{i + 1} {icon}', urls[i]) for i in range(10)]
   buttons = [btns[i : i + 5] for i in range(0, 10, 5)]
   return '\n'.join(arr), buttons

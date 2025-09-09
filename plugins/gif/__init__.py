@@ -49,7 +49,9 @@ async def _gif(event):
       img = util.getCache(str(document_id) + _ext)
       if not os.path.isfile(img) or os.path.getsize(img) == 0:
         bar.set_prefix('下载中...')
-        await reply_message.download_media(file=img, progress_callback=bar.update)
+        await reply_message.download_media(
+          file=img, progress_callback=bar.update
+        )
 
       if mime_type == 'application/x-tgsticker':
         res = await tgs2ext(img, 'gif')

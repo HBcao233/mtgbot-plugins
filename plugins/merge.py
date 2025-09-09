@@ -50,7 +50,9 @@ class MergeData(MessageData):
     cls._conn.execute(
       'CREATE TABLE if not exists merge(id INTEGER PRIMARY KEY AUTOINCREMENT, chat_id INTEGER NOT NULL, mids BLOB NOT NULL, pin_mids BLOB)'
     )
-    cls._conn.execute('CREATE UNIQUE INDEX if not exists id_index ON merge (id)')
+    cls._conn.execute(
+      'CREATE UNIQUE INDEX if not exists id_index ON merge (id)'
+    )
     cls._conn.commit()
     MergeData.inited = True
 
@@ -64,7 +66,9 @@ class MergeData(MessageData):
     return [int.from_bytes(i, 'big') for i in ids]
 
   @classmethod
-  def add_merge(cls, chat_id: int, message_ids: Sequence[int], pin_mid: int) -> int:
+  def add_merge(
+    cls, chat_id: int, message_ids: Sequence[int], pin_mid: int
+  ) -> int:
     cls.init()
     chat_id = utils.get_peer_id(chat_id)
     mids = MergeData.encode_mids(message_ids)
@@ -87,7 +91,8 @@ class MergeData(MessageData):
     mids = MergeData.encode_mids(message_ids)
     pin_mids = MergeData.encode_mids(pin_mids)
     cls._conn.execute(
-      'UPDATE merge SET mids=?, pin_mids=? WHERE chat_id=?', (mids, pin_mids, chat_id)
+      'UPDATE merge SET mids=?, pin_mids=? WHERE chat_id=?',
+      (mids, pin_mids, chat_id),
     )
     cls._conn.commit()
 
@@ -225,8 +230,12 @@ class Tmerge:
     if any(not m.photo for m in self.messages):
       return await self.event.answer('telegraph 合并暂时仅支持图片', alert=True)
     await self.get_title()
-    self.mid = await bot.send_message(self.peer, '请等待', buttons=Button.clear())
-    self.bar = util.progress.Progress(self.mid, len(self.res.mids), '上传中...', False)
+    self.mid = await bot.send_message(
+      self.peer, '请等待', buttons=Button.clear()
+    )
+    self.bar = util.progress.Progress(
+      self.mid, len(self.res.mids), '上传中...', False
+    )
 
     with util.Data('urls') as data:
       tasks = [self.parse(m, data) for m in self.messages]

@@ -5,7 +5,6 @@
 from telethon import events, types
 import re
 import random
-import time
 
 from plugin import Command, InlineCommand
 from util.log import logger
