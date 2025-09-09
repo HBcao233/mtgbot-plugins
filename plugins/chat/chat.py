@@ -177,8 +177,8 @@ class Chat:
 
   def interval(self):
     while True:
-      if 0 <= self.count < 10:
-        yield self.count // 2 + 1
+      if 0 <= self.count < 5:
+        yield self.count + 1
       else:
         yield 5
 
@@ -190,7 +190,7 @@ class Chat:
       )
     except (errors.MessageEmptyError, errors.MessageNotModifiedError):
       pass
-    
+
   async def request_fail(self, e):
     try:
       text = self.parse_display(self.reasoning_content, self.content)[:1000]
@@ -206,9 +206,9 @@ class Chat:
 
   async def request_openai(self):
     client = openai.AsyncOpenAI(
-      base_url=f'{api_url}', 
-      api_key=f'{api_key}', 
-      timeout=openai.Timeout(60.0, connect=60.0)
+      base_url=f'{api_url}',
+      api_key=f'{api_key}',
+      timeout=openai.Timeout(60.0, connect=60.0),
     )
 
     self.content = ''
@@ -235,9 +235,7 @@ class Chat:
       if not chunk.choices:
         if self.content != '' and not self.content.endswith('\n'):
           self.content += '\n'
-        self.content += (
-          '非常抱歉，作为一个AI助手，我无法回答该问题，请使用 /clear 清除聊天记录后重试'
-        )
+        self.content += '非常抱歉，作为一个AI助手，我无法回答该问题，请使用 /clear 清除聊天记录后重试'
         break
 
       delta = chunk.choices[0].delta
@@ -274,7 +272,11 @@ class Chat:
     if not self.first_piece and not self.inline_mode:
       await bot.send_file(self.event.chat_id, file=file)
     elif self.inline_mode:
-      m = None if self.first_piece else f'$ {self.raw_text}\n(内容过长已输出至文件)'
+      m = (
+        None
+        if self.first_piece
+        else f'$ {self.raw_text}\n(内容过长已输出至文件)'
+      )
       await self.resp.edit(
         m,
         parse_mode='html',
@@ -294,7 +296,9 @@ class Chat:
     expandable = ''
     if content:
       expandable = ' expandable'
-    display += f'<blockquote{expandable}>内心OS\n{reasoning_content}</blockquote>'
+    display += (
+      f'<blockquote{expandable}>内心OS\n{reasoning_content}</blockquote>'
+    )
     if content:
       display += content
     else:
@@ -305,10 +309,14 @@ class Chat:
       r'<pre><code class="language-\1">\2</code></pre>',
       display,
     )
-    display = re.sub(r'```([\s\S]*?)```', r'<pre><code>\1</code></pre>', display)
+    display = re.sub(
+      r'```([\s\S]*?)```', r'<pre><code>\1</code></pre>', display
+    )
     display = re.sub(r'`([\s\S]*?)`', r'<code>\1</code>', display)
     display = re.sub(r'\*\*([\s\S]*?)\*\*', r'<b>\1</b>', display)
-    display = re.sub(r'\[([\s\S]*?)\]\(([\s\S]*?)\)', r'<a href="\2">\1</a>', display)
+    display = re.sub(
+      r'\[([\s\S]*?)\]\(([\s\S]*?)\)', r'<a href="\2">\1</a>', display
+    )
 
     return display
 

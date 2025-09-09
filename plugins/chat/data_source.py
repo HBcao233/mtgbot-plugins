@@ -11,7 +11,8 @@ from util.log import logger
 outdated_time = 3600 * 24 * 3
 
 api_url = (
-  config.env.get('chat_api_url', '') or 'https://api-inference.modelscope.cn/v1/'
+  config.env.get('chat_api_url', '')
+  or 'https://api-inference.modelscope.cn/v1/'
 )
 api_key = config.env.get('chat_api_key', '') or 'EMPTY'
 model = config.env.get('chat_model', '') or 'deepseek-r1'
@@ -74,7 +75,11 @@ def clean_html():
   htmls = []
   for i in os.listdir(cacheDir):
     path = os.path.join(cacheDir, i)
-    if i.startswith('output') and i.endswith('.html') and time.time() - os.stat(path)[ST_MTIME] > outdated_time:
+    if (
+      i.startswith('output')
+      and i.endswith('.html')
+      and time.time() - os.stat(path)[ST_MTIME] > outdated_time
+    ):
       os.remove(path)
       htmls.append(i)
   if len(htmls) > 0:
