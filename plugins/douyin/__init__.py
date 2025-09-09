@@ -6,7 +6,7 @@ gmssl
 pydantic
 """
 
-from telethon import Button
+from telethon import types, Button
 import re
 import asyncio
 
@@ -21,7 +21,7 @@ from .data_source import (
 
 
 _pattern = re.compile(
-  r'(?:^/douyin |(?:/douyin ?)?(?:https?://)?(?:www\.)?(?:ies)?douyin\.com/(?:video/|.*?modal_id=)?)([0-9]{12,20})|(?:v\.douyin\.com/([0-9a-zA-Z_]{5,14}))|^/douyin(?!_)'
+  r'(?:^/douyin |(?:/douyin ?)?(?:https?://)?(?:www\.)?(?:ies)?douyin\.com/(?:video/|note/|.*?modal_id=)?)([0-9]{12,20})|(?:v\.douyin\.com/([0-9a-zA-Z_]{5,14}))|^/douyin(?!_)'
 ).search
 
 
@@ -142,6 +142,7 @@ class Douyin:
     key = f'douyin_{self.aid}'
     audios = util.Audios()
     bar = util.progress.Progress(self.mid)
+    title = self.res['item_title'] or self.res['desc'] or key
     async with bot.action(self.event.peer_id, 'audio'):
       if (file_id := audios.get(key)) and not self.options.nocache:
         media = util.media.file_id_to_media(file_id)
@@ -157,7 +158,13 @@ class Douyin:
         await self.mid.edit('上传中...')
         bar.set_prefix('上传中...')
         media = await util.media.file_to_media(
-          img, self.options.mask, progress_callback=bar.update
+          img, 
+          attributes=[
+            types.DocumentAttributeFilename(
+              f'{title}.m4a'
+            ),
+          ],
+          progress_callback=bar.update,
         )
 
       m = await bot.send_file(
