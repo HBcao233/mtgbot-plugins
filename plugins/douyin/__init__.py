@@ -158,11 +158,9 @@ class Douyin:
         await self.mid.edit('上传中...')
         bar.set_prefix('上传中...')
         media = await util.media.file_to_media(
-          img, 
+          img,
           attributes=[
-            types.DocumentAttributeFilename(
-              f'{title}.m4a'
-            ),
+            types.DocumentAttributeFilename(f'{title}.m4a'),
           ],
           progress_callback=bar.update,
         )
