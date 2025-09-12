@@ -34,3 +34,4 @@
 | bookkeeping | 小记账本 | | |
 | randcat | 随机猫狗 | | |
 | chat | Deepseek 聊天 | `openai` | |
+| autoban | 自动封禁名字带有 '翻墙' '免费' '直连' '直接登录' 的用户 | | |
