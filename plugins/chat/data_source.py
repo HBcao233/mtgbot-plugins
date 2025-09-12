@@ -1,9 +1,12 @@
+from stat import ST_MTIME
+from typing import Iterable
 import os
 import json
-import util
 import config
 import time
-from stat import ST_MTIME
+import re
+
+import util
 from util.log import logger
 
 
@@ -15,7 +18,7 @@ api_url = (
 )
 api_key = config.env.get('chat_api_key', '') or 'EMPTY'
 model = config.env.get('chat_model', '') or 'deepseek-r1'
-max_tokens = int(config.env.get('chat_max_tokens', '')) or 8192
+max_tokens = int(config.env.get('chat_max_tokens', '8192')) or 8192
 # 用于识图
 gemini_token = config.env.get('gemini_token', '')
 
@@ -30,6 +33,9 @@ if os.path.isfile(sp_path):
 # 记忆文件夹路径
 MEMORY_DIR = util.getDataFile('chat_memory/')
 os.makedirs(MEMORY_DIR, exist_ok=True)
+# 会话文件夹路径
+SESSION_DIR = util.getDataFile('chat_session/')
+os.makedirs(SESSION_DIR, exist_ok=True)
 
 
 def load_history(user_id):
@@ -38,6 +44,10 @@ def load_history(user_id):
     with open(path, 'r', encoding='utf-8') as f:
       return json.load(f)
   return []
+
+
+def length(t):
+  return len(re.sub('[\x00-\xff]', '', t)) + len(re.sub('[^\x00-\xff]', '', t)) / 2
 
 
 def save_history(user_id, history):
@@ -83,3 +93,88 @@ def clean_html():
       htmls.append(i)
   if len(htmls) > 0:
     logger.info(f'清理 html 文件: {", ".join(htmls)}')
+
+
+def format_content(content):
+  try:
+    content = json.loads(content)
+  except json.JSONDecodeError:
+    return content
+  c = ''
+  for j in content:
+    if j['type'] == 'image':
+      c += '[图片]'
+    else:
+      c += j['text']
+  return c
+
+
+class Sessions(util.Data):
+  def __init__(self, user_id):
+    super().__init__(f'chat_session/{user_id}')
+    self.user_id = user_id
+    if (
+      self.data.get('current_session', None) is None
+      or len(self.data.get('sessions', [])) == 0
+    ):
+      self.data['current_session'] = 0
+      self.data['sessions'] = [
+        {
+          'name': '新对话',
+          'historys': load_history(self.user_id),
+          'delete_time': 0,
+        }
+      ]
+      self.save()
+
+  @property
+  def current_session_index(self):
+    return self.data.get('current_session', 0)
+
+  @property
+  def sessions(self):
+    return self.data['sessions']
+
+  @property
+  def current_session(self):
+    return self.sessions[self.current_session_index]
+
+  @property
+  def current_historys(self):
+    return self.current_session['historys']
+
+  def add_history(self, history):
+    if not isinstance(history, Iterable):
+      history = (history,)
+    self.data['sessions'][self.current_session_index]['historys'].extend(history)
+    return True
+
+  def rename_session(self, index, name):
+    if len(self.sessions) <= index:
+      return False
+    self.data['sessions'][index]['name'] = name
+    return True
+
+  def add_session(self, name='新对话'):
+    self.data['sessions'].append(
+      {
+        'name': name,
+        'historys': [],
+        'delete_time': 0,
+      }
+    )
+    return True
+
+  def delete_session(self, index=None):
+    if index is None:
+      index = self.current_session_index
+    if len(self.sessions) <= index:
+      return False
+    self.data['sessions'][index]['delete_time'] = int(time.time())
+    return True
+
+  def switch_session(self, index):
+    if len(self.sessions) <= index:
+      return False
+    self.data['current_session'] = index
+    return True

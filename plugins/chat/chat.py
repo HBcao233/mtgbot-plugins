@@ -11,8 +11,7 @@ import time
 import util
 from util.log import logger
 from .data_source import (
-  load_history,
-  save_history,
+  Sessions,
   system_prompt,
   clean_html,
   get_image,
@@ -67,7 +66,10 @@ class Chat:
         return
 
     logger.info(self.user_message)
-    history = load_history(self.user_id)
+    sessions = Sessions(self.user_id)
+    history = sessions.current_historys
+    if len(history) > 10:
+      history = history[0:1] + history[-9:]
     self.msgs = (
       [{'role': 'system', 'content': system_prompt}]
       + history
@@ -97,11 +99,13 @@ class Chat:
         await self.request_fail(e)
         return
 
-    history = history + [
-      {'role': 'user', 'content': self.user_message},
-      {'role': 'assistant', 'content': self.content.strip()},
-    ]
-    save_history(self.user_id, history)
+    with sessions:
+      sessions.add_history(
+        [
+          {'role': 'user', 'content': self.user_message},
+          {'role': 'assistant', 'content': self.content.strip()},
+        ]
+      )
     clean_html()
 
   async def parse_reply(self):
@@ -196,7 +200,7 @@ class Chat:
       text = self.parse_display(self.reasoning_content, self.content)[:1000]
       msg = f'{type(e).__name__}：{e}'
       if getattr(e, 'code', '') == 'data_inspection_failed':
-        msg = '内容审查错误: 请使用 /clear 清除聊天记录后重试'
+        msg = '内容审查错误: 请使用 /chat_clear 清除聊天记录后重试'
       await self.resp.edit(
         text + f'\n\n⚠️ > 与 Chat API 通信出现错误 - {msg}',
         parse_mode='html',
@@ -235,9 +239,7 @@ class Chat:
       if not chunk.choices:
         if self.content != '' and not self.content.endswith('\n'):
           self.content += '\n'
-        self.content += (
-          '非常抱歉，作为一个AI助手，我无法回答该问题，请使用 /clear 清除聊天记录后重试'
-        )
+        self.content += '非常抱歉，作为一个AI助手，我无法回答该问题，请使用 /chat_clear 清除聊天记录后重试'
         break
 
       delta = chunk.choices[0].delta
