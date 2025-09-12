@@ -99,6 +99,7 @@ class Chat:
         await self.request_fail(e)
         return
 
+    print(self.content.strip())
     with sessions:
       sessions.add_history(
         [

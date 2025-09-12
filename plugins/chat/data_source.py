@@ -170,6 +170,8 @@ class Sessions(util.Data):
       index = self.current_session_index
     if len(self.sessions) <= index:
       return False
+    if self.sessions[index]['delete_time'] > 0:
+      return False
     self.data['sessions'][index]['delete_time'] = int(time.time())
     return True
 
@@ -177,4 +179,12 @@ class Sessions(util.Data):
     if len(self.sessions) <= index:
       return False
     self.data['current_session'] = index
+    return True
+
+  def recycle_session(self, index):
+    if len(self.sessions) <= index:
+      return False
+    if self.sessions[index]['delete_time'] == 0:
+      return False
+    self.data['sessions'][index]['delete_time'] = 0
     return True

@@ -85,8 +85,11 @@ async def _(event):
   filter=filters.ONLYTEXT & filters.PRIVATE,
   scope=Scope.private(),
 )
-async def chat_list(event, p=0):
-  logger.info(f'p: {p}')
+async def chat_list(event, p=0, _all=False):
+  options = util.string.Options(event.raw_text, all='')
+  if _all:
+    options.all = True
+  logger.info(f'p: {p}, options: {options}')
   user_id = event.sender_id
   chat = await bot.get_entity(event.sender_id)
   name = getattr(chat, 'first_name', None) or getattr(chat, 'title', None)
@@ -98,19 +101,32 @@ async def chat_list(event, p=0):
   name = f'<a href="{url}">{util.string.html_escape(name)}</a>'
 
   sessions = Sessions(user_id)
-  if len(sessions.sessions) < p * 10 + 1:
+  if options.all:
+    count = len(sessions.sessions)
+  else:
+    count = sum((1 if i['delete_time'] == 0 else 0) for i in sessions.sessions)
+  if count < p * 10 + 1:
     return await event.respond(f'对话列表没有第 {p + 1} 页喵')
 
   res = []
-  session_list = [session for session in sessions.sessions if session['delete_time'] == 0]
-  for index, session in enumerate(session_list[p * 10 : p * 10 + 10]):
-    session_id = index + p * 10
+  num = 0
+  for index, session in enumerate(sessions.sessions):
+    if not options.all and session['delete_time'] > 0:
+      continue
+    if num < p * 10:
+      continue
+    if num >= p * 10 + 10:
+      break
+    num += 1
+    session_id = index
     encode_session_id = base64.urlsafe_b64encode(
       session_id.to_bytes(1, signed=False),
     ).decode()
     tip = ''
     if sessions.current_session_index == session_id:
       tip = ' ⬅️'
+    elif session['delete_time'] > 0:
+      tip = ' 🗑️'
     res.append(
       f'\n◆ <a href="https://t.me/{bot.me.username}?start=chat_{encode_session_id}">{session["name"]}</a> ({session_id + 1}){tip}'
     )
@@ -130,29 +146,38 @@ async def chat_list(event, p=0):
 
   res = '\n'.join(res)
   buttons = None
-  if len(sessions.sessions) > 10:
-    page_num = len(sessions.sessions) // 10 + 1
+  if count > 10:
+    page_num = count // 10 + 1
     buttons = []
     for i in range(min(page_num, 5)):
-      buttons.append(
-        Button.inline(f'* {i + 1}', b'chat_empty')
-        if p == i
-        else Button.inline(f'{i + 1}', b'chat_list_' + str(i).encode())
-      )
+      if p == i:
+        btn = Button.inline(f'* {i + 1}', b'chat_empty')
+      elif not options.all:
+        btn = Button.inline(f'{i + 1}', b'chat_list_' + str(i).encode())
+      else:
+        btn = Button.inline(f'{i + 1}', b'chat_list_all_' + str(i).encode())
+      buttons.append(btn)
     if page_num > 5:
       buttons = [buttons, []]
       for i in range(5, page_num):
-        buttons[1].append(
-          Button.inline(f'* {i + 1}', b'chat_empty')
-          if p == i
-          else Button.inline(f'{i + 1}', b'chat_list_' + str(i).encode())
-        )
+        if p == i:
+          btn = Button.inline(f'* {i + 1}', b'chat_empty')
+        elif not options.all:
+          btn = Button.inline(f'{i + 1}', b'chat_list_' + str(i).encode())
+        else:
+          btn = Button.inline(f'{i + 1}', b'chat_list_all_' + str(i).encode())
+        buttons[1].append(btn)
 
   page = ''
   if len(sessions.sessions) > 10:
     page = f' (第{p + 1}页)'
+  tip = ''
+  if options.all:
+    tip = '(含已删除对话)\n'
+  elif count < len(sessions.sessions):
+    tip = f'(您有{len(sessions.sessions) - count}条删除对话, 可使用 <code>/chat_list all</code>查看)\n'
   await event.respond(
-    f'{name} 您的对话列表{page}:\n{res}', parse_mode='html', buttons=buttons
+    f'{name} 您的对话列表{page}:\n{tip}{res}', parse_mode='html', buttons=buttons
   )
 
 
@@ -162,6 +187,7 @@ async def empty_button(event):
 
 
 list_session_pattern = re.compile(rb'chat_list_([0-9])').match
+list_all_session_pattern = re.compile(rb'chat_list_all_([0-9])').match
 
 
 @bot.on(events.CallbackQuery(pattern=list_session_pattern))
@@ -172,6 +198,16 @@ async def list_session(event):
   match = event.pattern_match
   p = match.group(1)
   await chat_list(event, int(p))
+
+
+@bot.on(events.CallbackQuery(pattern=list_all_session_pattern))
+async def list_all_session(event):
+  """
+  所有对话列表换页
+  """
+  match = event.pattern_match
+  p = match.group(1)
+  await chat_list(event, int(p), _all=True)
 
 
 @Command(
@@ -197,9 +233,13 @@ async def _(event):
   else:
     with sessions:
       sessions.delete_session()
-      if len(sessions.sessions) == 0 or len(sessions.sessions[len(sessions.sessions) - 1]['historys']) != 0:
+      for index, session in enumerate(sessions.sessions):
+        if len(session['historys']) == 0:
+          sessions.switch_session(index)
+          break
+      else:
         sessions.add_session()
-      sessions.switch_session(len(sessions) - 1)
+        sessions.switch_session(len(sessions) - 1)
     m = await event.respond(f'✅ {name} 已清除当前对话上下文记忆。')
   if not event.is_private:
     try:
@@ -225,7 +265,12 @@ async def _(event):
     return await event.respond('对话不存在')
 
   session = sessions.sessions[session_id]
-  res = [f'◆ {session["name"]} ({session_id})']
+  tip = ''
+  if session['delete_time'] > 0:
+    tip = ' 🗑️'
+  elif sessions.current_session_index == session_id:
+    tip = ' ⬅️'
+  res = [f'◆ {session["name"]} ({session_id}){tip}']
   if len(session['historys']) == 0:
     res.append('  ● 暂无聊天记录')
   else:
@@ -246,9 +291,19 @@ async def _(event):
   res = '\n'.join(res)
   buttons = [
     [Button.inline('ℹ️ 重命名对话', b'chat_rename_' + encode_session_id.encode())],
-    [Button.inline('✅ 切换对话', b'chat_switch_' + encode_session_id.encode())],
-    [Button.inline('❎️ 删除对话', b'chat_delete_' + encode_session_id.encode())],
   ]
+  if session['delete_time'] == 0:
+    buttons.append(
+      [Button.inline('✅ 切换对话', b'chat_switch_' + encode_session_id.encode())],
+    )
+    buttons.append(
+      [Button.inline('🚮 删除对话', b'chat_delete_' + encode_session_id.encode())],
+    )
+  else:
+    buttons.append(
+      [Button.inline('♻️ 回收对话', b'chat_recycle_' + encode_session_id.encode())],
+    )
+  
   await event.respond(res, parse_mode='html', buttons=buttons)
 
 
@@ -349,6 +404,11 @@ async def delete_session(event):
 
   if len(sessions.sessions) == 1:
     return await event.answer('最后一个对话不能删喵', alert=True)
+  
+  if sessions.sessions[session_id]['delete_time'] > 0:
+    return await event.respond(
+      f'对话 "{session["name"]}" 之前就已经被删除了喵',
+    )
 
   with sessions:
     sessions.delete_session(session_id)
@@ -383,3 +443,38 @@ async def _(event):
       [Button.inline('✅ 切换对话', b'chat_switch_' + encode_session_id.encode())],
     ],
   )
+
+
+recycle_session_pattern = re.compile(rb'chat_recycle_([0-9a-zA-Z_\-=]{4,4})').match
+
+
+@bot.on(events.CallbackQuery(pattern=recycle_session_pattern))
+async def recycle_session(event):
+  match = event.pattern_match
+  encode_session_id = match.group(1)
+  try:
+    session_id = int.from_bytes(base64.urlsafe_b64decode(encode_session_id))
+  except binascii.Error:
+    return await event.answer('对话不存在', alert=True)
+
+  user_id = event.sender_id
+  sessions = Sessions(user_id)
+  if len(sessions.sessions) <= session_id:
+    return await event.answer('对话不存在喵', alert=True)
+
+  count = sum((1 if i['delete_time'] == 0 else 0) for i in sessions.sessions)
+  if count >= 100:
+    return await event.answer('你的对话太多了喵，100个！先删掉一点吧', alert=True)
+  
+  if sessions.sessions[session_id]['delete_time'] == 0:
+    return await event.respond(
+      f'对话 "{session["name"]}" 根本就没有被删除喵',
+    )
+  
+  with sessions:
+    sessions.recycle_session(session_id)
+  session = sessions.sessions[session_id]
+  await event.respond(
+    f'恢复对话 "{session["name"]}" 成功',
+  )
+  await event.answer()
