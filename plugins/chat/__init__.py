@@ -40,6 +40,14 @@ deepseek_texts = {}
   filter=filters.ONLYTEXT,
 )
 async def _chat(event):
+  user_id = event.sender_id
+  sessions = Sessions(user_id)
+  if sessions.current_session['delete_time'] > 0:
+    with sessions:
+      for i, session in enumerate(sessions.sessions):
+        if session['delete_time'] == 0:
+          sessions.switch_session(i)
+          break
   c = Chat(event)
   await c.main()
 
@@ -86,7 +94,7 @@ async def _(event):
   scope=Scope.private(),
 )
 async def chat_list(event, p=0, _all=False):
-  options = util.string.Options(event.raw_text, all='')
+  options = util.string.Options(getattr(event, 'raw_text', ''), all='')
   if _all:
     options.all = True
   logger.info(f'p: {p}, options: {options}')
@@ -101,6 +109,7 @@ async def chat_list(event, p=0, _all=False):
   name = f'<a href="{url}">{util.string.html_escape(name)}</a>'
 
   sessions = Sessions(user_id)
+  logger.info(f'current_session: {sessions.current_session_index}')
   if options.all:
     count = len(sessions.sessions)
   else:
@@ -109,15 +118,15 @@ async def chat_list(event, p=0, _all=False):
     return await event.respond(f'对话列表没有第 {p + 1} 页喵')
 
   res = []
-  num = 0
+  num = -1
   for index, session in enumerate(sessions.sessions):
-    if not options.all and session['delete_time'] > 0:
+    if (not options.all) and session['delete_time'] > 0:
       continue
+    num += 1
     if num < p * 10:
       continue
     if num >= p * 10 + 10:
       break
-    num += 1
     session_id = index
     encode_session_id = base64.urlsafe_b64encode(
       session_id.to_bytes(1, signed=False),
@@ -234,12 +243,12 @@ async def _(event):
     with sessions:
       sessions.delete_session()
       for index, session in enumerate(sessions.sessions):
-        if len(session['historys']) == 0:
+        if session['delete_time'] == 0 and len(session['historys']) == 0:
           sessions.switch_session(index)
           break
       else:
         sessions.add_session()
-        sessions.switch_session(len(sessions) - 1)
+        sessions.switch_session(len(sessions.sessions) - 1)
     m = await event.respond(f'✅ {name} 已清除当前对话上下文记忆。')
   if not event.is_private:
     try:
@@ -270,7 +279,7 @@ async def _(event):
     tip = ' 🗑️'
   elif sessions.current_session_index == session_id:
     tip = ' ⬅️'
-  res = [f'◆ {session["name"]} ({session_id}){tip}']
+  res = [f'◆ {session["name"]} ({session_id + 1}){tip}']
   if len(session['historys']) == 0:
     res.append('  ● 暂无聊天记录')
   else:
@@ -303,7 +312,7 @@ async def _(event):
     buttons.append(
       [Button.inline('♻️ 回收对话', b'chat_recycle_' + encode_session_id.encode())],
     )
-  
+
   await event.respond(res, parse_mode='html', buttons=buttons)
 
 
@@ -404,8 +413,9 @@ async def delete_session(event):
 
   if len(sessions.sessions) == 1:
     return await event.answer('最后一个对话不能删喵', alert=True)
-  
-  if sessions.sessions[session_id]['delete_time'] > 0:
+
+  session = sessions.sessions[session_id]
+  if session['delete_time'] > 0:
     return await event.respond(
       f'对话 "{session["name"]}" 之前就已经被删除了喵',
     )
@@ -465,12 +475,13 @@ async def recycle_session(event):
   count = sum((1 if i['delete_time'] == 0 else 0) for i in sessions.sessions)
   if count >= 100:
     return await event.answer('你的对话太多了喵，100个！先删掉一点吧', alert=True)
-  
-  if sessions.sessions[session_id]['delete_time'] == 0:
+
+  session = sessions.sessions[session_id]
+  if session['delete_time'] == 0:
     return await event.respond(
       f'对话 "{session["name"]}" 根本就没有被删除喵',
     )
-  
+
   with sessions:
     sessions.recycle_session(session_id)
   session = sessions.sessions[session_id]

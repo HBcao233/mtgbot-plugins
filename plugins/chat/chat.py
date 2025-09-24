@@ -45,11 +45,12 @@ class Chat:
 
   async def main(self):
     # 如果没输入内容，提示并退出
-    if not self.user_message:
+    if not self.user_message:  # {
       await self.event.respond(
         '❗️ 请输入要对小派魔说的话，例如 `/chat 你是谁`。插件作者：@nyan2022。后端由Deepseek R1模型支持'
       )
       return
+    # }
 
     if not self.event.is_private:
       chat = await bot.get_entity(self.user_id)
@@ -99,7 +100,7 @@ class Chat:
         await self.request_fail(e)
         return
 
-    print(self.content.strip())
+    logger.info(self.content.strip())
     with sessions:
       sessions.add_history(
         [
@@ -232,8 +233,8 @@ class Chat:
       messages=self.msgs,
       max_tokens=max_tokens,
       stream=True,
-      temperature=0.6,
-      top_p=0.7,
+      temperature=1,
+      top_p=1,
     )
     async for chunk in stream:
       # logger.debug(chunk)

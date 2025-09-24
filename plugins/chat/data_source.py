@@ -28,7 +28,7 @@ sp_path = os.path.join(os.path.dirname(__file__), 'system_prompt.txt')
 if os.path.isfile(sp_path):
   with open(sp_path, 'r') as f:
     if text := f.read():
-      system_prompt = text
+      system_prompt = text.strip()
 
 # 记忆文件夹路径
 MEMORY_DIR = util.getDataFile('chat_memory/')
@@ -176,7 +176,7 @@ class Sessions(util.Data):
     return True
 
   def switch_session(self, index):
-    if len(self.sessions) <= index:
+    if len(self.data['sessions']) <= index:
       return False
     self.data['current_session'] = index
     return True
