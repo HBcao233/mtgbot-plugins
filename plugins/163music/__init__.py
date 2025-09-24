@@ -112,7 +112,7 @@ async def _song(event, sid=''):
           parse_mode='html',
         )
       logger.info(f'url: {url}, time: {time}, duration: {metainfo["duration"]}')
-      if time != 0 and abs(metainfo['duration'] - time) < 1:
+      if time != 0 and abs(metainfo['duration'] - time) > 1:
         key += '_try'
         title = '(试听) ' + title
 
