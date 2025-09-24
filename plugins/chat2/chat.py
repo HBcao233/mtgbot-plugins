@@ -100,6 +100,7 @@ class Chat:
         await self.request_fail(e)
         return
 
+    logger.info(self.content.strip())
     history = history + [
       {'role': 'user', 'content': self.user_message},
       {'role': 'assistant', 'content': self.content.strip()},

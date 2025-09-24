@@ -22,7 +22,7 @@ sp_path = os.path.join(os.path.dirname(__file__), 'system_prompt.txt')
 if os.path.isfile(sp_path):
   with open(sp_path, 'r') as f:
     if text := f.read():
-      system_prompt = text
+      system_prompt = text.strip()
 
 # 记忆文件夹路径
 MEMORY_DIR = util.getDataFile('chat2_memory/')
