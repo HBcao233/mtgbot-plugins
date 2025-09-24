@@ -8,7 +8,7 @@ from util.log import logger
 @bot.on(events.ChatAction)
 async def _(event):
   logger.debug(f'ChatAction: {event}')
-  logger.info(f'ChatAction: {format_chat_action(event)}')
+  # logger.info(f'ChatAction: {format_chat_action(event)}')
   if not event.action_message:
     return
 
