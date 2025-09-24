@@ -6,6 +6,12 @@ import json
 import util
 from util import logger
 from util.telegraph import createPage, getPageList
+from plugin import import_plugin
+
+try:
+  hosting = import_plugin('hosting')
+except ModuleNotFoundError:
+  hosting = None
 
 
 class PluginException(Exception):
@@ -21,6 +27,7 @@ async def gallery_info(gid):
   except json.JSONDecodeError:
     raise PluginException('解析失败')
 
+  logger.debug(f'nhentai: {res}')
   if 'error' in res:
     e = res['error']
     _dict = {'does not exist': '页面不存在'}
@@ -30,14 +37,19 @@ async def gallery_info(gid):
     title = res['title']['japanese']
   else:
     title = res['title']['english']
-  num = res['num_pages']
-  ext_dict = {
-    'j': 'jpg',
-    'p': 'png',
-    'g': 'gif',
-  }
-  exts = [ext_dict[i['t']] for i in res['images']['pages']]
-  _tags = [i['name'] for i in res['tags']]
+  try:
+    num = res['num_pages']
+    ext_dict = {
+      'j': 'jpg',
+      'p': 'png',
+      'g': 'gif',
+      'w': 'webp',
+    }
+    exts = [ext_dict[i['t']] for i in res['images']['pages']]
+    _tags = [i['name'] for i in res['tags']]
+  except Exception as e:
+    logger.exception('解析失败')
+    raise PluginException(f'解析失败 {type(e).__name__}: {e}')
 
   filepath = os.path.join(
     os.path.dirname(os.path.dirname(__file__)), 'ehentai', 'ehtags-cn.json'
@@ -95,10 +107,17 @@ async def get_telegraph(gid, title, media_id, exts, nocache, mid):
       return Res(url)
 
     url = f'https://i.nhentai.net/galleries/{media_id}/{i + 1}.{exts[i]}'
+
     try:
-      r = await client.get(url)
-      r.raise_for_status()
-      url = await util.curl.postimg_upload(r.content, client)
+      logger.info(f'GET {util.curl.logless(url)}')
+      img = await client.getImg(
+        url,
+        saveas=f'nhentaig{gid}_p{i + 1}',
+        ext=exts[i], 
+        headers={'referer': f'https://nhentai.net/g/{gid}'}
+      )
+      img = await util.media.to_img(img)
+      url = await hosting.get_url(img)
     except Exception:
       w = f'p{i + 1} 获取失败'
       logger.warning(w, exc_info=1)

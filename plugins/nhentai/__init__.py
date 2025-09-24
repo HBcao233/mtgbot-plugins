@@ -8,8 +8,9 @@ import re
 from datetime import datetime
 
 import util
-from plugin import Command, Scope
 import filters
+from plugin import Command, Scope
+from util.log import logger
 from .data_source import PluginException, gallery_info, get_telegraph
 
 
@@ -32,9 +33,11 @@ async def nid(event, text):
     return await event.reply('用法: 直接发送nhentai链接')
 
   options = util.string.Options(text, nocache=())
+  logger.info(f'nhentai gid: {gid}, options: {options}')
 
   try:
     title, num, media_id, exts, tags = await gallery_info(gid)
+    logger.info(f'nhentai title: {title}, media_id: {media_id}')
   except PluginException as e:
     await event.reply(str(e))
 
@@ -46,7 +49,10 @@ async def nid(event, text):
     imgurl = f'https://i.nhentai.net/galleries/{media_id}/{page}.{exts[page - 1]}'
     async with bot.action(event.peer_id, 'photo'):
       img = await util.getImg(
-        imgurl, ext=True, headers={'referer': f'https://nhentai.net/g/{gid}'}
+        imgurl, 
+        saveas=f'nhentaig{gid}_p{page}',
+        ext=True, 
+        headers={'referer': f'https://nhentai.net/g/{gid}'}
       )
       await bot.send_file(
         event.peer_id,
