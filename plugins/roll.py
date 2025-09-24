@@ -28,6 +28,13 @@ async def roll(event):
   _min, _max = getMinMax(event.pattern_match)
   res = random.randint(_min, _max)
   msg = f'🎲 骰到了 {res} ({_min} ~ {_max})'
+  if not event.is_private:
+    user_id = event.sender_id
+    chat = await bot.get_entity(user_id)
+    name = getattr(chat, 'first_name', None) or getattr(chat, 'title', None)
+    if t := getattr(chat, 'last_name', None):
+      name += ' ' + t
+    msg = f'[{name}](tg://user?id={user_id}) {msg}'
   await event.reply(msg)
   raise events.StopPropagation
 
