@@ -113,8 +113,8 @@ async def get_telegraph(gid, title, media_id, exts, nocache, mid):
       img = await client.getImg(
         url,
         saveas=f'nhentaig{gid}_p{i + 1}',
-        ext=exts[i], 
-        headers={'referer': f'https://nhentai.net/g/{gid}'}
+        ext=exts[i],
+        headers={'referer': f'https://nhentai.net/g/{gid}'},
       )
       img = await util.media.to_img(img)
       url = await hosting.get_url(img)

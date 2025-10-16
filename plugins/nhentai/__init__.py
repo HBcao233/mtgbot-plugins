@@ -49,10 +49,10 @@ async def nid(event, text):
     imgurl = f'https://i.nhentai.net/galleries/{media_id}/{page}.{exts[page - 1]}'
     async with bot.action(event.peer_id, 'photo'):
       img = await util.getImg(
-        imgurl, 
+        imgurl,
         saveas=f'nhentaig{gid}_p{page}',
-        ext=True, 
-        headers={'referer': f'https://nhentai.net/g/{gid}'}
+        ext=True,
+        headers={'referer': f'https://nhentai.net/g/{gid}'},
       )
       await bot.send_file(
         event.peer_id,
