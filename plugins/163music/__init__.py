@@ -170,7 +170,7 @@ async def _song(event, sid=''):
 )
 async def _search(event):
   keyword = ''
-  arr = event.raw_text.split(' ')
+  arr = event.raw_text.split(' ', 1)
   if len(arr) > 1:
     keyword = arr[1]
 
@@ -202,6 +202,7 @@ async def _search(event):
         return await mid.respond('输入有误', buttons=Button.clear())
       keyword = message.message.strip()
 
+  logger.info(f'keyword: {keyword}')
   mid = await event.respond('请稍后...', buttons=Button.clear())
   res = await general_search(keyword)
   if not res:
