@@ -10,6 +10,7 @@ saucenao_api_key =
 from telethon import events, utils, Button
 from urllib.parse import quote
 import re
+import os
 
 import util
 from plugin import Command, import_plugin
@@ -49,7 +50,8 @@ async def get_image(message, _ext='jpg'):
     _id = message.document.id
   name = f'{_id}{ext}'
   img = util.getCache(name)
-  await message.download_media(file=img)
+  if not os.path.isfile(img):
+    await message.download_media(file=img)
   img = await to_img(img, _ext)
 
   return img
@@ -77,14 +79,14 @@ async def _soutu(event):
   elif message.document:
     _id = message.document.id
   data = util.Data('urls')
-  if not (url := data.get(str(_id))):
+  if not (url := data.get(f'{_id}')):
     img = await get_image(message)
     if not img:
       await event.reply('回复的文件不是图片')
       return
     url = await hosting.get_url(img)
-    with data:
-      data[str(_id)] = url
+  with data:
+    data[f'{_id}'] = url
 
   safe_chars = "A-Za-z0-9-_.~!*'()"
   url = quote(url, safe=safe_chars)
@@ -184,6 +186,8 @@ async def _saucenao(event):
 @Command(
   'esearch',
   info='e站搜图',
+  # e站搜图只能搜哈希值完全一模一样的图
+  enable=False,
 )
 async def _esearch(event):
   message = None
