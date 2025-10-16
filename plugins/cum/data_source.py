@@ -104,27 +104,27 @@ dick_thickness_levels = [
 # range 为最大最小值的平均值
 dick_cum_levels = [
   {
-    'range': '300-600πL',
+    'range': '3.00-6.00mL',
     'name': '星点',
     'details': '你的能量如夜空中闪烁的星点，温柔而细腻，带来轻柔的愉悦。',
   },
   {
-    'range': '550-1500πL',
+    'range': '5.50-15.00mL',
     'name': '细流',
     'details': '你的能量如涓涓细流，缓缓流淌，滋润着彼此的心田，带来绵长而舒适的感受。',
   },
   {
-    'range': '1500-3000πL',
+    'range': '15.00-30.00mL',
     'name': '喷涌',
     'details': '你的能量如山泉般喷涌而出，热情奔放，激荡着彼此的灵魂，带来强烈的冲击和快感。',
   },
   {
-    'range': '3000-6000πL',
+    'range': '30.00-60.00mL',
     'name': '激流',
     'details': '你的能量如奔腾的激流，势不可挡，冲击着每一个角落，带来酣畅淋漓的释放和满足。',
   },
   {
-    'range': '6000πL+',
+    'range': '60.00mL+',
     'name': '海啸',
     'details': '你的能量如同席卷一切的海啸，气势磅礴，撼动天地，带来无与伦比的震撼和巅峰的体验。',
   },
@@ -150,27 +150,24 @@ def formatTime(t):
 
 
 async def request_ultimumai(msgs):
-  data = (
-    json.dumps(
-      {
-        'messages': msgs,
-        'model': 'google/gemma-3-27b-it:free',
-        'usage': {
-          'include': True,
-        },
-        'stream': True,
-        'max_tokens': 8192,
-        'temperature': 1,
-        'top_p': 1,
-      }
-    ),
+  data = json.dumps(
+    {
+      'messages': msgs,
+      'model': 'google/gemma-3-27b-it:free',
+      'usage': {
+        'include': True,
+      },
+      'stream': True,
+      'max_tokens': 8192,
+      'temperature': 1,
+      'top_p': 1,
+    }
   )
   async with util.curl.Client(headers=gheaders) as client:
     async with client.stream(
       'POST',
       'https://ultimumai.com/api/internal-paid-provider-chat-completion',
       data=data,
-      verify=False,
       timeout=60,
     ) as r:
       async for chunk in r.aiter_lines():
@@ -214,7 +211,7 @@ async def get_omikuji_details(omikuji):
         content.append(c)
       break
     except Exception:
-      logger.warn('{i} 请求错误', exc_info=1)
+      logger.warn(f'{i} 请求错误', exc_info=1)
 
   content = ''.join(content)
   logger.info(content)
@@ -263,7 +260,7 @@ async def get_help_details():
         content.append(c)
       break
     except Exception:
-      logger.warn('{i} 请求错误', exc_info=1)
+      logger.warn(f'{i} 请求错误', exc_info=1)
 
   content = ''.join(content)
   logger.info(content)

@@ -40,12 +40,12 @@ async def cum(event):
   logger.info(f'res: {res}, semen: {semen}, omikuji: {omikuji}')
   if not res:
     return await event.reply(
-      f'{name} 您今天已经射过了喵，再射会坏掉的\n\n今日运势: {level}，今日射精 {semen} πL'
+      f'{name} 您今天已经射过了喵，再射会坏掉的\n\n今日运势: {level}，今日射精 {semen/ 100} mL'
     )
 
   details = await get_omikuji_details(omikuji)
   await event.reply(
-    f'{name} {details}\n\n今日运势: {level}，您获得了 {semen} πL 精液',
+    f'{name} {details}\n\n今日运势: {level}，您获得了 {semen/100} mL 精液',
   )
 
 
@@ -63,7 +63,7 @@ async def cum_jar(event):
   name = f'[{name}](tg://user?id={user_id})'
 
   semen = Cum.get_semen(user_id)
-  jar_status = f'您的糖罐里还有 {semen} πL 精液'
+  jar_status = f'您的糖罐里还有 {semen / 100} mL 精液'
   if semen == 0:
     jar_status = '您的糖罐一滴不剩了'
   last_cum_time = Cum.last_cum_time(user_id)
@@ -129,7 +129,7 @@ async def cum_status(event):
 ◆ 肉棒粗度: {dick_thickness}cm ({dick_thickness_level_info['name']})
   * {dick_thickness_level_info['details']}
 
-◆ 射精量: {cum_min}~{cum_max}πL ({cum_level_info['name']})
+◆ 射精量: {cum_min/100}~{cum_max/100}mL ({cum_level_info['name']})
   * {cum_level_info['details']}""",
   )
 
@@ -191,5 +191,5 @@ async def help_other(event):
 
   help_details = await get_help_details()
   await event.respond(
-    f'{help_details}\n\n您获得了 {help_get} πL 精液',
+    f'{help_details}\n\n您获得了 {help_get/100} mL 精液',
   )
