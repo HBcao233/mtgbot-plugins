@@ -18,7 +18,7 @@ deepseek_texts = {}
 
 @Command(
   'chat2',
-  info='与小派魔聊天',
+  info='与小派魔聊天 (gemma3)',
   filter=filters.ONLYTEXT,
 )
 async def _chat(event):

@@ -52,7 +52,9 @@ class Chat:
   async def main(self):
     # 如果没输入内容，提示并退出
     if not self.raw_text:
-      await self.event.respond('❗️ 请输入要对小派魔说的话，例如 `/chat2 你是谁`')
+      await self.event.respond(
+        '❗️ 请输入要对小派魔说的话，例如 `/chat2 你是谁。（gemma3）`'
+      )
       return
 
     if not self.event.is_private:
@@ -177,7 +179,7 @@ class Chat:
         async for chunk in r.aiter_lines():
           # logger.info(chunk)
           if '"error"' in chunk:
-            raise Exception('请求失败')
+            raise Exception(f'请求失败: {chunk}')
           if not chunk.startswith('data: '):
             continue
           chunk = chunk[6:]
