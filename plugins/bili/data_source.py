@@ -5,8 +5,9 @@ import util
 from util.log import logger
 from .auth import gheaders, getMixinKey, wbi
 
-# qn=64 代表 720P
-qn = 64
+# qn=80: 1080P
+# qn=64: 720P
+qn = 80
 
 
 @cmp_to_key
@@ -63,9 +64,13 @@ def parse_msg(res, p=1):
   title = res['title'].replace('&', '&gt;').replace('<', '&lt;').replace('>', '&gt;')
   uid = res['owner']['mid']
   nickname = res['owner']['name']
+
+  dynamic = res.get('dynamic', '')
+  if dynamic:
+    dynamic = f'\n<blockquote expandable>{dynamic}</blockquote>'
   msg = (
     f'<a href="https://www.bilibili.com/video/{bvid}{p_url}">{title}{p_tip}</a> | '
-    f'<a href="https://space.bilibili.com/{uid}">{nickname}</a> #Bilibili'
+    f'<a href="https://space.bilibili.com/{uid}">{nickname}</a> #Bilibili{dynamic}'
   )
   return bvid, aid, cid, title, msg
 
@@ -87,20 +92,36 @@ async def get_video(bvid, aid, cid, bar=None):
         progress_callback=bar.update if bar else None,
       )
 
-    videos = sorted(videos, key=choose_video)
+    videos = list(sorted(videos, key=choose_video))
     logger.info(f'qn: {videos[0]["id"]}, codecid: {videos[0]["codecid"]}')
     video_url = videos[0]['base_url']
-    for i in audios:
-      if i['id'] == 30216:
-        audio_url = i['base_url']
-        break
+    audios = list(sorted(audios, key=lambda x:x['id'], reverse=True))
+    audio_url = audios[0]['base_url']
+    logger.info(f'audio_id: {audios[0]["id"]}')
+
+    base = 'base_url'
+
+    async def download_video():
+      nonlocal video_url, base
+      try:
+        return await client.getImg(
+          video_url,
+          headers={'referer': f'https://www.bilibili.com/video/{bvid}'},
+          progress_callback=partial(bar.update, line=1) if bar else None,
+        )
+      except Exception:
+        if base != 'base_url':
+          raise
+        logger.warning(
+          f'尝试获取视频 (id={videos[0]["id"]}, codecid={videos[0]["codecid"]}) {base} 失败',
+          exc_info=1,
+        )
+        video_url = videos[0]['backup_url'][0]
+        base = 'backup_url[0]'
+        return await download_video()
 
     result = await asyncio.gather(
-      client.getImg(
-        video_url,
-        headers={'referer': f'https://www.bilibili.com/video/{bvid}'},
-        progress_callback=partial(bar.update, line=1) if bar else None,
-      ),
+      download_video(),
       client.getImg(
         audio_url,
         headers={'referer': f'https://www.bilibili.com/video/{bvid}'},
@@ -126,11 +147,13 @@ async def _get_video(bvid, cid, client=None):
   url = 'https://api.bilibili.com/x/player/wbi/playurl'
   mixin_key = await getMixinKey(client)
   params = {
-    'fnver': 0,
-    'fnval': 16,
-    'qn': qn,
     'bvid': bvid,
     'cid': cid,
+    'qn': qn,
+    'fnver': 0,
+    'fnval': 4048,
+    'fourk': 1,
+    'try_look': 1,
   }
   r = await client.get(
     url,
