@@ -1,5 +1,5 @@
 import asyncio
-from functools import cmp_to_key, partial
+from functools import partial
 
 import util
 from util.log import logger
@@ -8,29 +8,6 @@ from .auth import gheaders, getMixinKey, wbi
 # qn=80: 1080P
 # qn=64: 720P
 qn = 80
-
-
-@cmp_to_key
-def choose_video(x, y):
-  """
-  选择不大于 qn 的最大清晰度 (有大于qn选择qn, 没有则选择最大清晰度);
-  多个qn则更倾向于选择 codecid=12 (HEVC 编码).
-  """
-  if x['id'] > qn:
-    return 1
-  if y['id'] > qn:
-    return -1
-  if x['id'] == y['id'] == qn:
-    if x['codecid'] == 12:
-      return -1
-    if y['codecid'] == 12:
-      return 1
-    return 0
-  if x['id'] < y['id']:
-    return 1
-  if x['id'] > y['id']:
-    return -1
-  return 0
 
 
 async def get_bili(bvid, aid):
@@ -92,12 +69,13 @@ async def get_video(bvid, aid, cid, bar=None):
         progress_callback=bar.update if bar else None,
       )
 
-    videos = list(sorted(videos, key=choose_video))
-    logger.info(f'qn: {videos[0]["id"]}, codecid: {videos[0]["codecid"]}')
+    # 先按照id降序排序，再按照codecid升序排序
+    videos = list(sorted(videos, key=lambda x: (-x['id'], x['codecid'])))
+    logger.info(f'video qn: {videos[0]["id"]}, codecid: {videos[0]["codecid"]}')
     video_url = videos[0]['base_url']
-    audios = list(sorted(audios, key=lambda x:x['id'], reverse=True))
+    audios = list(sorted(audios, key=lambda x: -x['id']))
     audio_url = audios[0]['base_url']
-    logger.info(f'audio_id: {audios[0]["id"]}')
+    logger.info(f'audio qn: {audios[0]["id"]}')
 
     base = 'base_url'
 
