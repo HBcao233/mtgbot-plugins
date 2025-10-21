@@ -15,7 +15,7 @@ from plugin import Command, Scope
 import filters
 from .data_source import get_bili, parse_msg, get_video
 
-_p = r'(?:^|^/bili |(?:https?://)?bilibili\.com/video/)(av\d{2,11}|(?:BV|bv)[0-9a-zA-Z]{8,12})|(?:b23\.tv\\?/((?![0-9]{7,7})[0-9a-zA-Z]{7,7}))|^/bili(?![^ ])'
+_p = r'(?:^|^/bili |(?:https?://)?bilibili\.com/video/)(av\d{2,16}|(?:BV|bv)[0-9a-zA-Z]{8,12})|(?:b23\.tv\\?/((?![0-9]{7,7})[0-9a-zA-Z]{7,7}))|^/bili(?![^ ])'
 _pattern = re.compile(_p).search
 
 
