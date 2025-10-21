@@ -8,6 +8,7 @@ pixiv_PHPSESSID =
 """
 
 from telethon import types, events, errors, Button
+from collections.abc import Iterable
 import re
 import asyncio
 import httpx
@@ -80,7 +81,9 @@ class Pixiv:
         return await self.mid.edit(self.res)
       self.msg, self.tags = parse_msg(self.res, self.options.hide)
       if self.res['illustType'] == 2:
-        return await self.send_animation(client)
+        res = await self.send_animation(client)
+        await self.send_buttons(res)
+        return
 
       self.count = self.res['pageCount']
       if self.count > 10:
@@ -92,11 +95,14 @@ class Pixiv:
     if not self.options.origin:
       await self.send_buttons(m)
 
-  async def send_buttons(self, m):
+  async def send_buttons(self, messages):
     """
     发送按钮
     """
-    message_id_bytes = m[0].id.to_bytes(4, 'big')
+    m = messages
+    if isinstance(messages, Iterable):
+      m = m[0]
+    message_id_bytes = m.id.to_bytes(4, 'big')
     sender_bytes = b'~' + self.event.sender_id.to_bytes(6, 'big', signed=True)
     pid_bytes = int(self.pid).to_bytes(4, 'big')
     await self.event.reply(
@@ -123,8 +129,12 @@ class Pixiv:
     async with bot.action(self.event.peer_id, 'file'):
       data = util.Animations()
       await self.mid.edit('生成动图中...')
-      if not (file := data[self.pid]) or self.options.nocache:
-        file = await client.get_anime()
+      key = self.pid
+      if self.options.origin:
+        data = util.Documents()
+        key = f'{self.pid}_origin'
+      if not (file := data.get(key)) or self.options.nocache:
+        file = await client.get_anime(self.options.origin)
         if not file:
           return await self.event.reply('生成动图失败')
 
@@ -135,13 +145,14 @@ class Pixiv:
         reply_to=self.event.message,
         caption=self.msg,
         parse_mode='html',
-        force_document=False,
+        force_document=self.options.origin,
         attributes=[types.DocumentAttributeAnimated()],
         progress_callback=bar.update,
       )
       with data:
-        data[self.pid] = res
+        data[key] = res
       await self.mid.delete()
+      return res
 
   async def send_telegraph(self, client):
     """

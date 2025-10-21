@@ -22,6 +22,8 @@ except ModuleNotFoundError:
 PHPSESSID = config.env.get('pixiv_PHPSESSID', '')
 gheaders = {'cookie': f'PHPSESSID={PHPSESSID};'}
 max_comment_length = 600
+# \uAC00-\uD7A3为匹配韩文的，其余为日文
+jap = re.compile(r'[\u3040-\u309F\u30A0-\u30FF\uAC00-\uD7A3]').search
 
 
 class PixivClient(util.curl.Client):
@@ -63,15 +65,18 @@ class PixivClient(util.curl.Client):
       return '错误: ' + res['message']
     return res['body']
 
-  async def get_anime(self):
+  async def get_anime(self, origin=False):
     name = f'{self.pid}_ugoira'
     r = await self.get(f'https://www.pixiv.net/ajax/illust/{self.pid}/ugoira_meta')
     res = r.json()['body']
     frames = res['frames']
     _dir = util.getCache(name + '/')
+    url = res['src']
+    if origin:
+      url = res['originalSrc']
     if not os.path.isdir(_dir):
       zi = await self.getImg(
-        res['src'],
+        url,
         saveas=name,
         ext=True,
       )
@@ -112,6 +117,8 @@ class PixivClient(util.curl.Client):
       f.write(s)
 
     img = util.getCache(f'{self.pid}_ugoira.mp4')
+    if origin:
+      img = util.getCache(f'{self.pid}_ugoira_origin.mp4')
 
     # fmt: off
     command = [
@@ -155,7 +162,7 @@ def parse_msg(res, hide=False):
   props = []
   if res['aiType'] == 2:
     props.append('#AI生成')
-    tags.insert(0, '#AI生成')
+    # tags.insert(0, '#AI生成')
   if any((tag := t) in tags for t in ['#R18', '#R17.9']):
     props.append(tag)
   if '#R18G' in tags:
@@ -196,7 +203,18 @@ def parse_msg(res, hide=False):
     f' | <a href="https://www.pixiv.net/users/{uid}/">{username}</a> #pixiv [<code>{pid}</code>]'
   )
   if not hide:
-    msg += f'{comment}\n<blockquote expandable>{" ".join(i for i in tags if i not in ["#R18", "#R18G"])}</blockquote>\n{createDate}'
+    msg += f'{comment}\n<blockquote expandable>{" ".join(i for i in tags if i not in ["#R18", "#R18G"])}</blockquote>'
+  else:
+    show_tags = []
+    for tag in tags:
+      if len(show_tags) >= 2:
+        break
+      if re.match(r'^#[a-zA-Z_]+$', tag):
+        continue
+      if not jap(tag) and tag not in ['#R18', '#R18G', '#Ugoira', '#动图']:
+        show_tags.append(tag)
+    msg += f'\n{" ".join(show_tags)}'
+  msg += f'\n{createDate}'
   return msg, tags
 
 
