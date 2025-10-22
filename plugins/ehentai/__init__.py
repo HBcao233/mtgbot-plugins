@@ -14,7 +14,7 @@ ex_igneous =
 
 from telethon import types
 import re
-from datetime import datetime
+import asyncio
 
 import util
 import filters
@@ -27,6 +27,7 @@ from .data_source import (
   page_info,
   gallery_info,
   get_telegraph,
+  MAX_FETCH_NUM,
 )
 
 
@@ -87,13 +88,22 @@ async def send_gallery(event, arr, options):
     return await mid.edit(str(e))
 
   title = info['title']
-  num = info['num']
+  num = int(info['num'])
   magnets = info['magnets']
   tags = info['tags']
-  now = datetime.now()
-  key = f'eg{gid}-{now:%m-%d}'
+
+  start = 1
+  if num > MAX_FETCH_NUM:
+    await mid.delete()
+    start = await get_start(event, num)
+    if start is None:
+      return
+    mid = await event.reply('请等待...')
+
+  end = min(start + 200, num)
+  key = f'eg{gid}-{start}-{end}'
   if not (url := util.Data('urls')[key]) or options.nocache:
-    url = await get_telegraph(arr, title, num, options.nocache, mid)
+    url = await get_telegraph(arr, title, start, num, options.nocache, mid)
     if isinstance(url, dict):
       return await mid.edit(f'生成 telegraph 失败: {url["message"]}')
     with util.Data('urls') as data:
@@ -123,3 +133,25 @@ async def send_gallery(event, arr, options):
     ),
   )
   await mid.delete()
+
+
+async def get_start(event, num):
+  async with bot.conversation(event.chat_id) as conv:
+    mid = await conv.send_message(
+      f'当前画廊图片数量大于200，请在60秒内输入开始页码 (1~{num}, 例如输入120将获取p120~{min(320, num)})',
+    )
+    while True:
+      try:
+        message = await conv.get_response()
+        start = int(message.message)
+        if start < 1:
+          continue
+        if start > num:
+          continue
+        return start
+      except ValueError:
+        pass
+      except asyncio.TimeoutError:
+        await conv.send_message('输入超时，操作已取消', reply_to=mid)
+        return None
+      await conv.send_message('输入错误, 请在60秒内重新输入')
