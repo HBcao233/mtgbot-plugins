@@ -21,7 +21,7 @@ from .data_source import (
 
 
 _pattern = re.compile(
-  r'(?:^/douyin |(?:/douyin ?)?(?:https?://)?(?:www\.)?(?:ies)?douyin\.com/(?:video/|note/|.*?modal_id=)?)([0-9]{12,20})|(?:v\.douyin\.com/([0-9a-zA-Z_]{5,14}))|^/douyin(?!_)'
+  r'(?:^/douyin |(?:/douyin ?)?(?:https?://)?(?:www\.|so\.)?(?:ies)?douyin\.com/(?:.*?video/|note/|.*?modal_id=|.*?actv_aid=)?)([0-9]{12,20})|(?:v\.douyin\.com/([0-9a-zA-Z_]{5,14}))|^/douyin(?!_)'
 ).search
 
 

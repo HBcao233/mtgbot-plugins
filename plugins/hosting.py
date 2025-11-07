@@ -25,7 +25,12 @@ if hosting_host:
 
 async def get_url(path: str, rename: str = None) -> str:
   if picgo_api_key:
-    return await upload_picgo(path, rename)
+    logger.info('使用picgo上传')
+    res = await upload_picgo(path, rename)
+    if not isinstance(res, str):
+      logger.info('picgo上传失败，尝试postimage')
+      res = await upload_postimage(path, rename)
+    return res
   if hosting_host:
     return upload_local(path, rename)
   return await upload_postimage(path, rename)
@@ -103,6 +108,7 @@ async def upload_picgo(path, rename=None):
     },
   )
   if r.status_code != 200:
+    logger.info(f'请求失败: {r.text}')
     return {'code': 1, 'message': '连接失败'}
   res = r.json()
   logger.debug(f'picgo: {res}')

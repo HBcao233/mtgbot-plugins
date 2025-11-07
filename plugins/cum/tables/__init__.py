@@ -26,8 +26,8 @@ class Cum:
       """CREATE TABLE if not exists users(
   id INTEGER PRIMARY KEY AUTOINCREMENT, 
   uid INTEGER UNIQUE NOT NULL, 
-  cum_min INTEGER NOT NULL DEFAULT 200,
-  cum_max INTEGER NOT NULL DEFAULT 400,
+  cum_min INTEGER NOT NULL DEFAULT 300,
+  cum_max INTEGER NOT NULL DEFAULT 600,
   behelp_get INTEGER NOT NULL DEFAULT 250,
   help_get INTEGER NOT NULL DEFAULT 250,
   dick_length INTEGER NOT NULL DEFAULT 100,
@@ -181,7 +181,7 @@ class Cum:
       'SELECT sum(num) FROM use_history WHERE item=0 AND uid=?', (uid,)
     )
     if res := r.fetchone():
-      semen -= res['sum(semen)'] or 0
+      semen -= res['sum(num)'] or 0
 
     return semen
 

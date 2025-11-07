@@ -50,9 +50,11 @@ async def _tid(event, text):
 
   res = await get_twitter(tid)
   if isinstance(res, str):
+    await mid.delete()
     return await event.reply(res)
   if 'tombstone' in res.keys():
     logger.info('tombstone: %s', json.dumps(res))
+    await mid.delete()
     return await event.reply(res['tombstone']['text']['text'].replace('了解更多', ''))
 
   msg, full_text, time = parse_msg(res)

@@ -85,6 +85,8 @@ async def _soutu(event):
       await event.reply('回复的文件不是图片')
       return
     url = await hosting.get_url(img)
+    if not isinstance(url, str):
+      return await event.respond(url['message'])
   with data:
     data[f'{_id}'] = url
 
