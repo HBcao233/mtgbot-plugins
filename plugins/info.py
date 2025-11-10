@@ -4,10 +4,10 @@
 
 from telethon import events, types, utils
 from util.log import logger
-from plugin import handler
+from plugin import Command
 
 
-@handler('info')
+@Command('info')
 async def _(event):
   message = event.message
   if reply_message := await event.message.get_reply_message():
