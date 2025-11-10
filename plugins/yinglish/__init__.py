@@ -58,7 +58,7 @@ async def _chat(event):
   nickname = await get_nickname(event)
   res = await get_yinglish(text)
   logger.info(f'淫语翻译器结果: {res}')
-  result = f"$ {text} :\n淫语翻译失败: {res['message']}"
+  result = f"{text} :\n淫语翻译失败: {res['message']}"
   if res['code'] == 0:
     data = res['data'] 
     text_tip = data['original']
@@ -80,15 +80,14 @@ async def _chat(event):
 @InlineCommand(r'^ *[^ ].{2,}')
 async def _(event):
   builder = event.builder
-  msg = f'$ {event.text}'
   did = random.randrange(4_294_967_296)
-  texts[did] = msg
+  texts[did] = event.text
   did_bytes = int(did).to_bytes(4, 'big')
   return [
     builder.article(
       title='淫语翻译器',
-      description=msg,
-      text=msg,
+      description=event.text,
+      text=event.text,
       buttons=Button.inline('开始翻译', b'yinglish_' + did_bytes),
     ),
   ]
@@ -101,7 +100,7 @@ async def _(event):
   did = int.from_bytes(match.group(1), 'big')
   text = texts[did]
   del texts[did]
-  event.raw_text = text
+  event.raw_text = f'$ {text}'
   try:
     await event.edit(f'$ {text}\n请等待...', buttons=[])
   except errors.MessageNotModifiedError:
