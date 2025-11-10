@@ -14,6 +14,7 @@ from .data_source import (
   echo_chat_id,
   EchoedMessage,
 )
+import util
 
 
 @Command(pattern=r'^(?!/).*')
@@ -24,21 +25,24 @@ async def _forward_message(event):
   message = event.message
   if echo_chat_id == 0:
     return
+  sender_id = event.message.sender_id
+  if sender_id in util.get_blacklist():
+    return
 
-  peer_id = utils.get_peer_id(event.message.peer_id)
-  chat = await bot.get_entity(event.message.peer_id)
-  name = getattr(chat, 'first_name', '')
-
-  reply_message = await event.message.get_reply_message()
-  if t := getattr(chat, 'last_name', ''):
+  sender = await event.message.get_sender()
+  name = getattr(sender, 'first_name', '')
+  if t := getattr(sender, 'last_name', ''):
     name += ' ' + t
-
-  url = f'tg://user?id={chat.id}'
-  if getattr(chat, 'username', ''):
-    url = f'https://t.me/{chat.username}'
-
+  name += f' ({sender.id})'
+  url = f'tg://user?id={sender.id}'
+  if getattr(sender, 'username', ''):
+    url = f'https://t.me/{sender.username}'
+  
+  reply_message = await event.message.get_reply_message()
+  
   # 其他人的消息
-  if peer_id != echo_chat_id:
+  if sender_id != echo_chat_id:
+    logger.info(f'转发 {name}({sender_id}) 的消息给主人')
     buttons = [
       [Button.url(name, url)],
     ]
@@ -52,7 +56,7 @@ async def _forward_message(event):
       buttons=buttons,
       reply_to=reply_to,
     )
-    EchoedMessage.add_echo(peer_id, message.id, echo_chat_id, m.id)
+    EchoedMessage.add_echo(sender_id, message.id, echo_chat_id, m.id)
     return
 
   # echo_chat_id 的消息
