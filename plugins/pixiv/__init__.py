@@ -64,11 +64,13 @@ class Pixiv:
     self.pid = pid
     self.options = util.string.Options(
       text,
-      hide=('简略', '省略'),
+      # hide=('简略', '省略'),
+      detail='详细',
       mask=('spoiler', '遮罩'),
       origin='原图',
       nocache='',
     )
+    self.options.hide = not self.options.detail
     logger.info(f'pid: {self.pid}, options: {self.options}')
     self.mid = await self.event.reply('请等待...')
 
@@ -333,9 +335,10 @@ async def _(event):
   hide = ''
   for i in buttons[0]:
     if i.text == '详细描述':
-      hide = 'hide'
+      # hide = 'hide'
       break
     if i.text == '简略描述':
+      hide = 'detail'
       break
 
   await event.answer()
