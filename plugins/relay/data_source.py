@@ -1,12 +1,34 @@
-from util import logger
+from datetime import datetime
+from util.log import logger
 from util.data import MessageData
 import config
+import util
 
 
 echo_chat_id = int(x) if (x := config.env.get('echo_chat_id', '')) else 0
 if echo_chat_id == 0:
-  logger.warn('communicate 插件并未生效: 配置项 echo_chat_id 未设置或设置错误')
-  
+  logger.warn('relay 插件并未生效: 配置项 echo_chat_id 未设置或设置错误')
+
+# 人机验证过期时间
+MAX_AGE = 3600 * 24 
+
+
+def isVerify(sender_id):
+  data = util.Data('relay')
+  if f'{sender_id}' not in data:
+    return False
+  last_verify_time = data[f'{sender_id}']
+  now = int(datetime.now().timestamp())
+  if last_verify_time < now - MAX_AGE:
+    return False
+  return True
+
+
+def createVerify(sender_id):
+  with util.Data('relay') as data:
+    now = int(datetime.now().timestamp())
+    data[f'{sender_id}'] = now
+
 
 class EchoedMessage(MessageData):
   inited = False

@@ -10,7 +10,7 @@
 | roll | 投骰子| | |
 | guess | 猜点数 | | |
 | gif | 视频/动图/贴纸格式转换 | | |
-| communicate | 传话机器人 | | `echo_chat_id` |
+| relay | 传话机器人 | | `echo_chat_id`: 主人id |
 | telegraph_setting | 提供用户自定义 telegraph作者配置项 | | |
 |||||
 | pixiv | pixiv爬取 | | `pixiv_PHPSESSID` |
