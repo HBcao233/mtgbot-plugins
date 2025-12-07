@@ -36,7 +36,8 @@ async def _mask(event, spoiler=True):
     if getattr(reply_message.media, 'spoiler', False) is spoiler:
       return await event.respond('该媒体已经有遮罩了' if spoiler else '该媒体没有遮罩')
     media = override_message_spoiler(reply_message, spoiler)
-    caption = reply_message.text
+    caption = reply_message.message
+    entities = reply_message.entities
   else:
     ids = util.data.MessageData.get_group(reply_message.grouped_id)
     # logger.info(ids)
@@ -49,9 +50,15 @@ async def _mask(event, spoiler=True):
       )
 
     media = [override_message_spoiler(i, spoiler) for i in messages]
-    caption = [i.text for i in messages]
+    caption = [i.message for i in messages]
+    entities = [i.entities for i in messages]
 
-  await bot.send_file(reply_message.peer_id, media, caption=caption)
+  await bot.send_file(
+    reply_message.peer_id, 
+    media, 
+    caption=caption,
+    formatting_entities=entities,
+  )
   raise events.StopPropagation
 
 
@@ -231,7 +238,7 @@ smask_button_pattern = re.compile(
 @bot.on(events.CallbackQuery(pattern=smask_button_pattern))
 async def smask_button(event):
   """
-  接收媒体遮罩按钮回调
+  收到媒体时发送的遮罩按钮点击回调
   """
   peer = event.query.peer
   match = event.pattern_match
@@ -239,6 +246,7 @@ async def smask_button(event):
     mask = True
   else:
     mask = False
+  logger.info(f'mask: {mask}')
 
   start_mid = int.from_bytes(match.group(2), 'big')
   end_mid = int.from_bytes(match.group(3), 'big')
@@ -253,12 +261,18 @@ async def smask_button(event):
     return
 
   btn_message = await event.get_message()
+  files = [override_message_spoiler(i, mask) for i in messages]
+  caption = [m.message for m in messages]
+  entities = [m.entities for m in messages]
+  reply_to = btn_message.reply_to and btn_message.reply_to.reply_to_msg_id
+  
   try:
     m = await bot.send_file(
       peer,
-      [override_message_spoiler(i, mask) for i in messages],
-      caption=[m.text for m in messages],
-      reply_to=btn_message.reply_to and btn_message.reply_to.reply_to_msg_id,
+      files,
+      caption=caption,
+      formatting_entities=entities,
+      reply_to=reply_to,
     )
   except errors.MediaEmptyError:
     logger.info('发送失败, 尝试下载后发送')
@@ -271,44 +285,40 @@ async def smask_button(event):
     ),
   )
 
-  # 处理完毕修改按钮
-  buttons = btn_message.buttons
-  for i, ai in enumerate(buttons[0]):
-    if ai.data == match.group(0):
-      buttons[0].pop(i)
-      break
-  try:
-    await event.edit(buttons=buttons)
-  except errors.MessageNotModifiedError:
-    pass
   await event.answer()
 
 
 async def download_mask(event, mask, messages, btn_message):
   peer = event.query.peer
   medias = []
-  data = util.Documents() if messages[0].document else util.Photos()
-  keys = []
   for i in messages:
     _id = i.document.id if i.document else i.photo.id
-    key = str(_id) + i.file.ext
-    keys.append(key)
-    if file_id := data.get(key):
-      media = util.media.file_id_to_media(file_id, mask)
-    else:
-      img = util.getCache(key)
-      if not os.path.isfile(img):
-        await i.download_media(file=img)
-      media = await util.media.file_to_media(img, mask, nosound_video=True)
+    name = str(_id) + i.file.ext
+    img = util.getCache(name)
+    if not os.path.isfile(img):
+      await i.download_media(file=img)
+    media = await util.media.file_to_media(img, mask, nosound_video=True)
     medias.append(media)
 
+  caption = [m.message for m in messages]
+  entities = [m.entities for m in messages]
+  reply_to = btn_message.reply_to and btn_message.reply_to.reply_to_msg_id
   m = await bot.send_file(
     peer,
     medias,
-    caption=[m.text for m in messages],
-    reply_to=btn_message.reply_to and btn_message.reply_to.reply_to_msg_id,
+    caption=caption,
+    formatting_entities=entities,
+    reply_to=reply_to,
   )
-  with data:
-    for i, ai in enumerate(m):
-      data[keys[i]] = ai
+  
+  # 检查是否添加遮罩成功
+  if mask and m:
+    for i in m:
+      try:
+        await i.edit(
+          file=override_message_spoiler(i, mask),
+        )
+      except errors.MessageNotModifiedError:
+        pass
+  
   return m
