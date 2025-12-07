@@ -233,11 +233,7 @@ class Pixiv:
     if file_id := data[key]:
       return util.media.file_id_to_media(file_id, self.options.mask)
 
-    imgUrl = (
-      self.res['urls']['original']
-      if self.options.origin
-      else self.res['urls']['regular']
-    )
+    imgUrl = self.res['urls']['original']
     url = imgUrl.replace('_p0', f'_p{i}')
     # url = url.replace('i.pximg.net', 'i.pixiv.cat')
 
