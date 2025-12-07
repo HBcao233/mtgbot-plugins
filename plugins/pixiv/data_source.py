@@ -207,7 +207,7 @@ def parse_msg(res, hide=False):
   else:
     show_tags = []
     for tag in tags:
-      if len(show_tags) >= 2:
+      if len(show_tags) >= 4:
         break
       if re.match(r'^#[a-zA-Z_]+$', tag):
         continue
