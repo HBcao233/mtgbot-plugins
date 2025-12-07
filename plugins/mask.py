@@ -51,7 +51,7 @@ async def _mask(event, spoiler=True):
 
     media = [override_message_spoiler(i, spoiler) for i in messages]
     caption = [i.message for i in messages]
-    entities = [i.entities for i in messages]
+    entities = [i.entities for i in messages if i.entities] or None
 
   await bot.send_file(
     reply_message.peer_id, 
@@ -262,8 +262,8 @@ async def smask_button(event):
 
   btn_message = await event.get_message()
   files = [override_message_spoiler(i, mask) for i in messages]
-  caption = [m.message for m in messages]
-  entities = [m.entities for m in messages]
+  caption = [i.message for i in messages]
+  entities = [i.entities for i in messages if i.entities] or None
   reply_to = btn_message.reply_to and btn_message.reply_to.reply_to_msg_id
   
   try:
@@ -301,7 +301,7 @@ async def download_mask(event, mask, messages, btn_message):
     medias.append(media)
 
   caption = [m.message for m in messages]
-  entities = [m.entities for m in messages]
+  entities = [i.entities for i in messages if i.entities] or None
   reply_to = btn_message.reply_to and btn_message.reply_to.reply_to_msg_id
   m = await bot.send_file(
     peer,
