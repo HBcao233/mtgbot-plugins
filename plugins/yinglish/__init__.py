@@ -49,10 +49,13 @@ async def _chat(event):
       reply_to = reply.id
       
   if not text:
-    return await event.respond(
+    m = await event.respond(
       '用法: /yinglish 文本',
       reply_to=reply_to,
     )
+    if not event.is_private:
+      bot.schedule_delete_messages(3, event.chat_id, m.id)
+    return
   
   inline_mode = event.message is None
   nickname = await get_nickname(event)
