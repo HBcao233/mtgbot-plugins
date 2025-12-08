@@ -32,7 +32,7 @@ from .data_source import (
 
 
 _pattern = re.compile(
-  r'^(?:/eid)? ?(?:https?://)?(e[x-])hentai\.org/([sg])/([0-9a-z]+)/([0-9a-z-]+)|^/eid(?![^ ])'
+  r'^(?:/eid)? ?(?:https?://)?(e[x-])(?:hentai|\.fangliding\.eu)\.org/([sg])/([0-9a-z]+)/([0-9a-z-]+)|^/eid(?![^ ])'
 ).match
 
 

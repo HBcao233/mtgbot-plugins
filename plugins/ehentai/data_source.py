@@ -1,9 +1,9 @@
 from bs4 import BeautifulSoup
-import asyncio
 import re
 import os
 import json
 import httpx
+import asyncio
 
 import util
 import config
@@ -20,6 +20,8 @@ except ModuleNotFoundError:
 
 # 最大获取画廊图片数量
 MAX_FETCH_NUM = 200
+# 并行下载数量
+ASYNC_DOWNLOAD_CAPACITY = 3
 
 env = config.env
 ipb_member_id = env.get('ex_ipb_member_id', '')
@@ -29,9 +31,15 @@ eheaders = {
   'cookie': f'ipb_member_id={ipb_member_id}; ipb_pass_hash={ipb_pass_hash}; igneous={igneous}; nw=1',
 }
 api_url = 'https://s.exhentai.org/api.php'
-if any(i == '' for i in (ipb_member_id, ipb_pass_hash, igneous)):
+has_cookie = all(i != '' for i in (ipb_member_id, ipb_pass_hash, igneous))
+site_host = 'ex.fangliding.eu.org'
+if not has_cookie:
+  api_url = 'https://ex.fangliding.eu.org/domain/s/api.php'
+  eheaders = {
+    'cookie': 'nw=1',
+  }
   logger.warn(
-    "env 'ex_ipb_member_id', 'ipb_pass_hash', 'igneous' 配置错误, exhentai 解析将不可用"
+    "env 'ex_ipb_member_id', 'ipb_pass_hash', 'igneous' 配置错误, exhentai 解析将使用 fangliding"
   )
 
 
@@ -56,6 +64,53 @@ async def getImg(url, *args, **kwargs):
   return await util.getImg(url, headers=eheaders, *args, **kwargs)
 
 
+async def api_call(args):
+  try:
+    r = await util.post(
+      api_url, 
+      headers=eheaders,
+      json=args,
+    )
+  except (httpx.ConnectError, httpx.ConnectTimeout):
+    raise PluginException('连接失败')
+  if 'IP address has been' in r.text:
+    raise PluginException('请求过于频繁, IP被禁\n' + r.text)
+  if 'Not Found' in r.text:
+    raise PluginException('页面不存在')
+  try:
+    res = r.json()
+    if 'error' in res:
+      logger.error(f'解析错误: {res}')
+      raise PluginException(f'解析错误: {res}')
+  except Exception:
+    logger.exception(f'解析错误: {r.text}')
+    raise PluginException('解析错误')
+  return res
+
+
+async def api_gdata(gid, token):
+  res = await api_call({
+    'method': 'gdata', 
+    'gidlist': [[gid, token]], 
+    'namespace': 1,
+  })
+  res = res['gmetadata'][0]
+  if 'error' in res:
+    raise PluginException(f'请求错误: {res["error"]}')
+  return res
+
+
+async def api_showpage(gid, page, imgkey, showkey):
+  res = await api_call({
+    'method': 'showpage',
+    'gid': gid,
+    'page': page,
+    'imgkey': imgkey,
+    'showkey': showkey,
+  })
+  return res
+
+
 def page_info(eid, _html):
   soup = BeautifulSoup(_html, 'html.parser')
   name = soup.select('#i1 h1')[0].string
@@ -76,46 +131,8 @@ def page_info(eid, _html):
     f'画廊：{parent}'
   ), url
 
-
-async def parseEidGMsg(eid, soup):
-  title = soup.select('#gd2 #gj')[0].string
-  num = soup.select('#gdd tr')[5].select('.gdt2')[0].text.replace(' pages', '')
-  if not title:
-    title = soup.select('#gd2 #gn')[0].string
-
-  url = soup.select('#gd5 p')[2].a.attrs['onclick'].split("'")[1]
-  r = await util.get(url, headers=eheaders)
-  html = r.text
-  soup2 = BeautifulSoup(html, 'html.parser')
-
-  magnets = []
-  for i in soup2.select('table a'):
-    torrent = i.attrs['href']
-    if torrent:
-      match = re.search(r'(?<=/)([0-9a-f]{40})(?=.torrent)', torrent)
-      if match:
-        magnet = 'magnet:?xt=urn:btih:' + str(match.group())
-        magnets.append(magnet)
-
-  return title, num, magnets
-
-
 async def gallery_info(gid, token):
-  data = json.dumps({'method': 'gdata', 'gidlist': [[gid, token]], 'namespace': 1})
-  r = await util.post(api_url, data=data, headers=eheaders)
-  if 'IP address has been' in r.text:
-    raise PluginException('请求过于频繁, IP被禁\n' + r.text)
-  if 'Not Found' in r.text:
-    raise PluginException('页面不存在')
-  try:
-    res = r.json()
-    if 'error' in res:
-      raise PluginException('解析错误')
-    res = res['gmetadata'][0]
-  except Exception:
-    logger.exception(f'解析错误: {r.text}')
-    raise PluginException('解析错误')
-
+  res = await api_gdata(gid, token)
   info = {
     'title_jpn': res['title_jpn'],
     'title': res['title'],
@@ -204,7 +221,8 @@ class GT:
     self.eh = arr[0]
     self.gid = arr[2]
     self.gtoken = arr[3]
-    self.eurl = f'https://{self.eh}hentai.org/g/{self.gid}/{self.gtoken}'
+    site = f'{self.eh}hentai.org' if has_cookie else site_host
+    self.eurl = f'https://{site}/g/{self.gid}/{self.gtoken}'
     self.start = start
     self.num = int(num)
     self.end = min(start + 200, num)
@@ -274,7 +292,7 @@ class GT:
     self.bar.p = 0
 
     _pattern = re.compile(
-      r'^(?:https?://)?(?:e[x-])hentai\.org/s/([0-9a-z]+)/([0-9a-z-]+)'
+      r'^(?:https?://)?(?:e[x-])(?:hentai|\.fangliding\.eu)\.org/s/([0-9a-z]+)/([0-9a-z-]+)'
     ).match
     self.imgkeys = {k: _pattern(v).group(1) for k, v in self.urls.items()}
     r = await client.get(self.urls[f'p{self.start - 1}'])
@@ -282,12 +300,17 @@ class GT:
     soup = BeautifulSoup(r.text, 'html.parser')
     self.first_url = soup.select('#i3 img')[0].attrs['src']
 
+    # 并行数 
+    semaphore = asyncio.Semaphore(ASYNC_DOWNLOAD_CAPACITY)
+    
+    async def limited_download(index, client, data):
+      async with semaphore:
+        return await self.download(index, client, data)
+    
     with util.Data('urls') as data:
-      tasks = [
-        self.download(i, client, data)
-        for i in range(self.start, self.end)
-      ]
-      return await asyncio.gather(*tasks)
+      tasks = [limited_download(i, client, data) for i in range(self.start, self.end)]
+      result = await asyncio.gather(*tasks)
+    return result
 
   async def download(self, i, client, data):
     res = await self._download(i, client, data)
@@ -336,33 +359,16 @@ class GT:
       return Res(self.first_url)
 
     print(i, self.imgkeys[f'p{i}'])
-    data = json.dumps(
-      {
-        'method': 'showpage',
-        'gid': self.gid,
-        'page': i + 1,
-        'imgkey': self.imgkeys[f'p{i}'],
-        'showkey': self.showkey,
-      }
-    )
     try:
-      # logger.info(f'GET {logless(api_url)}')
-      r = await client.post(api_url, data=data)
-    except (httpx.ConnectError, httpx.ConnectTimeout):
-      logger.warning(f'p{i + 1} 获取第一次尝试失败，正在重试')
-      try:
-        logger.info(f'retry GET {logless(api_url)}')
-        r = await client.post(api_url, data=data)
-      except httpx.ConnectError:
-        w = f'p{i + 1} 获取失败'
-        logger.warning(w)
-        return Res(None, w)
-    try:
-      res = r.json()
-    except json.JSONDecodeError:
-      w = f'p{i + 1} 获取失败'
-      logger.warning(f'{w}: {r.text}')
-      return Res(None, w)
+      res = await api_showpage(
+        self.gid, 
+        i + 1, 
+        self.imgkeys[f'p{i}'], 
+        self.showkey,
+      )
+    except PluginException as e:
+      logger.exception(f'page{i+1} 获取失败')
+      return Res(None, f'page{i+1} 获取失败: {e}')
     match = re.search(
       r'''<a.*?load_image\((\d*),.*?'(.*?)'\).*?<img.*?src="(.*?)"''',
       res['i3'],
