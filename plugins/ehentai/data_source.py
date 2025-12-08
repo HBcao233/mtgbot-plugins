@@ -308,7 +308,10 @@ class GT:
         return await self.download(index, client, data)
     
     with util.Data('urls') as data:
-      tasks = [limited_download(i, client, data) for i in range(self.start, self.end)]
+      tasks = [
+        limited_download(i, client, data) 
+        for i in range(self.start - 1, self.end)
+      ]
       result = await asyncio.gather(*tasks)
     return result
 
@@ -378,11 +381,13 @@ class GT:
 
 
 async def get_telegraph(arr, title, start, num, nocache, mid):
+  """
   if not nocache:
     for i in await getPageList():
       if i['title'] == title:
         return i['url']
-
+  """
+  
   gt = GT(arr, title, start, num, nocache, mid)
   eurl = gt.eurl
   result = await gt.main()
