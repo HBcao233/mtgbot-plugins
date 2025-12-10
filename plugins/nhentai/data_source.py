@@ -8,6 +8,10 @@ from util import logger
 from util.telegraph import createPage, getPageList
 from plugin import import_plugin
 
+
+# 并行下载数量
+ASYNC_DOWNLOAD_CAPACITY = 3
+
 try:
   hosting = import_plugin('hosting')
 except ModuleNotFoundError:
@@ -123,22 +127,25 @@ async def get_telegraph(gid, title, media_id, exts, nocache, mid):
       logger.warning(w, exc_info=1)
       return Res(None, w)
     else:
-      with data:
+      if url:
         data[key] = url
 
     return Res(url)
 
+  semaphore = asyncio.Semaphore(ASYNC_DOWNLOAD_CAPACITY)
+  
   async def parse(i):
-    res = await _parse(i)
-    await bar.add(1)
-    return res
-
+    async with semaphore:
+      res = await _parse(i)
+      await bar.add(1)
+      return res
+  
   async with util.curl.Client(
     headers={'referer': f'https://nhentai.net/g/{gid}'}
   ) as client:
-    data = util.Data('urls')
-    tasks = [parse(i) for i in range(num)]
-    result = await asyncio.gather(*tasks)
+    with util.Data('urls') as data:
+      tasks = [limited_parse(i) for i in range(num)]
+      result = await asyncio.gather(*tasks)
 
   success_num = len(result)
   result.extend(
