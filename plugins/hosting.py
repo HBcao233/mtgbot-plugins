@@ -84,7 +84,7 @@ async def upload_postimage(path, rename=None):
 
     url = res['url']
     r = await client.get(url)
-  match = re.search(r'<input id="code_direct".*?value="(.*?)"', r.text)
+  match = re.search(r'<meta property="og:image" content="(.*?)"', r.text)
   return match and match.group(1)
 
 
