@@ -75,9 +75,6 @@ class DelayMedia:
   @bot.on(events.NewMessage)
   @bot.on(events.Album)
   async def _(event):
-    """
-    消息转发
-    """
     if not event.is_group:
       return
     if not getattr(event, 'messages', None):
@@ -105,17 +102,27 @@ class DelayMedia:
     self.events.append(event)
 
   async def delay_callback(self, event):  # {
-    if id(max(self.events, key=lambda e: e.messages[0].id)) != id(event):
-      return
-
     if len(self.events) == 1:
       self.messages = event.messages
     else:
+      last_event = max(self.events, key=lambda i: i.messages[0].id)
+      if last_event.messages[0].id != event.messages[0].id:
+        return
       self.messages = []
       for i in self.events:
         self.messages.extend(i.messages)
       sorted(self.messages, key=lambda m: m.id)
+    logger.info(f'delay_callback: {[m.id for m in self.messages]}')
 
+    try:
+      self.main()
+    finally:
+      self.events = []
+  
+  async def main(self):
+    """
+    主逻辑
+    """
     chat_id = self.messages[0].chat_id
     data = util.Data('shikan')
     if f'{chat_id}' not in data:
@@ -123,10 +130,8 @@ class DelayMedia:
     target_id = self.messages[0].sender_id
     if f'{target_id}' not in data[f'{chat_id}']:
       return
-
+    
     chat = await bot.get_entity(int(chat_id))
-    target = await bot.get_entity(int(target_id))
-
     chat_name = getattr(chat, 'first_name', None) or getattr(chat, 'title', None)
     if t := getattr(chat, 'last_name', None):
       chat_name += ' ' + t
@@ -134,36 +139,42 @@ class DelayMedia:
     if getattr(chat, 'username', None):
       chat_url = f'https://t.me/{chat.username}'
 
+    target = await bot.get_entity(int(target_id))
     target_name = getattr(target, 'first_name', None) or getattr(target, 'title', None)
     if t := getattr(target, 'last_name', None):
       target_name += ' ' + t
     target_url = f'tg://user?id={target.id}'
     if getattr(target, 'username', None):
       target_url = f'https://t.me/{target.username}'
+    
     msg = f'视奸 <a href="{target_url}">{target_name}</a> 在群聊 <a href="{chat_url}">{chat_name}</a> 发的 {len(self.messages)} 条消息'
     logger.info(f'视奸 {target_name} ({target_id}) in {chat_name} ({chat_id})')
 
     users = data[f'{chat_id}'][f'{target_id}']
-    try:
-      for i in users:  # {
-        try:
-          await bot.send_message(
-            i,
-            msg,
-            link_preview=False,
-            parse_mode='html',
-          )
-          await bot.forward_messages(
-            i,
-            messages=self.messages,
-            from_peer=chat_id,
-          )
-        except Exception:
-          logger.exception(f'{i} 用户订阅的 {chat_id}-{target_id} 视奸消息发送失败')
-      # } endfor
-    finally:
-      self.events = []
-  # } end async def
+    need_delete = []
+    
+    for i in users:  # {
+      try:
+        await bot.send_message(
+          i,
+          msg,
+          link_preview=False,
+          parse_mode='html',
+        )
+        await bot.forward_messages(
+          i,
+          messages=self.messages,
+          from_peer=chat_id,
+        )
+      except errors.InputUserDeactivatedError:
+        # The specified user was deleted
+        need_delete.append(i)
+      except Exception:
+        logger.exception(f'{i} 用户订阅的 {chat_id}-{target_id} 视奸消息发送失败')
+    
+    if need_delete:
+      with data:
+        data[f'{chat_id}'][f'{target_id}'] = [i for i in users if i not in need_delete]
 # endclass
 
 
