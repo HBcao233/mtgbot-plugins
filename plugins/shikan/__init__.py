@@ -115,7 +115,7 @@ class DelayMedia:
     logger.info(f'delay_callback: {[m.id for m in self.messages]}')
 
     try:
-      self.main()
+      await self.main()
     finally:
       self.events = []
   
@@ -129,6 +129,10 @@ class DelayMedia:
       return
     target_id = self.messages[0].sender_id
     if f'{target_id}' not in data[f'{chat_id}']:
+      return
+    
+    users = data[f'{chat_id}'][f'{target_id}']
+    if len(users) == 0:
       return
     
     chat = await bot.get_entity(int(chat_id))
@@ -150,9 +154,7 @@ class DelayMedia:
     msg = f'视奸 <a href="{target_url}">{target_name}</a> 在群聊 <a href="{chat_url}">{chat_name}</a> 发的 {len(self.messages)} 条消息'
     logger.info(f'视奸 {target_name} ({target_id}) in {chat_name} ({chat_id})')
 
-    users = data[f'{chat_id}'][f'{target_id}']
     need_delete = []
-    
     for i in users:  # {
       try:
         await bot.send_message(
@@ -196,10 +198,18 @@ async def _(event):
     return await event.respond('您的视奸列表为空')
 
   msg = ['您的视奸列表如下:']
+  count = 0
   for i, ai in enumerate(shikan_list):
     chat_id, target_id = ai
     chat = await bot.get_entity(int(chat_id))
-    target = await bot.get_entity(int(target_id))
+    try:
+      target = await bot.get_entity(int(target_id))
+    except ValueError:
+      with data:
+        del data[f'{chat_id}'][f'{target_id}']
+      continue
+    
+    count += 1
 
     chat_name = getattr(chat, 'first_name', None) or getattr(chat, 'title', None)
     if t := getattr(chat, 'last_name', None):
@@ -215,7 +225,7 @@ async def _(event):
     if getattr(target, 'username', None):
       target_url = f'https://t.me/{target.username}'
     msg.append(
-      f'{i + 1}. <a href="{target_url}">{target_name}</a> in <a href="{chat_url}">{chat_name}</a>'
+      f'{count}. <a href="{target_url}">{target_name}</a> in <a href="{chat_url}">{chat_name}</a>'
     )
 
     chat_id_bytes = int(chat_id).to_bytes(6, 'big', signed=True)
