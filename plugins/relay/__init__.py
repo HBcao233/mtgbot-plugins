@@ -35,9 +35,8 @@ async def _forward_message(event):
     logger.info(f'{sender_id} 触发屏蔽规则, 消息: {event.message.message}')
     return
   
-  # 其他人的消息
+  # echo_chat_id 主人的消息, 必须指定回复的人
   if sender_id == echo_chat_id:
-    # echo_chat_id 主人的消息, 必须有回复
     reply_message = await event.message.get_reply_message()
     if not reply_message:
       return
@@ -51,6 +50,10 @@ async def _forward_message(event):
     return
   
   # 别人的消息
+  sender = await bot.get_entity(sender_id)
+  if event.message.media and not getattr(chat, 'username', None):
+    return await event.respond('未设置用户名无法发送媒体消息，请先设置用户名\n\nYou cannot send media messages without setting a username. Please set a username first.')
+    
   if isVerify(sender_id):
     logger.info(f'{sender_id} 已授权')
     await forward2master(event)
