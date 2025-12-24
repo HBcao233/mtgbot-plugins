@@ -230,7 +230,7 @@ class GT:
     self.mid = mid
     self.start_p = (self.start - 1) // 20
     self.pages = (self.total - 1) // 20 + 1
-    self.bar = util.progress.Progress(mid, self.pages, '获取图片列表', False)
+    self.bar = util.progress.Progress(mid, self.pages, '获取图片列表中...', False)
 
   async def main(self):
     async with util.curl.Client(
@@ -251,9 +251,15 @@ class GT:
     return result
 
   async def get_urls(self, client):
+    await self.mid.edit('获取图片列表中...')
+    
     url = self.eurl
     logger.info(f'GET {logless(url)}')
-    r = await client.get(url, params={'p': self.start_p})
+    try: 
+      r = await client.get(url, params={'p': self.start_p})
+    except httpx.ReadTimeout:
+      return '请求超时'
+    
     if r.text == '':
       return '请求失败'
     if 'IP address has been' in r.text:
