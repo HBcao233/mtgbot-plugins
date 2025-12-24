@@ -79,8 +79,11 @@ async def upload_postimage(path, rename=None):
     if r.status_code != 200:
       return {'code': 1, 'message': '请求失败'}
     res = r.json()
-    if res['status_code'] != 200:
-      return {'code': 1, 'message': '上传失败'}
+    if 'error' in res:
+      message = res['error']['message']
+      message = f'上传失败: {message}'
+      logger.info(message)
+      return {'code': 1, 'message': message}
 
     url = res['url']
     r = await client.get(url)
