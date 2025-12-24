@@ -1,4 +1,4 @@
-from telethon import events
+from telethon import events, errors
 from util.log import logger
 from plugin import Command
 import filters
@@ -86,9 +86,12 @@ class DelayMedia:
     if any(not m.media for m in event.messages):
       return
 
-    if not (ins := DelayMedia._instances.get(event.chat_id, None)):
+    chat_id = event.chat_id
+    sender_id = event.messages[0].sender_id
+    key = f'{chat_id}-{sender_id}'
+    if not (ins := DelayMedia._instances.get(key, None)):
       ins = DelayMedia()
-      DelayMedia._instances[event.chat_id] = ins
+      DelayMedia._instances[key] = ins
 
     ins.append(event)
     # 延迟回调以接收全部媒体
@@ -112,7 +115,7 @@ class DelayMedia:
       for i in self.events:
         self.messages.extend(i.messages)
       sorted(self.messages, key=lambda m: m.id)
-    logger.info(f'delay_callback: {[m.id for m in self.messages]}')
+    logger.info(f'[shikan] delay_callback: {[m.id for m in self.messages]}')
 
     try:
       await self.main()
