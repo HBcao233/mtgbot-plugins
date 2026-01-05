@@ -18,15 +18,13 @@ youtube_3PAPISID =
 
 import re
 import os
-import asyncio
-from asyncio.subprocess import PIPE, STDOUT
 
 import util
 import filters
 from util.log import logger
 from util.progress import Progress
 from plugin import Command, Scope
-from .data_source import get_info, parse_info, cookies_path
+from .data_source import get_info, parse_info, yt_download
 
 
 _pattern = re.compile(
@@ -65,40 +63,23 @@ async def _youtube(event, video_id=''):
   key = f'yt_{video_id}'
   data = util.Videos()
   async with bot.action(event.peer_id, 'video'):
-    if not (img := data[key]):
-      img = util.getCache(f'{key}.mp4')
-      if not os.path.isfile(img):
+    if not (video := data[key]):
+      path = util.getCache(f'{key}.mp4')
+      if not os.path.isfile(path):
         await mid.edit('下载中...')
         bar.set_prefix('下载中...')
-        proc = await asyncio.create_subprocess_exec(
-          *[
-            'yt-dlp',
-            '-t',
-            'mp4',
-            '-o',
-            img,
-            '--cookies',
-            cookies_path,
-            f'https://www.youtube.com/watch?v={video_id}',
-          ],
-          stdout=PIPE,
-          stderr=STDOUT,
-        )
-        await proc.wait()
-        if proc.returncode != 0:
-          stdout = await proc.stdout.read()
-          stdout = stdout.decode().strip()
-          logger.info(stdout)
+        error = await yt_download(video_id, path, bar)
+        if error:
           await mid.edit('下载失败')
           return
 
       await mid.edit('上传中...')
       bar.set_prefix('上传中...')
-      img = await util.media.file_to_media(img, False, progress_callback=bar.update)
+      video = await util.media.file_to_media(path, False, progress_callback=bar.update)
 
     m = await bot.send_file(
       event.peer_id,
-      file=img,
+      file=video,
       caption=msg,
       parse_mode='html',
       reply_to=event.message,

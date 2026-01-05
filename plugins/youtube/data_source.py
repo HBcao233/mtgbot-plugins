@@ -1,6 +1,10 @@
 from datetime import datetime
+from yt_dlp import YoutubeDL
+import queue
 import json
 import httpx
+import asyncio
+
 import util
 import config
 from util.log import logger
@@ -99,3 +103,85 @@ def parse_info(res):
     f'\nvia @%s' % bot.me.username
   )
   return msg
+
+
+async def yt_download(video_id, path, bar):
+  progress_queue = queue.Queue()
+  
+  def progress_hook(d):
+    progress_queue.put(d)
+  
+  class MyLogger:
+    def debug(self, msg):
+      if msg.startswith('[debug] '):
+        logger.debug(msg[8:])
+      else:
+        self.info(msg)
+    
+    def info(self, msg):
+      # logger.info(msg)
+      pass
+    
+    def warning(self, msg):
+      logger.warning(msg)
+    
+    def error(self, msg):
+      logger.error(msg)
+  
+  def _download(url, options):
+    with YoutubeDL(options) as client:
+      client.download([url])
+    progress_queue.put(None)
+  
+  url = f'https://www.youtube.com/watch?v={video_id}'
+  options = {
+    'cookiefile': cookies_path,
+    'final_ext': 'mp4',
+    'format': 'bv+ba', 
+    'logger': MyLogger(),
+    'progress_hooks': [progress_hook], 
+    'noplaylist': True,
+    'format_sort': [
+      'vcodec:h264',
+      'res:720',
+      'res:480',
+      'quality',
+      'lang',
+      'fps',
+      'hdr:12',
+      'acodec:aac',
+    ],
+   'merge_output_format': 'mp4',
+   'outtmpl': {'default': path},
+   'postprocessors': [{'key': 'FFmpegVideoRemuxer', 'preferedformat': 'mp4'}],
+  }
+  
+  download_task = asyncio.create_task(
+    asyncio.to_thread(_download, url, options)
+  )
+  error = None
+  while True:
+    try:
+      d = await asyncio.to_thread(
+        progress_queue.get, timeout=0.1
+      )
+      if d is None:
+        break
+      if d['status'] == 'error':
+        error = True
+        break
+      if d['status'] == 'finished':
+        break
+      if d['status'] == 'downloading':
+        await bar.update(
+          d['downloaded_bytes'], 
+          d['total_bytes_estimate'],
+        )
+    except queue.Empty:
+      await asyncio.sleep(0.1)
+    
+  await download_task
+  
+  if error:
+    return error 
+  return 0
