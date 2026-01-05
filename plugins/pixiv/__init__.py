@@ -193,6 +193,7 @@ class Pixiv:
       self.mid,
       total=self.count,
       prefix=prefix,
+      percent=False,
     )
 
     try:
