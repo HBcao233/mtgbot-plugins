@@ -396,7 +396,6 @@ async def get_telegraph(arr, title, start, num, nocache, mid):
   """
   
   gt = GT(arr, title, start, num, nocache, mid)
-  eurl = gt.eurl
   result = await gt.main()
   if isinstance(result, str):
     return {'code': 1, 'message': result}
@@ -409,15 +408,16 @@ async def get_telegraph(arr, title, start, num, nocache, mid):
     num_tip = f' / {num}'
   if start > 1:
     p_tip = f' (p{start}~{gt.end})'
-  result.extend(
-    [
-      Res(
-        None,
-        f'获取数量: {success_num} {num_tip}{p_tip}',
-      ),
-      Res(None, f'原链接: {eurl}'),
-    ]
+  result.append(
+    Res(
+      None,
+      f'获取数量: {success_num} {num_tip}{p_tip}',
+    ),
   )
+  
+  eurl = f'https://{arr[0]}hentai.org/g/{arr[2]}/{arr[3]}'
+  result.append(Res(None, f'原链接: {eurl}'))
+  
   content = [res.parse() for res in result]
   page = await createPage(title, content)
   logger.info(f'生成telegraph: {page}')
