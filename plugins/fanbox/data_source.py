@@ -62,7 +62,7 @@ def parse_msg(res, hide=False):
 
 def parse_medias(res):
   medias = []
-  body = res.get('body', None) if res.get('body', None) else {}
+  body = res.get('body', {}) 
   for i in body.get('images', []) + list(body.get('imageMap', {}).values()):
     media = {
       'type': 'image',
