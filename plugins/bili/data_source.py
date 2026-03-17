@@ -1,4 +1,5 @@
 import asyncio
+import httpx
 from functools import partial
 
 import util
@@ -26,6 +27,19 @@ async def get_bili(bvid, aid):
   return res['data']
 
 
+def parse_desc(desc_v2):
+  
+  def _p(i):
+    if i['type'] == 2:
+      return f'<a href="https://space.bilibili.com/{i["biz_id"]}">{i["raw_text"]}</a>'
+    else:
+      return i["raw_text"][:900]
+  
+  if desc_v2 is None:
+    return ''
+  return ''.join(map(_p, desc_v2))
+
+
 def parse_msg(res, p=1):
   aid = res['aid']
   bvid = res['bvid']
@@ -42,18 +56,23 @@ def parse_msg(res, p=1):
   uid = res['owner']['mid']
   nickname = res['owner']['name']
 
-  dynamic = res.get('dynamic', '')
-  if dynamic:
-    dynamic = f'\n<blockquote expandable>{dynamic}</blockquote>'
+  desc = parse_desc(res.get('desc_v2', []))
+  if desc == '-':
+    desc = ''
+  if desc:
+    desc = f'\n<blockquote expandable>{desc}</blockquote>'
   msg = (
     f'<a href="https://www.bilibili.com/video/{bvid}{p_url}">{title}{p_tip}</a> | '
-    f'<a href="https://space.bilibili.com/{uid}">{nickname}</a> #Bilibili{dynamic}'
+    f'<a href="https://space.bilibili.com/{uid}">{nickname}</a> #Bilibili{desc}'
   )
   return bvid, aid, cid, title, msg
 
 
 async def get_video(bvid, aid, cid, bar=None):
-  async with util.curl.Client(headers=gheaders) as client:
+  async with util.curl.Client(
+    headers=gheaders,
+    timeout=httpx.Timeout(10.0),
+  ) as client:
     video_url = None
     audio_url = None
     videos, audios = await _get_video(bvid, cid, client)
