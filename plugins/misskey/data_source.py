@@ -79,14 +79,14 @@ def parse_msg(res):
   else:
     text = f'\n{createdAt}'
 
-  dvdInfo = ''
-  if dvdId := res.get('dvdId', ''):
-    dvdInfo = f'\n<a href="https://dvd.chat/notes/{dvdId}">在 DVD Chat 上访问</a>'
+  #dvdInfo = ''
+  #if dvdId := res.get('dvdId', ''):
+  #  dvdInfo = f'\n<a href="https://dvd.chat/notes/{dvdId}">在 DVD Chat 上访问</a>'
 
   msg = (
     f'<a href="https://misskey.io/notes/{noteId}">{noteId}</a> | '
     f'<a href="https://misskey.io/@{username}">{nickname}</a> #Misskey'
-    f'{dvdInfo}{text}'
+    f'{text}'
     f'\nvia @{bot.me.username}'
   )
   return msg
