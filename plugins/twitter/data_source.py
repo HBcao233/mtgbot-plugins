@@ -23,7 +23,7 @@ gheaders = {
 
 
 async def get_twitter(tid):
-  url = 'https://twitter.com/i/api/graphql/u5Tij6ERlSH2LZvCUqallw/TweetDetail'
+  url = 'https://x.com/i/api/graphql/u5Tij6ERlSH2LZvCUqallw/TweetDetail'
   variables = {
     'focalTweetId': str(tid),
     'with_rux_injections': False,
@@ -87,50 +87,48 @@ def replace_unsupported_characters(t):
   return t.replace('\u17b5', '\\u17b5')
 
 
-def parse_msg(res):
+def parse_msg(res, hide=False):
   user = res['core']['user_results']['result']['core']
   nickname = replace_unsupported_characters(user['name'])
   username = user['screen_name']
 
   tweet = res['legacy']
   tid = tweet['id_str']
-  full_text = replace_unsupported_characters(tweet['full_text'])
-  if 'urls' in tweet['entities'].keys():
-    for i in tweet['entities']['urls']:
-      full_text = full_text.replace(i['url'], i['expanded_url'])
-  full_text = re.sub(r'\s*https:\/\/t\.co\/\w+$', '', full_text)
-  full_text = re.sub(
-    r'#([^ \n#]+)', r'<a href="https://x.com/hashtag/\1">#\1</a>', full_text
-  )
-  full_text = re.sub(
-    r'([^@]*[^/@]+)@([0-9a-zA-Z_]*)',
-    r'\1<a href="https://x.com/\2">@\2</a>',
-    full_text,
-  )
-  if ('暗号' in full_text or '暗语' in full_text) and (
-    't.me' in full_text
-    or '通道' in full_text
-    or '直通' in full_text
-    or '领取' in full_text
-    or '联系' in full_text
-    or '渠道' in full_text
-    or '进群' in full_text
-    or '飞机' in full_text
-  ):
-    full_text = f'\u26a0推文内容疑似推广诈骗，请注意甄别\n\n{full_text}'
+  full_text = ''
+  if not hide:
+    full_text = replace_unsupported_characters(tweet['full_text'])
+    if 'urls' in tweet['entities'].keys():
+      for i in tweet['entities']['urls']:
+        full_text = full_text.replace(i['url'], i['expanded_url'])
+    full_text = re.sub(r'\s*https:\/\/t\.co\/\w+$', '', full_text)
+    full_text = re.sub(
+      r'#([^ \n#]+)', r'<a href="https://x.com/hashtag/\1">#\1</a>', full_text
+    )
+    full_text = re.sub(
+      r'([^@]*[^/@]+)@([0-9a-zA-Z_]*)',
+      r'\1<a href="https://x.com/\2">@\2</a>',
+      full_text,
+    )
+    if ('暗号' in full_text or '暗语' in full_text) and (
+      't.me' in full_text
+      or '通道' in full_text
+      or '直通' in full_text
+      or '领取' in full_text
+      or '联系' in full_text
+      or '渠道' in full_text
+      or '进群' in full_text
+      or '飞机' in full_text
+    ):
+      full_text = f'\u26a0推文内容疑似推广诈骗，请注意甄别\n\n{full_text}'
 
   created_at = datetime.strptime(tweet['created_at'], r'%a %b %d %H:%M:%S %z %Y')
   created_at.astimezone(timezone)
   created_at = created_at.strftime('%Y年%m月%d日 %H:%M:%S')
 
-  msg = (
-    f'<a href="https://x.com/{username}/status/{tid}">{tid}</a>'
-    f' | <a href="https://x.com/{username}">{nickname}</a> #X'
-  )
+  msg = ''
   if full_text:
-    msg += f':\n<blockquote expandable>{full_text}\n{created_at}</blockquote>'
-  else:
-    msg += f'\n{created_at}'
+    msg += f'<blockquote expandable>{full_text}\n{created_at}</blockquote>\n'
+  msg += f'<a href="https://x.com/{username}/status/{tid}">Source: Twitter - {nickname}</a>'
   return msg, full_text, created_at
 
 

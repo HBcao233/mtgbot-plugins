@@ -9,7 +9,7 @@ twitter_csrf_token =
 twitter_auth_token =
 """
 
-from telethon import events, errors, Button
+from telethon import events, errors, types, Button
 import re
 import json
 import asyncio
@@ -57,8 +57,7 @@ async def _tid(event, text):
     await mid.delete()
     return await event.reply(res['tombstone']['text']['text'].replace('了解更多', ''))
 
-  msg, full_text, time = parse_msg(res)
-  msg = msg if not options.hide else 'https://x.com/i/status/' + tid
+  msg, full_text, time = parse_msg(res, options.hide)
   tweet = res['legacy']
   medias_info = parseMedias(tweet)
   if len(medias_info) == 0:
@@ -169,15 +168,14 @@ async def _event(event):
   if message is None:
     return await event.answer('消息被删除', alert=True)
 
-  hide = '年' in message.message
-  msg = f'https://x.com/i/status/{tid}'
-  if not hide:
-    res = await get_twitter(tid)
-    if isinstance(res, str) or 'tombstone' in res:
-      if isinstance(res, str):
-        res = res['tombstone']['text']['text'].replace('了解更多', '')
-      return await event.answer(res, alert=True)
-    msg, _, _ = parse_msg(res)
+  hide = isinstance(message.entities[0], types.MessageEntityBlockquote) and '年' in message.message
+  res = await get_twitter(tid)
+  if isinstance(res, str) or 'tombstone' in res:
+    if isinstance(res, str):
+      res = res['tombstone']['text']['text'].replace('了解更多', '')
+    return await event.answer(res, alert=True)
+  msg, _, _ = parse_msg(res, hide)
+  
   try:
     await message.edit(msg, parse_mode='html')
   except errors.MessageNotModifiedError:
