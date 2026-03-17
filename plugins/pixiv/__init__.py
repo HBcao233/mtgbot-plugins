@@ -23,10 +23,10 @@ from .data_source import PixivClient, parse_msg, get_telegraph
 
 cmd_header_pattern = re.compile(r'/?pid')
 _p = r"""(?:^|(?#
-  cmd)^/?pid ?|(?#
+  header)^/?pid ?|(?#
   url)(?:https?://)?(?:www\.)?(?:pixiv\.net/.*?(?:illust_id=|artworks/|i/))(?#
 ))(?#
-)(\d{6,12})(?:[^a-zA-Z0-9\n].*)?$|^/pid(?![^ ])"""
+)(\d{5,12})(?:[^a-zA-Z0-9\n].*)?$|^/pid(?![^ ])"""
 _pattern = re.compile(_p).search
 
 

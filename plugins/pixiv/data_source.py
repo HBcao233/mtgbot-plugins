@@ -285,8 +285,9 @@ async def get_url(imgUrl, pid, i, client, bar):
   if isinstance(img, Res):
     return img
   url = await hosting.get_url(img)
-  with data:
-    data[name] = url
+  if url and isinstance(url, str):
+    with data:
+      data[name] = url
   await bar.add(1)
   return Res(url)
 
