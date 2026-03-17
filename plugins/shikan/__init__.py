@@ -12,6 +12,7 @@ import asyncio
 )
 async def _shikan(event):
   if not event.is_group:
+    await event.reply('该命令只能在群聊中使用')
     return
 
   reply_message = await event.message.get_reply_message()
@@ -69,21 +70,7 @@ async def _shikan(event):
   await event.reply(msg, link_preview=False)
 
 
-@bot.on(events.NewMessage)
-@bot.on(events.Album)
-async def _(event):
-  if not event.is_group:
-    return
-  messages = getattr(event, 'messages', None)
-  if not messages:
-    if event.message.grouped_id:
-      return
-    messages = [event.message]
-  if messages[0].sticker:
-    return
-  if any(not m.media for m in messages):
-    return
-  
+async def shikan_forword(messages):
   chat_id = messages[0].chat_id
   data = util.Data('shikan')
   if f'{chat_id}' not in data:
@@ -137,6 +124,31 @@ async def _(event):
   if need_delete:
     with data:
       data[f'{chat_id}'][f'{target_id}'] = [i for i in users if i not in need_delete]
+
+
+@bot.on(events.NewMessage)
+async def _(event):
+  if not event.is_group:
+    return
+  message = event.message
+  if message.sticker:
+    return
+  if not message.media:
+    return
+  if message.grouped_id:
+    return
+  
+  await shikan_forword([message])
+
+@bot.on(events.Album)
+async def _(event):
+  if not event.is_group:
+    return
+  messages = event.messages
+  if any(not m.media for m in messages):
+    return
+  
+  await shikan_forword(messages)
 
 
 @Command(
