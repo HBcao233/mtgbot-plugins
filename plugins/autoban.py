@@ -1,17 +1,20 @@
 # -*- coding: utf-8 -*-
 # @Author  : HBcao
 # @Info    : 自动封禁名字带有 '翻墙' '免费' '直连' '直接登录' 的用户
-from telethon import events, types
+from telethon import events, types, errors, utils
 from util.log import logger
+import config
 
 
 @bot.on(events.ChatAction)
 async def _(event):
-  logger.debug(f'ChatAction: {event}')
+  # logger.debug(f'ChatAction: {event}')
   # logger.info(f'ChatAction: {format_chat_action(event)}')
   if not event.action_message:
     return
+  peer_id = utils.get_peer_id(event.action_message.peer_id)
 
+  # 删除加群消息
   if isinstance(
     event.action_message.action,
     (
@@ -20,16 +23,31 @@ async def _(event):
       types.MessageActionChatJoinedByLink,
     ),
   ):
-    await bot.delete_messages(
-      event.action_message.peer_id,
-      event.action_message.id,
-    )
+    try:
+      await bot.delete_messages(
+        event.action_message.peer_id,
+        event.action_message.id,
+      )
+    except errors.MessageDeleteForbiddenError:
+      pass
 
   user = await event.get_user()
-  name = getattr(user, 'first_name', None) or getattr(user, 'title', None)
-  if t := getattr(user, 'last_name', None):
+  if not user:
+    return
+  # 封禁死号
+  if user.deleted:
+    await bot.edit_permissions(
+      event.action_message.peer_id,
+      user,
+      view_messages=False,
+    )
+    return
+  
+  name = getattr(user, 'first_name', '') or getattr(user, 'title', '')
+  if t := getattr(user, 'last_name', ''):
     name += ' ' + t
 
+  # 检查名字进行封禁
   if any(i in name for i in ('翻墙', '直连', '免费', '直接登录')):
     logger.info(f'尝试封禁用户 "{name}"({user.id})')
     await bot.edit_permissions(
@@ -37,6 +55,52 @@ async def _(event):
       user,
       view_messages=False,
     )
+    return
+  
+  if username := getattr(user, 'username', ''):
+    url = f'https://t.me/{username}'
+  else:
+    url = f'tg://user?id={peer_id}'
+  
+  # 欢迎新成员
+  if isinstance(
+    event.action_message.action,
+    (
+      types.MessageActionChatAddUser,
+      types.MessageActionChatJoinedByLink,
+    ),
+  ):
+    await bot.send_message(
+        event.action_message.peer_id,
+        f'欢迎新成员 [{name}]({url}) 入群！',
+        link_preview=False,
+      )
+
+
+@bot.on(events.NewMessage)
+async def _(event):
+  """人机验证"""
+  if not event.is_group:
+    return
+  
+  if event.chat_id != -1002543592800:
+    return
+  
+  # 删除联系人消息
+  if isinstance(event.message.media, types.MessageMediaContact):
+    await event.message.delete()
+  
+  # chat_id = event.message.chat_id
+  # full_chat = await bot.get_full_chat(chat_id)
+  # logger.info(full_chat)
+  reply_to = event.message.reply_to
+  if reply_to is None:
+    return
+
+  # logger.info(reply_to)
+  # 删除回复消息不是群内的消息
+  if isinstance(reply_to.reply_to_peer_id, types.PeerChannel) and reply_to.reply_to_peer_id.channel_id not in [1975979052, 2543592800]:
+    await event.message.delete()
 
 
 def format_chat_action(event):
