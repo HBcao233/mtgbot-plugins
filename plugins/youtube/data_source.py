@@ -1,5 +1,5 @@
 from datetime import datetime
-from yt_dlp import YoutubeDL
+import yt_dlp
 import queue
 import json
 import httpx
@@ -126,40 +126,41 @@ async def yt_download(video_id, path, bar):
       logger.warning(msg)
     
     def error(self, msg):
+      error = True
       logger.error(msg)
   
   def _download(url, options):
-    with YoutubeDL(options) as client:
-      client.download([url])
-    progress_queue.put(None)
+    try:
+      with yt_dlp.YoutubeDL(options) as client:
+        client.download([url])
+      progress_queue.put(None)
+    except yt_dlp.utils.DownloadError:
+      progress_queue.put({'status': 'error'})
   
   url = f'https://www.youtube.com/watch?v={video_id}'
   options = {
     'cookiefile': cookies_path,
-    'final_ext': 'mp4',
-    'format': 'bv+ba', 
     'logger': MyLogger(),
-    'progress_hooks': [progress_hook], 
+    'progress_hooks': [progress_hook],
+    # 'verbose': True,
+    # 'format': 'bv*[height<=720]+ba/b[height<=720]/bv*+ba/b',
+    'format': 'bv*+ba/b',
     'noplaylist': True,
+    'merge_output_format': 'mp4',
+    'outtmpl': { 'default': path },
     'format_sort': [
       'vcodec:h264',
-      'res:720',
-      'res:480',
-      'quality',
-      'lang',
-      'fps',
-      'hdr:12',
-      'acodec:aac',
     ],
-   'merge_output_format': 'mp4',
-   'outtmpl': {'default': path},
-   'postprocessors': [{'key': 'FFmpegVideoRemuxer', 'preferedformat': 'mp4'}],
+    'postprocessors': [{
+      'key': 'FFmpegVideoConvertor', 
+      'preferedformat': 'mp4',
+    }],
   }
   
   download_task = asyncio.create_task(
     asyncio.to_thread(_download, url, options)
   )
-  error = None
+  error = False
   while True:
     try:
       d = await asyncio.to_thread(
@@ -175,13 +176,11 @@ async def yt_download(video_id, path, bar):
       if d['status'] == 'downloading':
         await bar.update(
           d['downloaded_bytes'], 
-          d['total_bytes_estimate'],
+          d['total_bytes'],
         )
     except queue.Empty:
       await asyncio.sleep(0.1)
     
   await download_task
   
-  if error:
-    return error 
-  return 0
+  return error
