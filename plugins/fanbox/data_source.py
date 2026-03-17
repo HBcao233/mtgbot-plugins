@@ -1,25 +1,43 @@
 import traceback
 import re
+import json
+
 import util
 from util import logger
 
+try:
+  import curl_cffi
+except ImportError:
+  curl_cffi = None
+  logger.warn('Plugin fanbox requires the curl_cffi pip-library')
 
 class PluginException(Exception):
   pass
 
 
-async def get_post(pid):
+async def get_post(pid, creatorId):
   try:
     headers = {
       'origin': 'https://www.fanbox.cc',
-      'referer': 'https://www.fanbox.cc/',
+      'referer': f'https://{creatorId}.fanbox.cc/',
+      'user-agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36',
     }
     url = f'https://api.fanbox.cc/post.info?postId={pid}'
-    r = await util.get(url, headers=headers)
+    async with curl_cffi.requests.AsyncSession(
+      headers=headers, 
+      impersonate='chrome116',
+    ) as session:
+      session.cookies.set('p_ab_id', '0')
+      r = await session.get(url)
   except Exception:
-    logger.error(traceback.format_exc())
+    logger.exception('[fanbox] 连接错误')
     raise PluginException('连接错误')
-  res = r.json()
+  try:
+    res = r.json()
+  except json.JSONDecodeError:
+    logger.info(f'[fanbox] 解析失败: {r.text}')
+    raise PluginException('解析失败') 
+  
   if res.get('error', None):
     logger.error(r.text)
     raise PluginException(res['error'])

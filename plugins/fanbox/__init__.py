@@ -13,7 +13,7 @@ from .data_source import PluginException, get_post, parse_msg, parse_medias
 
 
 _pattern = re.compile(
-  r'(?:^/fanbox |(?:https?://)?(?:(?:[a-z0-9]+\.)?fanbox\.cc/)(?:[@a-z0-9]+/)?(?:posts/)?)(\d+)|^/fanbox'
+  r'(?:^/fanbox |(?:https?://)?(?:(?:([a-z0-9-_]+)\.)?fanbox\.cc/)(?:@([a-z0-9-_]+)/)?(?:posts/)?)(\d+)|^/fanbox'
 ).match
 
 
@@ -28,20 +28,23 @@ async def _fanbox(event, text):
   if event.message.photo or event.message.video:
     return
   match = event.pattern_match
-  if not (pid := match.group(1)):
+  pid = match.group(3)
+  creatorId = match.group(2) or match.group(1)
+  if not pid or not creatorId:
     return await event.reply(
-      '用法: /fanbox <url/postId> [hide/简略] [mask/遮罩] [origin/原图]\n'
-      'url/postId: fanbox链接或postId\n'
+      '用法: /fanbox <url> [hide/简略] [mask/遮罩] [origin/原图]\n'
+      'url: fanbox链接\n'
+      '链接格式: https://{creatorId}.fanbox.cc/posts/{postId}'
     )
 
   options = util.string.Options(
     text, hide=('简略', '省略'), mask=('spoiler', '遮罩'), origin='原图'
   )
   mid = await event.reply('请等待...')
-  logger.info(f'pid: {pid}, options: {options}')
+  logger.info(f'pid: {pid}, creatorId: {creatorId}, options: {options}')
 
   try:
-    res = await get_post(pid)
+    res = await get_post(pid, creatorId)
   except PluginException as e:
     return await mid.edit('错误: ' + str(e))
   logger.info(json.dumps(res))
