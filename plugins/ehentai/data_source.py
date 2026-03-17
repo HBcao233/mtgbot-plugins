@@ -360,7 +360,7 @@ class GT:
       logger.warning(f'p{i + 1} 上传失败', exc_info=1)
       return Res(f'p{i + 1} 获取失败')
     else:
-      if url:
+      if url and isinstance(url, str):
         data[key] = url
     return Res(url)
 
