@@ -2,6 +2,9 @@
 # @Author  : HBcao
 # @Email   : hbcaoqaq@gmail.com
 # @Require Plugin: mask
+# @Require Plugin: hosting
+# @依赖插件      : mask
+# @依赖插件      : mask
 
 from telethon import types, events, utils, errors, Button
 from collections.abc import Sequence
