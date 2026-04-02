@@ -230,7 +230,9 @@ class Pixiv:
     """
     获取图片
     """
-    key = f'{self.pid}_p{i}' + ('' if self.options.origin else '_regular')
+    key = f'{self.pid}_p{i}' 
+    # + ('' if self.options.origin else '_regular')
+    
     if file_id := data[key]:
       return util.media.file_id_to_media(file_id, self.options.mask)
 
