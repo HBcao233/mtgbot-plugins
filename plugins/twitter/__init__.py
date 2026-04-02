@@ -168,7 +168,7 @@ async def _event(event):
   if message is None:
     return await event.answer('消息被删除', alert=True)
 
-  hide = isinstance(message.entities[0], types.MessageEntityBlockquote) and '年' in message.message
+  hide = 'X/Twitter:' in message.message
   res = await get_twitter(tid)
   if isinstance(res, str) or 'tombstone' in res:
     if isinstance(res, str):

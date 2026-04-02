@@ -125,10 +125,9 @@ def parse_msg(res, hide=False):
   created_at.astimezone(timezone)
   created_at = created_at.strftime('%Y年%m月%d日 %H:%M:%S')
 
-  msg = ''
+  msg = f'<a href="https://x.com/{username}/status/{tid}">{nickname} - X/Twitter</a>'
   if full_text:
-    msg += f'<blockquote expandable>{full_text}\n{created_at}</blockquote>\n'
-  msg += f'<a href="https://x.com/{username}/status/{tid}">Source: Twitter - {nickname}</a>'
+    msg += f':\n<blockquote expandable>{full_text}\n{created_at}</blockquote>'
   return msg, full_text, created_at
 
 
