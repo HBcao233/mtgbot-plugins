@@ -40,7 +40,7 @@ def parse_desc(desc_v2):
   return ''.join(map(_p, desc_v2))
 
 
-def parse_msg(res, p=1):
+def parse_msg(res, p=1, hide=False):
   aid = res['aid']
   bvid = res['bvid']
   cid = res['cid']
@@ -56,11 +56,13 @@ def parse_msg(res, p=1):
   uid = res['owner']['mid']
   nickname = res['owner']['name']
 
-  desc = parse_desc(res.get('desc_v2', []))
-  if desc == '-':
-    desc = ''
-  if desc:
-    desc = f'\n<blockquote expandable>{desc}</blockquote>'
+  desc = ''
+  if not hide:
+    desc = parse_desc(res.get('desc_v2', []))
+    if desc == '-':
+      desc = ''
+    if desc:
+      desc = f':\n<blockquote expandable>{desc}</blockquote>'
   msg = (
     f'<a href="https://www.bilibili.com/video/{bvid}{p_url}">{title}{p_tip}</a> | '
     f'<a href="https://space.bilibili.com/{uid}">{nickname}</a> #Bilibili{desc}'

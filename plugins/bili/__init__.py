@@ -6,7 +6,7 @@
 bili_SESSDATA =
 """
 
-from telethon import Button
+from telethon import events, Button
 import re
 
 import util
@@ -54,7 +54,7 @@ async def _(event, text):
     if (_p := int(match1.group(1))) > 1:
       p = _p
 
-  logger.info(f'bvid: {bvid}, aid: {aid}, options: {options}')
+  logger.info(f'[bili] bvid: {bvid}, aid: {aid}, options: {options}')
   if flag:
     await event.reply(
       f'https://www.bilibili.com/video/{bvid}' + ('?p=' + str(p) if p > 1 else ''),
@@ -93,10 +93,16 @@ async def _(event, text):
       reply_to=event.message,
       caption=msg,
       parse_mode='HTML',
-      buttons=Button.inline(
-        '移除遮罩' if options.mask else '添加遮罩',
-        b'mask',
-      ),
+      buttons=[
+        Button.inline(
+          '移除遮罩' if options.mask else '添加遮罩',
+          b'mask',
+        ),
+        Button.inline(
+          '移除简介',
+          b'bili_rm_desc',
+        ),
+      ]
     )
     await mid.delete()
   with data:
@@ -128,3 +134,50 @@ async def _(event, text):
     )
   with data:
     data[key] = m
+
+
+@bot.on(events.CallbackQuery(pattern=re.compile(rb'^bili_rm_desc$').match))
+async def rm_desc(event):
+  """
+  删除简介按钮回调
+  """
+  peer = event.query.peer
+  data = event.query.data
+  message_id = event.query.msg_id
+  
+  message = await bot.get_messages(peer, ids=message_id)
+  if message is None:
+    await event.answer('消息不存在', alert=True)
+    await event.delete()
+    return
+  if '#Bilibili:' not in message.message:
+    await event.answer('该消息不存在简介', alert=True)
+    return 
+  
+  text = message.entities[0].url
+  p = 1
+  match = _pattern(text)
+  bvid = match.group(1)
+  if match1 := re.search(r'(?:\?|&)p=(\d+)', text):
+    if (_p := int(match1.group(1))) > 1:
+      p = _p
+  logger.info(f'[bili_rm_desc] bvid: {bvid}, p: {p}')
+
+  info = await get_bili(bvid, '')
+  if isinstance(info, str):
+    return await event.answer('视频不存在', alert=True)
+  bvid, aid, cid, title, msg = parse_msg(info, p, hide=True)
+  
+  btn = message.buttons[0][0]
+  try:
+    await bot.edit_message(
+      peer,
+      message.id,
+      msg,
+      parse_mode='html',
+      buttons=btn,
+    )
+  except errors.MessageNotModifiedError:
+      pass
+
+  await event.answer()
