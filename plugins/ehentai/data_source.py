@@ -313,12 +313,15 @@ class GT:
       async with semaphore:
         return await self.download(index, client, data)
     
+    tasks = []
     with util.Data('urls') as data:
-      tasks = [
-        limited_download(i, client, data) 
-        for i in range(self.start - 1, self.end)
-      ]
-      result = await asyncio.gather(*tasks)
+      async with asyncio.TaskGroup() as tg:
+        for i in range(self.start - 1, self.end):
+          tasks.append(
+            tg.create_task(limited_download(i, client, data))
+          )
+      
+      result = [t.result() for t in tasks]
     return result
 
   async def download(self, i, client, data):
@@ -350,12 +353,16 @@ class GT:
           saveas=key,
           ext=True,
         )
-      img = await util.media.to_img(img)
+      
+      _name, ext = os.path.splitext(img)
+      if ext != '.webp':
+        img = await util.media.to_img(img)
+      
       try:
         url = await hosting.get_url(img)
-      except Exception:
+      except Exception as e:
         logger.warning('hosting.get_url 调用失败', exc_info=1)
-        raise PluginException('上传失败')
+        raise PluginException('上传失败') from e
     except Exception:
       logger.warning(f'p{i + 1} 上传失败', exc_info=1)
       return Res(f'p{i + 1} 获取失败')
