@@ -56,25 +56,6 @@ async def _(event):
       view_messages=False,
     )
     return
-  
-  if username := getattr(user, 'username', ''):
-    url = f'https://t.me/{username}'
-  else:
-    url = f'tg://user?id={peer_id}'
-  
-  # 欢迎新成员
-  if isinstance(
-    event.action_message.action,
-    (
-      types.MessageActionChatAddUser,
-      types.MessageActionChatJoinedByLink,
-    ),
-  ):
-    await bot.send_message(
-        event.action_message.peer_id,
-        f'欢迎新成员 [{name}]({url}) 入群！',
-        link_preview=False,
-      )
 
 
 @bot.on(events.NewMessage)
