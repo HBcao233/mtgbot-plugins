@@ -2,7 +2,7 @@
 # @Author  : HBcao
 # @Email   : hbcaoqaq@gmail.com
 
-from telethon import events, utils, errors, Button
+from telethon import Button, events, utils, errors, types
 import re
 import os
 import asyncio
@@ -11,6 +11,29 @@ import util
 import filters
 from util.log import logger
 from plugin import Command, Scope
+
+
+# '🌫'
+ADD_MASK_BUTTON_TEXT = '\U0001f32b 添加遮罩'
+# '👁'
+REMOVE_MASK_BUTTON_TEXT = '\U0001f441 移除遮罩'
+
+
+def get_mask_button(
+  mask: bool,
+  message_id: int | None = None,
+  sender_id: int | None = None,
+) -> Button:
+  data = b'mask'
+  if message_id is not None:
+    data += b'_' + message_id.to_bytes(4, 'big')
+  if sender_id is not None:
+    data += b'~' + sender_id.to_bytes(6, 'big', signed=True)
+
+  return Button.inline(
+    REMOVE_MASK_BUTTON_TEXT if mask else ADD_MASK_BUTTON_TEXT,
+    data,
+  )
 
 
 def override_message_spoiler(message, spoiler: bool):
@@ -54,8 +77,8 @@ async def _mask(event, spoiler=True):
     entities = [i.entities for i in messages if i.entities] or None
 
   await bot.send_file(
-    reply_message.peer_id, 
-    media, 
+    reply_message.peer_id,
+    media,
     caption=caption,
     formatting_entities=entities,
   )
@@ -96,7 +119,12 @@ async def mask_button(event):
     sender_id = int.from_bytes(t, 'big')
   logger.info(f'[mask] {message_id=}, {sender_id=}, {event.sender_id=}')
 
-  if sender_id and event.sender_id and sender_id != event.sender_id:
+  if (
+    sender_id
+    and event.sender_id
+    and sender_id != event.sender_id
+    and not isinstance(peer, types.PeerUser)
+  ):
     participant = await bot.get_permissions(peer, event.sender_id)
     if not participant.delete_messages:
       return await event.answer('只有消息发送者可以修改', alert=True)
@@ -114,7 +142,7 @@ async def mask_button(event):
     messages = await bot.get_messages(peer, ids=ids)
 
   # 修改按钮
-  text = '移除遮罩' if mask else '添加遮罩'
+  text = '🔆 移除遮罩' if mask else '🌫️ 添加遮罩'
   btn = Button.inline(text, data)
   buttons = message.buttons
   index_i = 0
@@ -224,9 +252,9 @@ class DelayMedia:
     add_bytes = start_mid + b'_' + end_mid
     buttons = []
     if any(not m.media.spoiler for m in self.messages):
-      buttons.append(Button.inline('添加遮罩', b'smask_1_' + add_bytes))
+      buttons.append(Button.inline('🌫️ 添加遮罩', b'smask_1_' + add_bytes))
     if any(m.media.spoiler for m in self.messages):
-      buttons.append(Button.inline('移除遮罩', b'smask_0_' + add_bytes))
+      buttons.append(Button.inline('🔆 移除遮罩', b'smask_0_' + add_bytes))
     return [buttons]
 
 
@@ -265,7 +293,7 @@ async def smask_button(event):
   caption = [i.message for i in messages]
   entities = [i.entities for i in messages if i.entities] or None
   reply_to = btn_message.reply_to and btn_message.reply_to.reply_to_msg_id
-  
+
   try:
     m = await bot.send_file(
       peer,
@@ -310,7 +338,7 @@ async def download_mask(event, mask, messages, btn_message):
     formatting_entities=entities,
     reply_to=reply_to,
   )
-  
+
   # 检查是否添加遮罩成功
   if mask and m:
     for i in m:
@@ -320,5 +348,5 @@ async def download_mask(event, mask, messages, btn_message):
         )
       except errors.MessageNotModifiedError:
         pass
-  
+
   return m
