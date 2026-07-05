@@ -35,7 +35,14 @@ def get_buttons(self, event):
       text = '合并媒体'
     else:
       text = '合并图片'
-    buttons[0].append(Button.inline(text, data=b'amerge_' + add_bytes))
+
+    buttons.append(
+      [
+        Button.inline(text, data=b'amerge_' + add_bytes),
+        Button.inline('直接合并', data=b'qmerge_' + add_bytes),
+      ]
+    )
+
   return buttons
 
 
@@ -147,7 +154,7 @@ async def add_merge_button(event):
     [Button.inline('创建Telegraph', data=b'tmerge')],
   ]
   reply_to = btn_message.reply_to and btn_message.reply_to.reply_to_msg_id
-  
+
   if not MergeData.has_merge(peer):
     m = await event.respond(
       f'已添加 {len(ids)} 条媒体',
@@ -191,7 +198,9 @@ async def _get_animated_media(media):
   start_time = time.time()
   file = await bot.download_media(media, path)
   end_time = time.time()
-  logger.info(f'下载 {filename} ({media.document.size / 1024}KB) took {end_time - start_time}s ')
+  logger.info(
+    f'下载 {filename} ({media.document.size / 1024}KB) took {end_time - start_time}s '
+  )
   file = await bot.upload_file(path)
   return types.InputMediaUploadedDocument(
     nosound_video=True,
@@ -200,12 +209,14 @@ async def _get_animated_media(media):
     file=file,
     # thumb=media.document.thumb,
     mime_type=mime_type,
-    attributes=[attr
+    attributes=[
+      attr
       for attr in media.document.attributes
       if not isinstance(attr, types.DocumentAttributeAnimated)
     ],
   )
-  
+
+
 async def _merge_messages(peer, messages):
   medias = []
   caption = []
@@ -216,10 +227,10 @@ async def _merge_messages(peer, messages):
       for attr in media.document.attributes
     ):
       media = await _get_animated_media(media)
-    
+
     medias.append(media)
     caption.append(i.text)
-  
+
   await bot.send_file(
     peer,
     medias,
@@ -244,7 +255,7 @@ async def finish_merge_button(event):
     try:
       await _merge_messages(peer, messages)
     except errors.MediaEmptyError:
-      logger.error(f'errors.MediaEmptyError')
+      logger.error('errors.MediaEmptyError')
       await event.answer('媒体合并失败', alert=True)
 
   MergeData.delete_merge(peer)
@@ -252,6 +263,33 @@ async def finish_merge_button(event):
     await bot.delete_messages(peer, res.pin_mids)
   except errors.MessageIdInvalidError:
     pass
+
+
+quick_merge_button_pattern = re.compile(
+  rb'^qmerge_([\x00-\xff]{4,4})_([\x00-\xff]{4,4})$'
+).match
+
+
+@bot.on(events.CallbackQuery(pattern=quick_merge_button_pattern))
+async def _quick_merge_button(event):
+  peer = event.query.peer
+  match = event.pattern_match
+
+  start_mid = int.from_bytes(match.group(1), 'big')
+  end_mid = int.from_bytes(match.group(2), 'big')
+  ids = [i for i in range(start_mid, end_mid + 1)]
+
+  messages = await bot.get_messages(peer, ids=ids)
+  if any(m is None for m in messages):
+    await event.answer('待合并媒体被删除', alert=True)
+  else:
+    try:
+      await _merge_messages(peer, messages)
+    except errors.MediaEmptyError:
+      logger.error('errors.MediaEmptyError')
+      await event.answer('媒体合并失败', alert=True)
+
+  await event.answer()
 
 
 class Tmerge:

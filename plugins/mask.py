@@ -239,7 +239,7 @@ class DelayMedia:
       buttons = self.get_buttons(event)
       await bot.send_message(
         event.chat_id,
-        f'收到 {len(self.messages)} 个媒体',
+        f'收到 {len(self.messages)} 个媒体，可选择执行操作：',
         buttons=buttons,
         reply_to=self.messages[0],
       )
@@ -252,9 +252,19 @@ class DelayMedia:
     add_bytes = start_mid + b'_' + end_mid
     buttons = []
     if any(not m.media.spoiler for m in self.messages):
-      buttons.append(Button.inline('🌫️ 添加遮罩', b'smask_1_' + add_bytes))
+      buttons.append(
+        Button.inline(
+          ADD_MASK_BUTTON_TEXT,
+          b'smask_1_' + add_bytes,
+        )
+      )
     if any(m.media.spoiler for m in self.messages):
-      buttons.append(Button.inline('🔆 移除遮罩', b'smask_0_' + add_bytes))
+      buttons.append(
+        Button.inline(
+          REMOVE_MASK_BUTTON_TEXT,
+          b'smask_0_' + add_bytes,
+        )
+      )
     return [buttons]
 
 
