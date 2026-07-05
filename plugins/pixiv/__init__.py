@@ -17,8 +17,11 @@ import util
 import filters
 from util.log import logger
 from util.progress import Progress
-from plugin import Command, Scope
+from plugin import Command, Scope, import_plugin
 from .data_source import PixivClient, parse_msg, get_telegraph
+
+mask = import_plugin('mask')
+get_mask_button = mask.get_mask_button
 
 
 cmd_header_pattern = re.compile(r'/?pid')
@@ -104,17 +107,16 @@ class Pixiv:
     m = messages
     if isinstance(messages, Iterable):
       m = m[0]
+
+    pid_bytes = int(self.pid).to_bytes(4, 'big')
     message_id_bytes = m.id.to_bytes(4, 'big')
     sender_bytes = b'~' + self.event.sender_id.to_bytes(6, 'big', signed=True)
-    pid_bytes = int(self.pid).to_bytes(4, 'big')
+
     await self.event.reply(
       '获取完成',
       buttons=[
         [
-          Button.inline(
-            '移除遮罩' if self.options.mask else '添加遮罩',
-            b'mask_' + message_id_bytes + sender_bytes,
-          ),
+          get_mask_button(self.options.mask, m.id, self.event.sender_id),
           Button.inline(
             '详细描述' if self.options.hide else '简略描述',
             b'pid_' + message_id_bytes + b'_' + pid_bytes + sender_bytes,
@@ -161,7 +163,11 @@ class Pixiv:
     发送telegraph
     """
     url, msg = await get_telegraph(
-      self.res, self.tags, client, self.mid, self.options.nocache
+      self.res,
+      self.tags,
+      client,
+      self.mid,
+      self.options.nocache,
     )
     if isinstance(url, dict):
       await self.mid.reply(f'生成 telegraph 失败: {url["message"]}')
@@ -230,9 +236,9 @@ class Pixiv:
     """
     获取图片
     """
-    key = f'{self.pid}_p{i}' 
+    key = f'{self.pid}_p{i}'
     # + ('' if self.options.origin else '_regular')
-    
+
     if file_id := data[key]:
       return util.media.file_id_to_media(file_id, self.options.mask)
 

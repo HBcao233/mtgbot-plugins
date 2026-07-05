@@ -154,16 +154,16 @@ class PixivClient(util.curl.Client):
 
 def parse_msg(res, hide=False):
   pid = res['illustId']
-  
+
   def format_tag(tag):
     return '#' + tag.replace('R-', 'R').replace(' ', '_')
-  
+
   tags = []
   for i in res['tags']['tags']:
     tag = format_tag(i['tag'])
     tags.append(tag)
     if tag in tag_translation:
-      tags.append(mapping[tag])
+      tags.append(tag_translation[tag])
       continue
     if 'translation' in i.keys():
       tag = format_tag(i['translation']['en'])
@@ -215,24 +215,25 @@ def parse_msg(res, hide=False):
   if not hide:
     msg += f'{comment}\n<blockquote expandable>{" ".join(i for i in tags if i not in ["#R18", "#R18G"])}</blockquote>'
   else:
-    show_tags = pick_tags([
-      tag for tag in tags 
-      if tag not in ['#R18', '#R18G', '#Ugoira', '#动图']
-    ], 4)
+    show_tags = pick_tags(
+      [tag for tag in tags if tag not in ['#R18', '#R18G', '#Ugoira', '#动图']], 4
+    )
     msg += f'\n{" ".join(show_tags)}'
   msg += f'\n{createDate}'
   return msg, tags
+
 
 def sort_tags(tags):
   def is_chinese(s):
     # \uAC00-\uD7A3为匹配韩文的，其余为日文
     jap = re.compile(r'[\u3040-\u309F\u30A0-\u30FF\uAC00-\uD7A3]').search
     return bool(re.search(r'[\u4e00-\u9fff]', s)) and not jap(s)
-  
+
   with_cn = [s for s in tags if is_chinese(s)]
   without_cn = [s for s in tags if not is_chinese(s)]
   return with_cn + without_cn
-  
+
+
 def pick_tags(tags, count=4):
   # 去重
   tags = list(dict.fromkeys(tags))
