@@ -12,7 +12,7 @@ import asyncio
 
 import util
 from util.log import logger
-from plugin import Command, Scope
+from plugin import Command, Scope, import_plugin
 import filters
 from .data_source import (
   get_aweme_detail,
@@ -20,8 +20,12 @@ from .data_source import (
 )
 
 
+mask = import_plugin('mask')
+get_mask_button = mask.get_mask_button
+
+
 _pattern = re.compile(
-  r'(?:^/douyin |(?:/douyin ?)?(?:https?://)?(?:www\.|so\.)?(?:ies)?douyin\.com/(?:.*?video/|note/|.*?modal_id=|.*?actv_aid=)?)([0-9]{12,20})|(?:v\.douyin\.com/([0-9a-zA-Z_]{5,14}))|^/douyin(?!_)'
+  r'(?:^/douyin |(?:/douyin ?)?(?:https?://)?(?:www\.|so\.)?(?:ies)?douyin\.com/(?:.*?video/|note/|.*?modal_id=|.*?actv_aid=)?)([0-9]{12,20})|(?:v\.douyin\.com/([0-9a-zA-Z_-]{5,14}))|^/douyin(?!_)'
 ).search
 
 
@@ -73,7 +77,11 @@ class Douyin:
     logger.info(f'aweme_type: {aweme_type}')
 
     if aweme_type == 68:
-      return await self.send_images()
+      await self.send_images()
+      await self.mid.delete()
+      self.mid = await self.event.reply('请等待...')
+      await self.send_audio()
+      return
 
     await self.send_video()
 
@@ -106,10 +114,7 @@ class Douyin:
         file=media,
         caption=self.msg,
         parse_mode='html',
-        buttons=Button.inline(
-          '移除遮罩' if self.options.mask else '添加遮罩',
-          b'mask',
-        ),
+        buttons=[get_mask_button(self.options.mask)],
       )
     await self.mid.delete()
     with data:
@@ -137,12 +142,51 @@ class Douyin:
     return media
 
   async def send_images(self):
-    url = self.res['video']['play_addr']['url_list'][-1]
-    logger.info(url)
     key = f'douyin_{self.aid}'
+
+    photos = util.Photos()
+    self.urls = [i['url_list'][-1] for i in self.res['images']]
+    bar = util.progress.Progress(
+      self.mid,
+      total=len(self.urls),
+      prefix='下载中...',
+      percent=False,
+    )
+    async with bot.action(self.event.peer_id, 'photo'):
+      async with util.curl.Client() as client:
+        tasks = [self.get_image(i, client, photos, bar) for i in range(len(self.urls))]
+        gather_task = asyncio.gather(*tasks)
+        images = await gather_task
+
+      m = await bot.send_file(
+        self.event.peer_id,
+        file=images,
+        caption=self.msg,
+        parse_mode='html',
+      )
+      await bot.send_message(
+        m[0].chat_id,
+        '获取完成',
+        reply_to=m[0].id,
+        buttons=[
+          get_mask_button(self.options.mask, m[0].id, m[0].sender_id),
+        ],
+      )
+
+    with photos:
+      for i in range(len(self.urls)):
+        key = f'douyinimg_{self.aid}_{i}'
+        photos[key] = m[i]
+
+  async def send_audio(self):
+    url = self.res['video']['play_addr']['url_list'][-1]
+    # logger.info(url)
     audios = util.Audios()
-    bar = util.progress.Progress(self.mid)
+    key = f'douyin_{self.aid}'
     title = self.res['item_title'] or self.res['desc'] or key
+
+    bar = util.progress.Progress(self.mid)
+
     async with bot.action(self.event.peer_id, 'audio'):
       if (file_id := audios.get(key)) and not self.options.nocache:
         media = util.media.file_id_to_media(file_id)
@@ -174,29 +218,3 @@ class Douyin:
     await self.mid.delete()
     with audios:
       audios[key] = m
-
-    self.mid = await self.event.reply('请等待...')
-    photos = util.Photos()
-    self.urls = [i['url_list'][-1] for i in self.res['images']]
-    bar = util.progress.Progress(
-      self.mid,
-      total=len(self.urls),
-      prefix='下载中...',
-      percent=False,
-    )
-    async with bot.action(self.event.peer_id, 'photo'):
-      async with util.curl.Client() as client:
-        tasks = [self.get_image(i, client, photos, bar) for i in range(len(self.urls))]
-        gather_task = asyncio.gather(*tasks)
-        images = await gather_task
-      m = await bot.send_file(
-        self.event.peer_id,
-        file=images,
-        caption=self.msg,
-        parse_mode='html',
-      )
-    await self.mid.delete()
-    with photos:
-      for i in range(len(self.urls)):
-        key = f'douyinimg_{self.aid}_{i}'
-        photos[key] = m[i]

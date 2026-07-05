@@ -84,6 +84,9 @@ async def get_aweme_detail(aid: str):
 def parse_aweme_detail(res):
   aid = res['aweme_id']
   title = res['item_title'] or res['desc']
+  if not title:
+    title = '&lt;空标题&gt;'
+
   url = f'https://www.douyin.com/video/{aid}'
   # uid = res['author']['uid']
   # username = res['author']['unique_id']
