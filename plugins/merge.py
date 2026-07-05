@@ -3,13 +3,13 @@
 # @Email   : hbcaoqaq@gmail.com
 # @Require Plugin: mask
 # @Require Plugin: hosting
-# @依赖插件      : mask
-# @依赖插件      : mask
 
 from telethon import types, events, utils, errors, Button
 from collections.abc import Sequence
 import asyncio
 import re
+import mimetypes
+import time
 
 import util
 from util.log import logger
@@ -147,20 +147,26 @@ async def add_merge_button(event):
     [Button.inline('创建Telegraph', data=b'tmerge')],
   ]
   reply_to = btn_message.reply_to and btn_message.reply_to.reply_to_msg_id
-  future = event.respond(
-    f'已添加 {len(ids)} 条媒体',
-    buttons=buttons,
-    reply_to=reply_to,
-  )
+  
   if not MergeData.has_merge(peer):
-    m = await future
+    m = await event.respond(
+      f'已添加 {len(ids)} 条媒体',
+      buttons=buttons,
+      reply_to=reply_to,
+    )
     MergeData.add_merge(peer, ids, m.id)
     m = await m.pin()
     await m.delete()
   else:
     res = MergeData.get_merge(peer)
+    count = len(res.mids)
     ids = res.mids + ids
-    m = await future
+    ids = list(dict.fromkeys(ids))
+    m = await event.respond(
+      f'已添加 {len(ids) - count} 条媒体， 共计 {len(ids)}',
+      buttons=buttons,
+      reply_to=reply_to,
+    )
     for i in res.pin_mids:
       try:
         await bot.edit_message(peer, i, buttons=None)
@@ -174,6 +180,51 @@ async def add_merge_button(event):
 
 
 finish_merge_button_pattern = re.compile(rb'^fmerge$').match
+
+
+async def _get_animated_media(media):
+  _id = media.document.id
+  mime_type = media.document.mime_type
+  ext = mimetypes.guess_extension(mime_type)
+  filename = f'{_id}{ext}'
+  path = util.getCache(filename)
+  start_time = time.time()
+  file = await bot.download_media(media, path)
+  end_time = time.time()
+  logger.info(f'下载 {filename} ({media.document.size / 1024}KB) took {end_time - start_time}s ')
+  file = await bot.upload_file(path)
+  return types.InputMediaUploadedDocument(
+    nosound_video=True,
+    force_file=False,
+    spoiler=media.spoiler,
+    file=file,
+    # thumb=media.document.thumb,
+    mime_type=mime_type,
+    attributes=[attr
+      for attr in media.document.attributes
+      if not isinstance(attr, types.DocumentAttributeAnimated)
+    ],
+  )
+  
+async def _merge_messages(peer, messages):
+  medias = []
+  caption = []
+  for i in messages:
+    media = i.media
+    if i.document and any(
+      isinstance(attr, types.DocumentAttributeAnimated)
+      for attr in media.document.attributes
+    ):
+      media = await _get_animated_media(media)
+    
+    medias.append(media)
+    caption.append(i.text)
+  
+  await bot.send_file(
+    peer,
+    medias,
+    caption=caption,
+  )
 
 
 @bot.on(events.CallbackQuery(pattern=finish_merge_button_pattern))
@@ -190,7 +241,11 @@ async def finish_merge_button(event):
   if any(m is None for m in messages):
     await event.answer('待合并媒体被删除', alert=True)
   else:
-    await bot.send_file(peer, messages, caption=[i.text for i in messages])
+    try:
+      await _merge_messages(peer, messages)
+    except errors.MediaEmptyError:
+      logger.error(f'errors.MediaEmptyError')
+      await event.answer('媒体合并失败', alert=True)
 
   MergeData.delete_merge(peer)
   try:
