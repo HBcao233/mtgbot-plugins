@@ -157,10 +157,14 @@ async def _get_video(bvid, cid, client=None):
   r = await client.get(
     url,
     params=wbi(mixin_key, params),
-    headers={'referer': f'https://www.bilibili.com/video/{bvid}'},
+    headers=gheaders,
   )
+  if r.status_code != 200:
+      logger.info(f'请求失败: {r.status_code} {r.text}')
+      return None, None
   # logger.info(r.text)
-  res = r.json()['data']
+  res = r.json()
+  res = res['data']
   if 'dash' in res:
     return res['dash']['video'], res['dash']['audio']
   if 'durl' not in res:
